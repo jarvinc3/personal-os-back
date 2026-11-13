@@ -8,6 +8,11 @@ import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolv
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
+import type { EmailProductProposalDraft } from '@personal-os/contracts';
+import {
+  encryptAccountNumber,
+  fingerprintAccountNumber,
+} from '../../shared/infrastructure/account-number-encryption.util';
 
 const TEST_DATA_ENCRYPTION_KEY = 'test-data-encryption-key-minimum-32-chars!!';
 const BASE64_CIPHERTEXT = /^[A-Za-z0-9+/]+=*$/;
@@ -229,14 +234,45 @@ describe('CatalogService createAccount', () => {
     expect(createAccount).not.toHaveBeenCalled();
   });
 
-  it('rejects bank accounts without an account number', async () => {
+  it('requires last four digits when a bank account has no full number', async () => {
     await expect(
       service.createAccount('user-1', {
         name: 'Nómina',
         type: 'CHECKING',
         institutionId: 'inst-1',
       }),
-    ).rejects.toThrow(/account number/i);
+    ).rejects.toThrow(/accountNumberLast4/i);
+    expect(createAccount).not.toHaveBeenCalled();
+  });
+
+  it('creates a bank account with only its last four digits', async () => {
+    await service.createAccount('user-1', {
+      name: 'Ahorros',
+      type: 'SAVINGS',
+      institutionId: 'inst-1',
+      accountNumberLast4: '5678',
+    });
+
+    expect(createAccount).toHaveBeenCalledWith('user-1', {
+      name: 'Ahorros',
+      type: 'SAVINGS',
+      institutionId: 'inst-1',
+      accountNumber: null,
+      accountNumberLast4: '5678',
+      accountNumberHash: null,
+    });
+  });
+
+  it('rejects a suffix that differs from the supplied full account number', async () => {
+    await expect(
+      service.createAccount('user-1', {
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: 'inst-1',
+        accountNumber: '001122335678',
+        accountNumberLast4: '9999',
+      }),
+    ).rejects.toThrow(/coincidir/i);
     expect(createAccount).not.toHaveBeenCalled();
   });
 
@@ -339,11 +375,20 @@ describe('CatalogService updateAccount number', () => {
     findAccountById.mockResolvedValue(existing);
   });
 
-  it('rejects updating a bank account that still has no account number', async () => {
-    await expect(
-      service.updateAccount('user-1', 'acc-1', { name: 'Nómina 2' }),
-    ).rejects.toThrow(/account number/i);
-    expect(updateAccount).not.toHaveBeenCalled();
+  it('allows updating a suffix-only account without a full account number', async () => {
+    findAccountById.mockResolvedValue({
+      ...existing,
+      accountNumberLast4: '5678',
+    });
+    updateAccount.mockResolvedValue({ ...existing, name: 'Nómina 2' });
+
+    await service.updateAccount('user-1', 'acc-1', { name: 'Nómina 2' });
+
+    expect(updateAccount).toHaveBeenCalledWith(
+      'acc-1',
+      'user-1',
+      expect.objectContaining({ name: 'Nómina 2' }),
+    );
   });
 
   it('refuses to archive an account with money set aside in a goal', async () => {
@@ -405,6 +450,143 @@ describe('CatalogService updateAccount number', () => {
       }),
     );
     expect(result.accountNumberLast4).toBe('5678');
+  });
+
+  it('clears the optional full number while preserving its last four digits', async () => {
+    const encrypted = encryptAccountNumber(
+      '001122335678',
+      TEST_DATA_ENCRYPTION_KEY,
+    );
+    findAccountById.mockResolvedValue({
+      ...existing,
+      accountNumber: encrypted,
+      accountNumberLast4: '5678',
+      accountNumberHash: fingerprintAccountNumber(
+        '001122335678',
+        TEST_DATA_ENCRYPTION_KEY,
+      ),
+    });
+    updateAccount.mockResolvedValue({
+      ...existing,
+      accountNumberLast4: '5678',
+    });
+
+    await service.updateAccount('user-1', 'acc-1', { accountNumber: null });
+
+    expect(updateAccount).toHaveBeenCalledWith(
+      'acc-1',
+      'user-1',
+      expect.objectContaining({
+        accountNumber: null,
+        accountNumberHash: null,
+        accountNumberLast4: '5678',
+      }),
+    );
+  });
+});
+
+describe('CatalogService email product proposals', () => {
+  const findInstitutionsByUser = jest.fn();
+  const findEmailAccountCandidates = jest.fn();
+  const findEmailCardCandidates = jest.fn();
+  const createInstitution = jest.fn();
+  const createAccount = jest.fn();
+  const createCard = jest.fn();
+  const repo = {
+    findInstitutionsByUser,
+    findEmailAccountCandidates,
+    findEmailCardCandidates,
+    createInstitution,
+    createAccount,
+    createCard,
+  } as unknown as CatalogRepository;
+  const service = createService(repo, ownershipMock(), purgeMock());
+
+  const accountDraft: EmailProductProposalDraft = {
+    productType: 'ACCOUNT',
+    name: 'Cuenta BHD ****0016',
+    lastFour: '0016',
+    currency: 'DOP',
+    accountType: 'SAVINGS',
+    cardType: null,
+    network: null,
+    accountId: null,
+    institution: {
+      name: 'BHD',
+      type: 'bank',
+      domain: 'bhd.com.do',
+      country: 'DO',
+    },
+    accountNumberCiphertext: null,
+    accountNumberHash: null,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findInstitutionsByUser.mockResolvedValue([
+      { id: 'inst-1', name: 'BHD', domain: 'bhd.com.do', type: 'bank' },
+    ]);
+    findEmailAccountCandidates.mockResolvedValue([]);
+    findEmailCardCandidates.mockResolvedValue([]);
+    createAccount.mockResolvedValue({
+      id: 'account-new',
+      institutionId: 'inst-1',
+      name: accountDraft.name,
+      type: 'SAVINGS',
+      currency: 'DOP',
+      accountNumber: null,
+      accountNumberLast4: '0016',
+      accountNumberHash: null,
+      isDefaultForInstitution: false,
+      balance: { toString: () => '0.00' },
+      color: null,
+      isActive: true,
+      createdAt: new Date('2026-01-01'),
+      updatedAt: new Date('2026-01-01'),
+      institutionRef: { name: 'BHD' },
+    });
+  });
+
+  it('creates a confirmed proposal account from last four digits alone', async () => {
+    await expect(
+      service.createEmailProductFromProposal('user-1', accountDraft),
+    ).resolves.toEqual({ productId: 'account-new', duplicate: false });
+
+    expect(createInstitution).not.toHaveBeenCalled();
+    expect(createAccount).toHaveBeenCalledWith('user-1', {
+      name: accountDraft.name,
+      type: 'SAVINGS',
+      currency: 'DOP',
+      institutionId: 'inst-1',
+      accountNumber: null,
+      accountNumberLast4: '0016',
+      accountNumberHash: null,
+    });
+  });
+
+  it('reuses a matching account instead of creating a duplicate', async () => {
+    findEmailAccountCandidates.mockResolvedValue([
+      { id: 'account-existing', institutionId: 'inst-1' },
+    ]);
+
+    await expect(
+      service.createEmailProductFromProposal('user-1', accountDraft),
+    ).resolves.toEqual({ productId: 'account-existing', duplicate: true });
+    expect(createAccount).not.toHaveBeenCalled();
+    expect(createInstitution).not.toHaveBeenCalled();
+  });
+
+  it('requires resolution when several matching accounts share the suffix', async () => {
+    findEmailAccountCandidates.mockResolvedValue([
+      { id: 'account-a', institutionId: 'inst-1' },
+      { id: 'account-b', institutionId: 'inst-1' },
+    ]);
+
+    await expect(
+      service.createEmailProductFromProposal('user-1', accountDraft),
+    ).rejects.toThrow(/varios productos/i);
+    expect(createAccount).not.toHaveBeenCalled();
+    expect(createInstitution).not.toHaveBeenCalled();
   });
 });
 

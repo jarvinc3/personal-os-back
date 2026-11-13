@@ -31,6 +31,9 @@ import { AiKnowledgeController } from './knowledge/ai-knowledge.controller';
 import { AiEmailClassificationService } from './email/ai-email-classification.service';
 import { AiEmailReclassificationService } from './email/email-reclassification.service';
 import { EmailSampleImportService } from './email/email-sample-import.service';
+import { EmailProductProposalsService } from './email/email-product-proposals.service';
+import { EmailProductProposalsController } from './email/email-product-proposals.controller';
+import { EmailProductProposalCatalogRegistry } from './email/email-product-proposal-catalog.registry';
 import { BullModule } from '@nestjs/bullmq';
 import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
 import { QueueNames } from '@personal-os/core';
@@ -69,6 +72,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiRolesController,
     AiConsentController,
     AiIntelligenceController,
+    EmailProductProposalsController,
     AiEvidenceController,
     AiKnowledgeController,
     AiSignalsController,
@@ -85,6 +89,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailClassificationService,
     AiEmailReclassificationService,
     EmailSampleImportService,
+    EmailProductProposalsService,
+    EmailProductProposalCatalogRegistry,
     AiSignalsService,
     AiSignalOutboxBridge,
     AiSignalConsumerRegistry,
@@ -137,6 +143,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiRolesService,
     AiConsentService,
     AiEmailSourceService,
+    EmailProductProposalCatalogRegistry,
     AiService,
     AiInferenceGateway,
     AiInferenceDataService,

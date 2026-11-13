@@ -89,6 +89,52 @@ export class CatalogRepository {
       include: { institutionRef: true },
     });
   }
+  findEmailAccountCandidates(userId: string, lastFour: string) {
+    return this.prisma.finAccount.findMany({
+      where: { userId, accountNumberLast4: lastFour },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        currency: true,
+        accountNumberLast4: true,
+        institutionId: true,
+        institutionRef: {
+          select: { id: true, name: true, domain: true },
+        },
+      },
+    });
+  }
+  findEmailCardCandidates(userId: string, lastFour: string) {
+    return this.prisma.finCard.findMany({
+      where: { userId, lastFour },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        lastFour: true,
+        institutionId: true,
+        institution: {
+          select: { id: true, name: true, domain: true },
+        },
+      },
+    });
+  }
+  findInstitutionsByUser(userId: string) {
+    return this.prisma.finInstitution.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        shortName: true,
+        domain: true,
+        country: true,
+        isActive: true,
+        isSystem: true,
+      },
+    });
+  }
   /** One query for many accounts, for the bulk entity lookup. */
   findAccountsByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finAccount.findMany({
@@ -134,7 +180,8 @@ export class CatalogRepository {
   }
   createAccount(
     userId: string,
-    dto: Omit<CreateAccountDto, 'accountNumber'> & AccountNumberColumns,
+    dto: Omit<CreateAccountDto, 'accountNumber' | 'accountNumberLast4'> &
+      AccountNumberColumns,
   ) {
     const data: Prisma.FinAccountUncheckedCreateInput = {
       userId,
@@ -159,7 +206,7 @@ export class CatalogRepository {
   updateAccount(
     id: string,
     userId: string,
-    dto: Omit<UpdateAccountDto, 'accountNumber'> &
+    dto: Omit<UpdateAccountDto, 'accountNumber' | 'accountNumberLast4'> &
       Partial<AccountNumberColumns>,
   ) {
     return this.prisma.finAccount

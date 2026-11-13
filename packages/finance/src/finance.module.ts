@@ -21,6 +21,7 @@ import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
+import { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 /**
  * Finance composition root — domain capabilities and their AI read provider.
  */
@@ -49,12 +50,14 @@ import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
     FinanceFacade,
     FinanceAiCapabilities,
     FinanceSignalConsumer,
+    FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
   ],
   exports: [
     FinanceFacade,
     FinanceAiCapabilities,
     FinanceSignalConsumer,
+    FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
   ],
 })

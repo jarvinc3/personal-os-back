@@ -357,4 +357,46 @@ export interface SignalConsumer<T extends JsonObject = JsonObject> {
   preview?(signal: RoutedSignal<T>): Promise<SignalImportPreview>;
 }
 
+export type EmailProductProposalDraft = {
+  productType: 'ACCOUNT' | 'CARD';
+  name: string;
+  lastFour: string;
+  currency: string | null;
+  accountType: 'CHECKING' | 'SAVINGS' | 'INVESTMENT' | null;
+  cardType: 'CREDIT' | 'DEBIT' | null;
+  network: 'VISA' | 'MASTERCARD' | 'AMEX' | 'DISCOVER' | 'OTHER' | null;
+  accountId: string | null;
+  institution: {
+    name: string;
+    type: string;
+    domain: string | null;
+    country: string;
+  };
+  /** AES-GCM ciphertext; never returned by the proposal API. */
+  accountNumberCiphertext: string | null;
+  /** HMAC blind index; never returned by the proposal API. */
+  accountNumberHash: string | null;
+};
+
+export type EmailProductProposalAccountNumber = {
+  ciphertext: string | null;
+  hash: string | null;
+  lastFour: string;
+};
+
+export interface EmailProductProposalCatalogPort {
+  prepareAccountNumber(input: {
+    accountNumber?: string | null;
+    lastFour?: string;
+  }): Promise<EmailProductProposalAccountNumber>;
+  findExisting(
+    userId: string,
+    draft: EmailProductProposalDraft,
+  ): Promise<{ productId: string; ambiguous: boolean } | null>;
+  createOrReuse(
+    userId: string,
+    draft: EmailProductProposalDraft,
+  ): Promise<{ productId: string; duplicate: boolean }>;
+}
+
 export * from './email-product-hints';

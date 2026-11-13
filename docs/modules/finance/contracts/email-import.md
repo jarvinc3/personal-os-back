@@ -3,7 +3,7 @@
 - Estado: contrato acordado. La transferencia de una pata (#340), el pago de tarjeta (#335), las pistas del clasificador (#343) y la vista previa de muestra (#342) están implementados en develop. Esta unidad implementa los reversos; el consumidor de fecha sugerida de #337 sigue pendiente.
 - Fecha: 2026-11-11. Decisiones del owner del 2026-11-11 incorporadas en la sección 0.
 - Base integrada: `develop` `ed7221c1684fede4f634d0624191c1228bb6ffe9`.
-- Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
+- Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336), [#368](https://github.com/jarvinc3/personal-os-back/issues/368).
 - Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
 Este documento fija el contrato objetivo de la importación por correo. No describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión independiente de Codex no es una aprobación. Sus hallazgos están incorporados en el paquete local y en este contrato.
@@ -82,6 +82,12 @@ Decisiones de nombre y forma:
   - solo `last4` de tarjeta: `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`, revisión.
 
 La cuenta debe ser inequívoca. Una pista parcial que coincide con varias cuentas no se resuelve por semejanza.
+
+Las propuestas #368 pueden completar el catálogo a partir de una señal revisable,
+pero solo después de aprobación explícita del usuario. Una cuenta bancaria
+puede guardarse con `accountNumberLast4` sin el número completo; si se añade el
+número completo, Finance lo cifra y verifica que termine en esos mismos cuatro
+dígitos. La resolución de señales continúa exigiendo una única cuenta activa.
 
 ### 3.2 Pata conocida
 

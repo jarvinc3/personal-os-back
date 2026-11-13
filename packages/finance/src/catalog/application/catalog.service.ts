@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@personal-os/database';
+import type { EmailProductProposalDraft } from '@personal-os/contracts';
 import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import type { CursorQueryDto } from '@personal-os/core';
 import type { Env } from '@personal-os/config';
@@ -34,6 +35,7 @@ import {
 import { normalizeCurrencyCode, roundMoney } from '../../shared/domain/money';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import {
+  decryptAccountNumber,
   accountNumberLast4,
   encryptAccountNumber,
   fingerprintAccountNumber,
@@ -96,12 +98,24 @@ function mapCardBalance(
   };
 }
 
-function omitAccountNumber<T extends { accountNumber?: string | null }>(
-  dto: T,
-): Omit<T, 'accountNumber'> {
-  const { accountNumber, ...rest } = dto;
+function omitAccountNumber<
+  T extends {
+    accountNumber?: string | null;
+    accountNumberLast4?: string | null;
+  },
+>(dto: T): Omit<T, 'accountNumber' | 'accountNumberLast4'> {
+  const { accountNumber, accountNumberLast4, ...rest } = dto;
   void accountNumber;
+  void accountNumberLast4;
   return rest;
+}
+
+function normalizeInstitutionName(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 @Injectable()
@@ -126,22 +140,223 @@ export class CatalogService {
     return this.config.get('DATA_ENCRYPTION_KEY', { infer: true });
   }
 
-  private buildAccountNumberColumns(
-    plaintext: string | null,
-  ): AccountNumberColumns {
-    if (!plaintext) {
-      return {
-        accountNumber: null,
-        accountNumberLast4: null,
-        accountNumberHash: null,
-      };
+  prepareEmailProposalAccountNumber(input: {
+    accountNumber?: string | null;
+    lastFour?: string;
+  }) {
+    if (
+      input.accountNumber != null &&
+      !/^[0-9\s-]{4,48}$/.test(input.accountNumber)
+    ) {
+      throw new BadRequestException(
+        'accountNumber solo puede contener dígitos, espacios y guiones',
+      );
     }
-    const secret = this.dataEncryptionKey;
+    const full = normalizeAccountNumber(input.accountNumber);
+    if (full && (full.length < 4 || full.length > 34)) {
+      throw new BadRequestException(
+        'accountNumber debe tener de 4 a 34 dígitos',
+      );
+    }
+    const lastFour = input.lastFour ?? (full ? accountNumberLast4(full) : null);
+    if (!lastFour || !/^\d{4}$/.test(lastFour)) {
+      throw new BadRequestException('lastFour debe tener 4 dígitos');
+    }
+    if (full && accountNumberLast4(full) !== lastFour) {
+      throw new BadRequestException(
+        'lastFour debe coincidir con el final del número de cuenta',
+      );
+    }
     return {
-      accountNumber: encryptAccountNumber(plaintext, secret),
-      accountNumberLast4: accountNumberLast4(plaintext),
-      accountNumberHash: fingerprintAccountNumber(plaintext, secret),
+      ciphertext: full
+        ? encryptAccountNumber(full, this.dataEncryptionKey)
+        : null,
+      hash: full
+        ? fingerprintAccountNumber(full, this.dataEncryptionKey)
+        : null,
+      lastFour,
     };
+  }
+
+  async findExistingEmailProduct(
+    userId: string,
+    draft: EmailProductProposalDraft,
+  ): Promise<{ productId: string; ambiguous: boolean } | null> {
+    const [institutions, products] = await Promise.all([
+      this.repo.findInstitutionsByUser(userId),
+      draft.productType === 'ACCOUNT'
+        ? this.repo.findEmailAccountCandidates(userId, draft.lastFour)
+        : this.repo.findEmailCardCandidates(userId, draft.lastFour),
+    ]);
+    const institutionIds = new Set(
+      institutions
+        .filter((institution) =>
+          this.matchesProposalInstitution(institution, draft.institution),
+        )
+        .map((institution) => institution.id),
+    );
+    const matches = products.filter((product) =>
+      institutionIds.has(product.institutionId ?? ''),
+    );
+    if (!matches.length) {
+      return null;
+    }
+    return { productId: matches[0].id, ambiguous: matches.length > 1 };
+  }
+
+  async createEmailProductFromProposal(
+    userId: string,
+    draft: EmailProductProposalDraft,
+  ): Promise<{ productId: string; duplicate: boolean }> {
+    const productType = draft.productType;
+    const accountType = draft.accountType;
+    const cardType = draft.cardType;
+    const existing = await this.findExistingEmailProduct(userId, draft);
+    if (existing?.ambiguous) {
+      throw new ConflictException(
+        'Hay varios productos con estos últimos 4 dígitos; resuelve el duplicado antes de aprobar',
+      );
+    }
+    if (existing) {
+      return { productId: existing.productId, duplicate: true };
+    }
+
+    let plaintextAccountNumber: string | null = null;
+    if (productType === 'ACCOUNT') {
+      if (!accountType) {
+        throw new BadRequestException(
+          'Elige CHECKING, SAVINGS o INVESTMENT antes de aprobar la cuenta',
+        );
+      }
+      if (!/^\d{4}$/.test(draft.lastFour)) {
+        throw new BadRequestException('lastFour debe tener 4 dígitos');
+      }
+      if (draft.accountNumberCiphertext && !draft.accountNumberHash) {
+        throw new BadRequestException(
+          'El número de cuenta cifrado no es válido',
+        );
+      }
+      if (!draft.accountNumberCiphertext && draft.accountNumberHash) {
+        throw new BadRequestException(
+          'El índice del número de cuenta no es válido',
+        );
+      }
+      if (draft.accountNumberCiphertext) {
+        plaintextAccountNumber = decryptAccountNumber(
+          draft.accountNumberCiphertext,
+          this.dataEncryptionKey,
+        );
+        if (
+          fingerprintAccountNumber(
+            plaintextAccountNumber,
+            this.dataEncryptionKey,
+          ) !== draft.accountNumberHash ||
+          accountNumberLast4(plaintextAccountNumber) !== draft.lastFour
+        ) {
+          throw new BadRequestException(
+            'El número de cuenta cifrado no coincide',
+          );
+        }
+      }
+    } else {
+      if (!cardType) {
+        throw new BadRequestException(
+          'Elige CREDIT o DEBIT antes de aprobar la tarjeta',
+        );
+      }
+      if (cardType === 'DEBIT' && !draft.accountId) {
+        throw new BadRequestException(
+          'Asocia la cuenta antes de aprobar una tarjeta DEBIT',
+        );
+      }
+      if (!/^\d{4}$/.test(draft.lastFour)) {
+        throw new BadRequestException('lastFour debe tener 4 dígitos');
+      }
+    }
+
+    const institutionMatches = (
+      await this.repo.findInstitutionsByUser(userId)
+    ).filter((institution) =>
+      this.matchesProposalInstitution(institution, draft.institution),
+    );
+    if (institutionMatches.length > 1) {
+      throw new ConflictException(
+        'Hay varias instituciones compatibles; edita la propuesta para identificar una',
+      );
+    }
+    if (
+      draft.productType === 'CARD' &&
+      cardType === 'DEBIT' &&
+      institutionMatches.length === 0
+    ) {
+      throw new BadRequestException(
+        'Selecciona una institución existente para asociar una tarjeta DEBIT',
+      );
+    }
+    this.assertNotCashInstitutionType(draft.institution.type);
+    const institution =
+      institutionMatches[0] ??
+      (await this.repo.createInstitution(userId, {
+        name: draft.institution.name,
+        type: draft.institution.type,
+        domain: draft.institution.domain,
+        country: draft.institution.country,
+        shortName: null,
+        sortOrder: 0,
+        color: null,
+        logoPath: null,
+        customLogoPath: null,
+        logoUrl: null,
+        isActive: true,
+        isSystem: false,
+      }));
+
+    if (productType === 'ACCOUNT') {
+      if (!accountType) {
+        throw new BadRequestException(
+          'Elige CHECKING, SAVINGS o INVESTMENT antes de aprobar la cuenta',
+        );
+      }
+      const account = await this.createAccount(userId, {
+        institutionId: institution.id,
+        name: draft.name,
+        type: accountType,
+        currency: draft.currency ?? 'DOP',
+        accountNumber: plaintextAccountNumber ?? undefined,
+        accountNumberLast4: draft.lastFour,
+      });
+      return { productId: account.id, duplicate: false };
+    }
+
+    if (!cardType) {
+      throw new BadRequestException(
+        'Elige CREDIT o DEBIT antes de aprobar la tarjeta',
+      );
+    }
+    const card = await this.createCard(userId, {
+      institutionId: institution.id,
+      name: draft.name,
+      type: cardType,
+      lastFour: draft.lastFour,
+      network: draft.network ?? undefined,
+      accountId:
+        cardType === 'DEBIT' ? (draft.accountId ?? undefined) : undefined,
+    });
+    return { productId: card.id, duplicate: false };
+  }
+
+  private matchesProposalInstitution(
+    candidate: { name: string; domain: string | null },
+    institution: EmailProductProposalDraft['institution'],
+  ): boolean {
+    const domain = institution.domain?.trim().toLowerCase();
+    if (domain && candidate.domain?.trim().toLowerCase() === domain) {
+      return true;
+    }
+    return (
+      normalizeInstitutionName(candidate.name) ===
+      normalizeInstitutionName(institution.name)
+    );
   }
 
   async listAccounts(userId: string) {
@@ -208,9 +423,10 @@ export class CatalogService {
       dto.type,
       dto.institutionId,
     );
-    const accountNumber = this.assertAccountNumberRule(
+    const accountNumberColumns = this.buildAccountNumberColumns(
       dto.type,
       dto.accountNumber,
+      dto.accountNumberLast4,
     );
     if (dto.type === CASH_ACCOUNT_TYPE && dto.isDefaultForInstitution) {
       throw new BadRequestException(
@@ -226,7 +442,7 @@ export class CatalogService {
         await this.repo.createAccount(userId, {
           ...rest,
           institutionId,
-          ...this.buildAccountNumberColumns(accountNumber),
+          ...accountNumberColumns,
         }),
       );
     } catch (error) {
@@ -264,7 +480,10 @@ export class CatalogService {
       type: nextType,
       clearAccountNumber,
       requested: dto.accountNumber,
+      requestedLastFour: dto.accountNumberLast4,
       existingAccountNumber: existing.accountNumber,
+      existingLastFour: existing.accountNumberLast4,
+      existingType: existing.type,
     });
 
     if (
@@ -834,48 +1053,108 @@ export class CatalogService {
     type: string;
     clearAccountNumber: boolean;
     requested: string | null | undefined;
+    requestedLastFour: string | undefined;
     existingAccountNumber: string | null;
+    existingLastFour: string | null;
+    existingType: string;
   }): AccountNumberColumns | Partial<AccountNumberColumns> {
-    const { type, clearAccountNumber, requested, existingAccountNumber } =
-      params;
+    const {
+      type,
+      clearAccountNumber,
+      requested,
+      requestedLastFour,
+      existingAccountNumber,
+      existingLastFour,
+      existingType,
+    } = params;
     if (clearAccountNumber) {
-      this.assertAccountNumberRule(type, requested);
-      return this.buildAccountNumberColumns(null);
+      if (requestedLastFour) {
+        throw new BadRequestException(
+          'CASH accounts must not set accountNumberLast4',
+        );
+      }
+      return this.buildAccountNumberColumns(type, requested, null);
     }
     if (requested !== undefined) {
       return this.buildAccountNumberColumns(
-        this.assertAccountNumberRule(type, requested),
+        type,
+        requested,
+        requested === null
+          ? (requestedLastFour ?? existingLastFour)
+          : requestedLastFour,
       );
     }
-    if (existingAccountNumber === null) {
-      this.assertAccountNumberRule(type, null);
+    if (requestedLastFour !== undefined) {
+      const currentFullNumber = existingAccountNumber
+        ? decryptAccountNumber(existingAccountNumber, this.dataEncryptionKey)
+        : null;
+      return this.buildAccountNumberColumns(
+        type,
+        currentFullNumber,
+        requestedLastFour,
+      );
+    }
+    if (existingType === CASH_ACCOUNT_TYPE && type !== CASH_ACCOUNT_TYPE) {
+      return this.buildAccountNumberColumns(type, null, existingLastFour);
     }
     return {};
   }
 
-  private assertAccountNumberRule(
+  private buildAccountNumberColumns(
     type: string,
     raw: string | null | undefined,
-  ): string | null {
+    requestedLastFour: string | null | undefined,
+  ): AccountNumberColumns {
     const accountNumber = normalizeAccountNumber(raw);
     if (!isBankAccountType(type)) {
-      if (accountNumber) {
+      if (accountNumber || requestedLastFour) {
         throw new BadRequestException(
-          'CASH accounts must not set accountNumber',
+          'CASH accounts must not set accountNumber or accountNumberLast4',
         );
       }
-      return null;
+      return {
+        accountNumber: null,
+        accountNumberLast4: null,
+        accountNumberHash: null,
+      };
     }
     if (
-      !accountNumber ||
-      accountNumber.length < ACCOUNT_NUMBER_MIN_DIGITS ||
-      accountNumber.length > ACCOUNT_NUMBER_MAX_DIGITS
+      accountNumber &&
+      (accountNumber.length < ACCOUNT_NUMBER_MIN_DIGITS ||
+        accountNumber.length > ACCOUNT_NUMBER_MAX_DIGITS)
     ) {
       throw new BadRequestException(
         'CHECKING, SAVINGS, and INVESTMENT accounts require an account number of 4 to 34 digits',
       );
     }
-    return accountNumber;
+    const derivedLastFour = accountNumber ? accountNumber.slice(-4) : null;
+    if (requestedLastFour && !/^\d{4}$/.test(requestedLastFour)) {
+      throw new BadRequestException('accountNumberLast4 debe tener 4 dígitos');
+    }
+    if (
+      derivedLastFour &&
+      requestedLastFour &&
+      derivedLastFour !== requestedLastFour
+    ) {
+      throw new BadRequestException(
+        'accountNumberLast4 debe coincidir con el final de accountNumber',
+      );
+    }
+    const lastFour = derivedLastFour ?? requestedLastFour ?? null;
+    if (!lastFour) {
+      throw new BadRequestException(
+        'CHECKING, SAVINGS, and INVESTMENT accounts require accountNumberLast4 or a full account number',
+      );
+    }
+    return {
+      accountNumber: accountNumber
+        ? encryptAccountNumber(accountNumber, this.dataEncryptionKey)
+        : null,
+      accountNumberLast4: lastFour,
+      accountNumberHash: accountNumber
+        ? fingerprintAccountNumber(accountNumber, this.dataEncryptionKey)
+        : null,
+    };
   }
 
   private normalizeInstitutionDomain(

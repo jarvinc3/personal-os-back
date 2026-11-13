@@ -55,4 +55,35 @@ Verificar un correo o un lote de revisión reclasifica además los correos ya cl
 
 Repetir la misma verificación con el mismo veredicto, etiquetas y nota no agrega otra fila append-only: reutiliza la última idéntica y vuelve a intentar la reclasificación. Si la reclasificación falla, la petición responde error después de guardar la verificación; el reintento es seguro, libera los correos que quedaron en `CLASSIFYING` y no duplica evidencia.
 
+## Propuestas de productos detectados (#368)
+
+El proceso de propuestas lee mensajes y señales ya persistidos; no inicia OAuth,
+no sincroniza Gmail, no reclasifica con IA y no escribe productos durante el
+descubrimiento. `POST /api/intelligence/email/product-proposals/discover`
+revisa hasta 200 señales BHD en `ROUTED` cuyo preview de Finance muestra un
+bloqueo de destino. Reconoce solo etiquetas explícitas de tarjeta BHD y la
+cuenta propia que indica la clase: `Producto origen` en `TRANSFER_OUT` y en
+`CARD_PAYMENT`, y en `TRANSFER_IN` el `Producto destino` o la etiqueta
+`Producto :` de la transferencia recibida. La contraparte, el ordenante y el
+banco de origen nunca se proponen. Un destino no registrado no se adivina como
+tarjeta ni como cuenta. Identificar el lado o el tipo con ambigüedad no produce
+propuesta.
+
+`GET /api/intelligence/email/product-proposals` lista las propuestas con
+asunto, dominio, fecha e indicio mínimo de cada correo de origen. La evidencia
+no incluye cuerpos ni números completos. `PATCH
+/api/intelligence/email/product-proposals/:proposalId` permite corregir el
+borrador; `POST .../:proposalId/approve` es el único paso que crea o reutiliza
+la institución y el producto; `POST .../:proposalId/discard` descarta una
+propuesta pendiente. Las rutas responden 404 en producción. Cada propuesta se
+deduplica por usuario, institución, tipo de producto y últimos cuatro, y la
+evidencia por mensaje es única.
+
+Una cuenta requiere tipo y últimos cuatro antes de aprobar. El número completo
+es opcional: si se proporciona se cifra con `DATA_ENCRYPTION_KEY` y el API solo
+expone si existe y sus últimos cuatro. Puede añadirse, reemplazarse o borrarse
+después con `PATCH /api/finance/accounts/:id`. Tras aprobar, Finance vuelve a
+evaluar las señales en revisión asociadas a los correos de evidencia; la clave
+de importación de la señal mantiene idempotente la creación del movimiento.
+
 Configure `AI_GMAIL_CLIENT_ID`, `AI_GMAIL_CLIENT_SECRET`, `AI_GMAIL_REDIRECT_URI`, and the dedicated 32-character `AI_GMAIL_TOKEN_ENCRYPTION_KEY` in DEV. Set `AI_DEV_ADMIN_EMAIL` to seed the development administrator. This configuration is not applied to production as part of AI-2.
