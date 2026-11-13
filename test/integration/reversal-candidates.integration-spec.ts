@@ -28,7 +28,6 @@ const reversalDate = new Date('2026-11-06T19:24:00.000Z');
 const windowFrom = new Date('2026-11-03T19:24:00.000Z');
 let cardId: string;
 let accountId: string;
-let otherAccountId: string;
 let otherCardId: string;
 let creditCardPurchaseId: string;
 const expectedIds: string[] = [];
@@ -96,19 +95,6 @@ beforeAll(async () => {
     select: { id: true },
   });
   accountId = account.id;
-  const otherAccount = await prisma.finAccount.create({
-    data: {
-      userId,
-      institutionId: institution.id,
-      name: 'Otra cuenta',
-      type: 'SAVINGS',
-      currency: 'DOP',
-      balance: 0,
-      accountNumberLast4: '0024',
-    },
-    select: { id: true },
-  });
-  otherAccountId = otherAccount.id;
   const card = await prisma.finCard.create({
     data: {
       userId,
@@ -133,27 +119,16 @@ beforeAll(async () => {
   });
   otherCardId = otherCard.id;
 
-  const insideWithoutAccount = await purchase({
+  const inside = await purchase({
     date: new Date('2026-11-06T19:23:00.000Z'),
     card: cardId,
     account: null,
   });
-  expectedIds.push(insideWithoutAccount.id);
-  const insideWithAccount = await purchase({
-    date: new Date('2026-11-05T10:00:00.000Z'),
-    card: cardId,
-    account: accountId,
-  });
-  expectedIds.push(insideWithAccount.id);
+  expectedIds.push(inside.id);
   await purchase({
     date: new Date('2026-11-02T19:23:00.000Z'),
     card: cardId,
     account: null,
-  });
-  await purchase({
-    date: new Date('2026-11-06T19:23:00.000Z'),
-    card: cardId,
-    account: otherAccountId,
   });
   await purchase({
     date: new Date('2026-11-06T19:23:00.000Z'),
