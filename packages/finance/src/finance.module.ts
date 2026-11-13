@@ -19,6 +19,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
+import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 import { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 /**
@@ -50,12 +51,14 @@ import { FinanceEmailProductProposalCatalog } from './catalog/application/email-
     FinanceAiCapabilities,
     FinanceSignalConsumer,
     FinanceEmailProductProposalCatalog,
+    FinanceEmailProductHints,
   ],
   exports: [
     FinanceFacade,
     FinanceAiCapabilities,
     FinanceSignalConsumer,
     FinanceEmailProductProposalCatalog,
+    FinanceEmailProductHints,
   ],
 })
 export class FinanceModule {}

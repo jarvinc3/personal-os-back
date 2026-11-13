@@ -398,3 +398,5 @@ export interface EmailProductProposalCatalogPort {
     draft: EmailProductProposalDraft,
   ): Promise<{ productId: string; duplicate: boolean }>;
 }
+
+export * from './email-product-hints';

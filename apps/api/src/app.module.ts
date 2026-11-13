@@ -43,6 +43,7 @@ import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
 import { AiCapabilityCompositionService } from './ai-capabilities/ai-capability-composition.service';
 import { FinanceSignalConsumer } from '@personal-os/finance';
 import { ModuleSettingsModule } from './module-settings/module-settings.module';
+import { EmailProductHintsModule } from './email-product-hints/email-product-hints.module';
 import { AGENDA_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/agenda.settings-descriptor';
 import { HEALTH_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/health.settings-descriptor';
 import { PROJECTS_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/projects.settings-descriptor';
@@ -202,6 +203,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     UsersModule,
     UserDataWipeModule,
     FinanceModule,
+    EmailProductHintsModule,
     ModuleSettingsModule.register([
       FINANCE_SETTINGS_DESCRIPTOR,
       INTELLIGENCE_SETTINGS_DESCRIPTOR,

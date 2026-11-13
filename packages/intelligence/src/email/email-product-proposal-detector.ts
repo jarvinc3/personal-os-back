@@ -72,36 +72,72 @@ export function detectBhdEmailProductProposal(input: {
     }
   }
 
-  const direction = input.movementClass;
-  if (direction !== 'TRANSFER_OUT' && direction !== 'TRANSFER_IN') {
+  const account = readOwnAccount(body, input.movementClass);
+  if (!account) {
     return [];
   }
-  const side = direction === 'TRANSFER_OUT' ? 'origen' : 'destino';
-  const match = new RegExp(
-    `Producto\\s+${side}\\s*:\\s*[^\\r\\n]*?(\\d{4})(?!\\d)`,
-    'i',
-  ).exec(body);
-  if (!match) {
-    return [];
-  }
-  const lastFour = match[1];
   return [
     {
       productType: 'ACCOUNT',
-      name: `Cuenta BHD ****${lastFour}`,
-      lastFour,
+      name: `Cuenta BHD ****${account.lastFour}`,
+      lastFour: account.lastFour,
       currency: 'DOP',
       accountType: null,
       cardType: null,
       network: null,
       institution: BHD_INSTITUTION,
       evidence: {
-        label: `Producto ${side}`,
-        lastFour,
-        side: direction === 'TRANSFER_OUT' ? 'SOURCE' : 'DESTINATION',
+        label: account.label,
+        lastFour: account.lastFour,
+        side: account.side,
       },
     },
   ];
+}
+
+/**
+ * La cuenta propia es la que ya clasificó el correo. La transferencia recibida
+ * escribe `Producto :`, no `Producto destino`. Un pago de tarjeta sale de
+ * `Producto origen`; el destino es la tarjeta y no se propone como cuenta.
+ */
+function readOwnAccount(
+  body: string,
+  movementClass: string | null,
+): { lastFour: string; label: string; side: 'SOURCE' | 'DESTINATION' } | null {
+  if (movementClass === 'TRANSFER_OUT' || movementClass === 'CARD_PAYMENT') {
+    const lastFour = readLabeledLast4(body, 'origen');
+    return lastFour
+      ? { lastFour, label: 'Producto origen', side: 'SOURCE' }
+      : null;
+  }
+  if (movementClass !== 'TRANSFER_IN') {
+    return null;
+  }
+  const destination = readLabeledLast4(body, 'destino');
+  if (destination) {
+    return {
+      lastFour: destination,
+      label: 'Producto destino',
+      side: 'DESTINATION',
+    };
+  }
+  const incoming = readIncomingProductLast4(body);
+  return incoming
+    ? { lastFour: incoming, label: 'Producto', side: 'DESTINATION' }
+    : null;
+}
+
+function readLabeledLast4(body: string, label: 'origen' | 'destino') {
+  return new RegExp(
+    `Producto\\s+${label}\\s*:\\s*[^\\r\\n]*?(\\d{4})(?!\\d)`,
+    'i',
+  ).exec(body)?.[1];
+}
+
+/** Misma etiqueta que el lector de transferencias recibidas: `Producto :`. */
+function readIncomingProductLast4(body: string) {
+  const token = /Producto\s*:\s*(\S{4,40})/i.exec(body)?.[1];
+  return token?.match(/(\d{4})$/)?.[1];
 }
 
 function cardNetwork(label: string): DetectedEmailProductProposal['network'] {

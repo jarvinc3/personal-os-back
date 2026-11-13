@@ -2,9 +2,12 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
+  EMAIL_PRODUCT_HINTS,
   INFERENCE_COMPLETION,
   MODULE_SETTINGS_READER,
   StructuredInferenceOutputError,
+  type EmailProductHints,
+  type EmailProductHintsPort,
   type InferenceCompletionPort,
   type InferenceMessage,
   type ModuleSettingsReader,
@@ -17,7 +20,8 @@ import {
   EMAIL_DATASET_PURPOSE,
 } from '../evidence/dataset.constants';
 import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
-import { groundBhdClassification } from './bhd-email-grounding';
+import { groundBhdClassification, isBhdEmail } from './bhd-email-grounding';
+import { parseBhdFixedFormat } from './bhd-email-format';
 import {
   EMAIL_CLASSIFICATION_JSON_SCHEMA,
   EMAIL_CLASSIFICATION_VERSIONS,
@@ -136,6 +140,9 @@ export class AiEmailClassificationService {
     @Optional()
     @Inject(MODULE_SETTINGS_READER)
     private readonly moduleSettings?: ModuleSettingsReader,
+    @Optional()
+    @Inject(EMAIL_PRODUCT_HINTS)
+    private readonly productHints?: EmailProductHintsPort,
   ) {}
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
@@ -429,9 +436,27 @@ export class AiEmailClassificationService {
     let method: ClassificationMethod = knownLabel
       ? 'KNOWLEDGE'
       : 'DETERMINISTIC';
+    if (!classification) {
+      const bhdFormat = await this.parseBhdFormat({ userId, message });
+      if (bhdFormat) {
+        classification = bhdFormat;
+        method = 'DETERMINISTIC';
+      }
+    }
     let provider: string | null = null;
     let model: string | null = null;
-    if (auditSample || !classification) {
+    // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
+    // clasificación, la llamada no puede cambiarla ni impedir que se guarde.
+    if (auditSample && classification) {
+      await this.measureWithModel({
+        userId,
+        message,
+        modelBudget,
+        recordTelemetry,
+        onModelCall,
+      });
+    }
+    if (!classification) {
       const budgetAvailable =
         modelBudget === 'reserve'
           ? await this.reserveModelCall(userId)
@@ -439,14 +464,10 @@ export class AiEmailClassificationService {
       if (!budgetAvailable) {
         return { kind: 'budget_exhausted' };
       }
-      const content = (message.content?.sanitizedBody ?? '').slice(
-        0,
-        MAX_EMAIL_CONTENT_CHARS,
-      );
       const inferred = await this.classifyWithModel({
         userId,
         message,
-        content,
+        content: modelContent(message),
         recordTelemetry,
         onModelCall,
       });
@@ -479,6 +500,82 @@ export class AiEmailClassificationService {
       matches,
       verifiedSender: resolvedKnowledge.verifiedSender,
     };
+  }
+
+  /**
+   * Los formatos fijos BHD se leen del texto y el modelo no se llama. Los
+   * productos propios son la única pista que el correo no da completa, así que
+   * se piden al dominio dueño.
+   */
+  private async parseBhdFormat({
+    userId,
+    message,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+  }): Promise<EmailClassification | null> {
+    if (!isBhdEmail(message.fromDomain)) {
+      return null;
+    }
+    return parseBhdFixedFormat({
+      fromDomain: message.fromDomain,
+      subject: message.subject,
+      body: message.content?.sanitizedBody ?? '',
+      receivedAt: message.receivedAt,
+      productHints: await this.readProductHints(userId),
+    });
+  }
+
+  private async readProductHints(
+    userId: string,
+  ): Promise<EmailProductHints | null> {
+    if (!this.productHints) {
+      return null;
+    }
+    return this.productHints.readEmailProductHints(userId);
+  }
+
+  /**
+   * La muestra de auditoría mide con el modelo sin tocar la clasificación. Un
+   * fallo del proveedor o un presupuesto agotado se registran y el resultado
+   * sigue siendo el que fijó el texto.
+   */
+  private async measureWithModel({
+    userId,
+    message,
+    modelBudget,
+    recordTelemetry,
+    onModelCall,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+    modelBudget: 'reserve' | 'inspect';
+    recordTelemetry?: boolean;
+    onModelCall?: () => void;
+  }): Promise<void> {
+    const budgetAvailable =
+      modelBudget === 'reserve'
+        ? await this.reserveModelCall(userId)
+        : await this.hasModelBudget(userId);
+    if (!budgetAvailable) {
+      this.logger.warn(
+        `Audit sample measurement skipped for message ${message.id}: model budget exhausted`,
+      );
+      return;
+    }
+    try {
+      await this.classifyWithModel({
+        userId,
+        message,
+        content: modelContent(message),
+        recordTelemetry,
+        onModelCall,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Audit sample measurement failed for message ${message.id}: ${this.safeErrorDescription(error)}`,
+      );
+    }
   }
 
   /**
@@ -980,4 +1077,12 @@ export class AiEmailClassificationService {
     }
     return 'CLASSIFICATION_FAILED';
   }
+}
+
+/** El contenido que ve el modelo, recortado al máximo que acepta el flujo. */
+function modelContent(message: ClassifiableMessage): string {
+  return (message.content?.sanitizedBody ?? '').slice(
+    0,
+    MAX_EMAIL_CONTENT_CHARS,
+  );
 }

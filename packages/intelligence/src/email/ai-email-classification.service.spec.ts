@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import type { ModuleSettingsReader } from '@personal-os/contracts';
+import type { EmailProductHints } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
 import {
   StructuredInferenceOutputError,
@@ -13,6 +14,7 @@ import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 function fixture(
   options: {
     body?: string;
+    messageId?: string;
     fromAddress?: string;
     fromDomain?: string;
     subject?: string;
@@ -25,6 +27,7 @@ function fixture(
       reviewConfidenceThreshold?: number;
       acceptVerifiedSenders?: boolean;
     };
+    productHints?: EmailProductHints;
   } = {},
 ) {
   const tx = {
@@ -55,10 +58,12 @@ function fixture(
   };
   const prisma = {
     aiEmailMessage: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'message-1' }]),
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ id: options.messageId ?? 'message-1' }]),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findFirst: jest.fn().mockResolvedValue({
-        id: 'message-1',
+        id: options.messageId ?? 'message-1',
         receivedAt: options.receivedAt ?? new Date('2026-10-01T12:00:00Z'),
         providerThreadId: 'thread-1',
         fromAddress: options.fromAddress ?? 'notice@example.com',
@@ -130,9 +135,48 @@ function fixture(
       inference as unknown as InferenceCompletionPort,
       config as unknown as ConfigService<Env, true>,
       moduleSettings as unknown as ModuleSettingsReader | undefined,
+      options.productHints
+        ? {
+            readEmailProductHints: jest
+              .fn()
+              .mockResolvedValue(options.productHints),
+          }
+        : undefined,
     ),
     prisma,
     inference,
+  };
+}
+
+/**
+ * Correo del piloto que cae en la muestra de auditoría de recall: el hash de su
+ * id es múltiplo de 100 y una etiqueta conocida lo marca como irrelevante.
+ */
+const AUDIT_SAMPLE_MESSAGE_ID = 'audit-sample-93';
+
+function auditSampleFixture() {
+  return {
+    messageId: AUDIT_SAMPLE_MESSAGE_ID,
+    role: 'ADMIN',
+    fromDomain: 'bhd.com.do',
+    subject: 'BHD Notificación de Transacciones',
+    body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+    receivedAt: new Date('2026-11-06T15:45:00Z'),
+    knowledge: [
+      {
+        id: 'k1',
+        knowledgeType: 'EMAIL_TEMPLATE',
+        knowledgeKey: 'bhd',
+        scope: 'USER',
+        payload: {
+          label: {
+            relevance: false,
+            semanticType: 'MARKETING',
+            routes: [],
+          },
+        },
+      },
+    ],
   };
 }
 
@@ -562,6 +606,141 @@ describe('AiEmailClassificationService direct message operations', () => {
     });
     expect(inference.infer).toHaveBeenCalledTimes(1);
     expectNoWrites(prisma);
+  });
+
+  it('previews a recognized BHD card alert without calling the model', async () => {
+    const { service, inference, prisma } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+      receivedAt: new Date('2026-11-06T15:45:00Z'),
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'DETERMINISTIC',
+      provider: null,
+      model: null,
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        confidence: 0.99,
+        transaction: {
+          amount: 151.3,
+          currency: 'DOP',
+          direction: 'DEBIT',
+          movementClass: 'PURCHASE',
+        },
+      },
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+    expectNoWrites(prisma);
+  });
+
+  it('decides a BHD transfer between own products with the products of the owner', async () => {
+    const { service, inference } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'Transacciones entre mis productos',
+      body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXXXXXXX6506 Descripción: Pago de saldo al corte Monto: RD$ 1,000.00 Número de confirmación: M01-1111-2222-3333-4 Fecha y hora de la transacción: 06/11/2026 - 11:12 AM',
+      receivedAt: new Date('2026-11-06T15:12:58Z'),
+      productHints: { creditCardLast4: ['6506'], ownProductLast4: ['0016'] },
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      method: 'DETERMINISTIC',
+      classification: {
+        transaction: {
+          movementClass: 'CARD_PAYMENT',
+          direction: 'DEBIT',
+          accountNumberLast4: '0016',
+          last4: '6506',
+        },
+      },
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+  });
+
+  it('keeps the audit measurement failure out of the classification', async () => {
+    const { service, inference } = fixture(auditSampleFixture());
+    inference.infer.mockRejectedValue(new Error('provider down'));
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: AUDIT_SAMPLE_MESSAGE_ID,
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'DETERMINISTIC',
+      classification: { semanticType: 'FIN_TRANSACTION' },
+    });
+  });
+
+  it('classifies a recognized BHD format when the audit measurement has no budget', async () => {
+    const { service, inference, prisma } = fixture({
+      ...auditSampleFixture(),
+      budgetAvailable: false,
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailClassification.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            decisionPath: 'DETERMINISTIC',
+            semanticType: 'FIN_TRANSACTION',
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('still asks the model for a BHD email outside the fixed formats', async () => {
+    const { service, inference } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'Modo Plus Friday activado',
+      body: 'Solicita tu Tarjeta Preaprobada BHD y conoce las ofertas del mes.',
+    });
+
+    await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the deterministic classification in an audit sample and only measures with the model', async () => {
+    const { service, inference } = fixture(auditSampleFixture());
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: AUDIT_SAMPLE_MESSAGE_ID,
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expect(preview).toMatchObject({
+      method: 'DETERMINISTIC',
+      provider: null,
+      model: null,
+      auditSample: true,
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        transaction: { movementClass: 'PURCHASE', direction: 'DEBIT' },
+      },
+    });
   });
 
   it('reports a missing budget in the preview without calling the model', async () => {
