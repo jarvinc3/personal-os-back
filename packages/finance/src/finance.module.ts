@@ -19,6 +19,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
+import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 /**
  * Finance composition root — domain capabilities and their AI read provider.
@@ -44,7 +45,17 @@ import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
     FinanceRecycleBinModule,
     FinanceWipeModule,
   ],
-  providers: [FinanceFacade, FinanceAiCapabilities, FinanceSignalConsumer],
-  exports: [FinanceFacade, FinanceAiCapabilities, FinanceSignalConsumer],
+  providers: [
+    FinanceFacade,
+    FinanceAiCapabilities,
+    FinanceSignalConsumer,
+    FinanceEmailProductHints,
+  ],
+  exports: [
+    FinanceFacade,
+    FinanceAiCapabilities,
+    FinanceSignalConsumer,
+    FinanceEmailProductHints,
+  ],
 })
 export class FinanceModule {}

@@ -68,16 +68,39 @@ const NOT_APPLIED_PATTERN =
 
 /**
  * La alerta de tarjeta trae una sola fila: fecha, moneda, monto, comercio,
- * estado y tipo. El tipo lo escribe el banco, así que decide la clase del
- * movimiento: una compra en un comercio no es un pago de tarjeta.
+ * estado y tipo. El comercio puede venir vacío, y el estado es lo que marca un
+ * reverso aunque el tipo siga diciendo `Compra`.
  */
 const CARD_ALERT_ROW_PATTERN = new RegExp(
-  String.raw`\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?\s*${AM_PM_PATTERN}\s+(?:RD|US|DOP|USD)\s*\$?\s*(?<amount>[\d.,]+)\s+.{1,160}?\s+(?:Aprobad[oa]|Rechazad[oa]|Pendiente|Anulad[oa]|Reversad[oa])\s+(?<movementType>\S+)`,
+  String.raw`\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?\s*${AM_PM_PATTERN}\s+(?:RD|US|DOP|USD)\s*\$?\s*(?<amount>[\d.,]+)\s+(?:(?<merchant>\S.{0,80}?)\s+)?(?<status>Aprobad[oa]|Rechazad[oa]|Reversad[oa]|Pendiente|Anulad[oa])\s+(?<movementType>\S+)`,
   'i',
 );
 
 /** Tipos de movimiento que la alerta de tarjeta declara en su columna `Tipo`. */
-const CARD_ALERT_PURCHASE_TYPE = 'compra';
+export const CARD_ALERT_PURCHASE_TYPE = 'compra';
+
+export type BhdCardAlertRow = {
+  amount: number;
+  /** `null` cuando la columna Comercio viene vacía, como en un reverso. */
+  merchant: string | null;
+  status: 'APPROVED' | 'DECLINED' | 'REVERSED' | 'PENDING' | 'CANCELLED';
+  /** Estado tal como lo escribe el banco, para la evidencia. */
+  statusText: string;
+  /** Texto del banco en minúsculas: `compra`, `reverso`, `pago`. */
+  movementType: string;
+};
+
+const CARD_ALERT_STATUS: Record<string, BhdCardAlertRow['status']> = {
+  aprobada: 'APPROVED',
+  aprobado: 'APPROVED',
+  rechazada: 'DECLINED',
+  rechazado: 'DECLINED',
+  reversada: 'REVERSED',
+  reversado: 'REVERSED',
+  pendiente: 'PENDING',
+  anulada: 'CANCELLED',
+  anulado: 'CANCELLED',
+};
 
 /**
  * Los correos entre productos propios nombran el origen y el destino de la
@@ -87,6 +110,27 @@ const OWN_PRODUCTS_TRANSFER_PATTERN =
   /producto origen:[\s\S]*producto destino:/i;
 
 const TRANSFER_MOVEMENT_CLASSES = ['TRANSFER_OUT', 'TRANSFER_IN'] as const;
+
+/**
+ * Lee la fila de la alerta de tarjeta. Devuelve `null` si el texto no la trae
+ * completa, para que el correo siga el camino de revisión sin inventar datos.
+ */
+export function readBhdCardAlertRow(text: string): BhdCardAlertRow | null {
+  const groups = CARD_ALERT_ROW_PATTERN.exec(collapseWhitespace(text))?.groups;
+  const amount = Number((groups?.amount ?? '').replace(/,/g, ''));
+  const status = CARD_ALERT_STATUS[(groups?.status ?? '').toLowerCase()];
+  const movementType = groups?.movementType?.toLowerCase();
+  if (!Number.isFinite(amount) || amount <= 0 || !status || !movementType) {
+    return null;
+  }
+  return {
+    amount,
+    merchant: groups?.merchant?.trim() || null,
+    status,
+    statusText: groups?.status?.trim() ?? '',
+    movementType,
+  };
+}
 
 export function isBhdEmail(fromDomain: string | null | undefined): boolean {
   if (!fromDomain) {
@@ -228,7 +272,7 @@ function withoutField<T extends object>(value: T, field: keyof T): T {
   ) as T;
 }
 
-function extractBhdTransactionDate(
+export function extractBhdTransactionDate(
   text: string,
   receivedAt: Date,
 ): Date | null {
@@ -321,7 +365,7 @@ function bhdLocalDateToUtc(parts: BhdDateParts, receivedAt: Date): Date | null {
   return utc;
 }
 
-function extractBhdCurrency(
+export function extractBhdCurrency(
   text: string,
   amount: number | undefined,
 ): BhdCurrency | null {
@@ -424,35 +468,16 @@ function statesBhdCardPurchase({
   text: string;
   amount: number | undefined;
 }): boolean {
-  if (amount === undefined) {
-    return false;
-  }
-  const row = CARD_ALERT_ROW_PATTERN.exec(collapseWhitespace(text));
-  const declaredAmount = row?.groups?.amount;
-  const movementType = row?.groups?.movementType;
-  if (!declaredAmount || !movementType) {
+  const row = readBhdCardAlertRow(text);
+  if (amount === undefined || !row) {
     return false;
   }
   return (
-    movementType.toLowerCase() === CARD_ALERT_PURCHASE_TYPE &&
-    sameAmount({ declaredAmount, amount })
+    row.movementType === CARD_ALERT_PURCHASE_TYPE &&
+    Math.round(row.amount * 100) === Math.round(amount * 100)
   );
 }
 
-function sameAmount({
-  declaredAmount,
-  amount,
-}: {
-  declaredAmount: string;
-  amount: number;
-}): boolean {
-  const declared = Number(declaredAmount.replace(/,/g, ''));
-  return (
-    Number.isFinite(declared) &&
-    Math.round(declared * 100) === Math.round(amount * 100)
-  );
-}
-
-function collapseWhitespace(text: string): string {
+export function collapseWhitespace(text: string): string {
   return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
 }

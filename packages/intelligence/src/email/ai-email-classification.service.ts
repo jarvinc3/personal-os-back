@@ -2,9 +2,12 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
+  EMAIL_PRODUCT_HINTS,
   INFERENCE_COMPLETION,
   MODULE_SETTINGS_READER,
   StructuredInferenceOutputError,
+  type EmailProductHints,
+  type EmailProductHintsPort,
   type InferenceCompletionPort,
   type InferenceMessage,
   type ModuleSettingsReader,
@@ -17,7 +20,8 @@ import {
   EMAIL_DATASET_PURPOSE,
 } from '../evidence/dataset.constants';
 import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
-import { groundBhdClassification } from './bhd-email-grounding';
+import { groundBhdClassification, isBhdEmail } from './bhd-email-grounding';
+import { parseBhdFixedFormat } from './bhd-email-format';
 import {
   EMAIL_CLASSIFICATION_JSON_SCHEMA,
   EMAIL_CLASSIFICATION_VERSIONS,
@@ -136,6 +140,9 @@ export class AiEmailClassificationService {
     @Optional()
     @Inject(MODULE_SETTINGS_READER)
     private readonly moduleSettings?: ModuleSettingsReader,
+    @Optional()
+    @Inject(EMAIL_PRODUCT_HINTS)
+    private readonly productHints?: EmailProductHintsPort,
   ) {}
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
@@ -429,6 +436,9 @@ export class AiEmailClassificationService {
     let method: ClassificationMethod = knownLabel
       ? 'KNOWLEDGE'
       : 'DETERMINISTIC';
+    if (!auditSample && !classification) {
+      classification = await this.parseBhdFormat({ userId, message });
+    }
     let provider: string | null = null;
     let model: string | null = null;
     if (auditSample || !classification) {
@@ -479,6 +489,39 @@ export class AiEmailClassificationService {
       matches,
       verifiedSender: resolvedKnowledge.verifiedSender,
     };
+  }
+
+  /**
+   * Los formatos fijos BHD se leen del texto y el modelo no se llama. Los
+   * productos propios son la única pista que el correo no da completa, así que
+   * se piden al dominio dueño.
+   */
+  private async parseBhdFormat({
+    userId,
+    message,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+  }): Promise<EmailClassification | null> {
+    if (!isBhdEmail(message.fromDomain)) {
+      return null;
+    }
+    return parseBhdFixedFormat({
+      fromDomain: message.fromDomain,
+      subject: message.subject,
+      body: message.content?.sanitizedBody ?? '',
+      receivedAt: message.receivedAt,
+      productHints: await this.readProductHints(userId),
+    });
+  }
+
+  private async readProductHints(
+    userId: string,
+  ): Promise<EmailProductHints | null> {
+    if (!this.productHints) {
+      return null;
+    }
+    return this.productHints.readEmailProductHints(userId);
   }
 
   /**

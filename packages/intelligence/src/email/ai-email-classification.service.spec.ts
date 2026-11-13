@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import type { ModuleSettingsReader } from '@personal-os/contracts';
+import type { EmailProductHints } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
 import {
   StructuredInferenceOutputError,
@@ -25,6 +26,7 @@ function fixture(
       reviewConfidenceThreshold?: number;
       acceptVerifiedSenders?: boolean;
     };
+    productHints?: EmailProductHints;
   } = {},
 ) {
   const tx = {
@@ -130,6 +132,13 @@ function fixture(
       inference as unknown as InferenceCompletionPort,
       config as unknown as ConfigService<Env, true>,
       moduleSettings as unknown as ModuleSettingsReader | undefined,
+      options.productHints
+        ? {
+            readEmailProductHints: jest
+              .fn()
+              .mockResolvedValue(options.productHints),
+          }
+        : undefined,
     ),
     prisma,
     inference,
@@ -562,6 +571,82 @@ describe('AiEmailClassificationService direct message operations', () => {
     });
     expect(inference.infer).toHaveBeenCalledTimes(1);
     expectNoWrites(prisma);
+  });
+
+  it('previews a recognized BHD card alert without calling the model', async () => {
+    const { service, inference, prisma } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+      receivedAt: new Date('2026-11-06T15:45:00Z'),
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'DETERMINISTIC',
+      provider: null,
+      model: null,
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        confidence: 0.99,
+        transaction: {
+          amount: 151.3,
+          currency: 'DOP',
+          direction: 'DEBIT',
+          movementClass: 'PURCHASE',
+        },
+      },
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+    expectNoWrites(prisma);
+  });
+
+  it('decides a BHD transfer between own products with the products of the owner', async () => {
+    const { service, inference } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'Transacciones entre mis productos',
+      body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXXXXXXX6506 Descripción: Pago de saldo al corte Monto: RD$ 1,000.00 Número de confirmación: M01-1111-2222-3333-4 Fecha y hora de la transacción: 06/11/2026 - 11:12 AM',
+      receivedAt: new Date('2026-11-06T15:12:58Z'),
+      productHints: { cardLast4: ['6506'], accountLast4: ['0016'] },
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      method: 'DETERMINISTIC',
+      classification: {
+        transaction: {
+          movementClass: 'CARD_PAYMENT',
+          direction: 'DEBIT',
+          accountNumberLast4: '0016',
+          last4: '6506',
+        },
+      },
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+  });
+
+  it('still asks the model for a BHD email outside the fixed formats', async () => {
+    const { service, inference } = fixture({
+      fromDomain: 'bhd.com.do',
+      subject: 'Modo Plus Friday activado',
+      body: 'Solicita tu Tarjeta Preaprobada BHD y conoce las ofertas del mes.',
+    });
+
+    await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
   });
 
   it('reports a missing budget in the preview without calling the model', async () => {
