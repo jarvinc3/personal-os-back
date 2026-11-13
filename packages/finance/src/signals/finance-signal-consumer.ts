@@ -38,6 +38,8 @@ import {
 import {
   classifyReversalCandidates,
   evaluateReversalOriginal,
+  REVERSAL_CARD_ACCOUNT_WINDOW_DAYS,
+  REVERSAL_CARD_ACCOUNT_WINDOW_MS,
   REVERSAL_REVIEW_REASON,
   type ReversalOriginal,
   type ReversalReviewReason,
@@ -993,6 +995,12 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     const evidence = {
       ...this.reversalEvidence(candidate, decision),
       reversalOriginalId: original.id,
+      ...(decision.step === 'CARD_ACCOUNT'
+        ? {
+            reversalCardId: original.cardId,
+            reversalAccountId: original.accountId,
+          }
+        : {}),
     };
     const repeatedOrExcess = await this.repeatedOrExcessReversalPlan({
       signal,
@@ -1157,10 +1165,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     }
 
     if (!candidate.merchant) {
-      return this.reversalReview(
-        'CANDIDATE',
-        REVERSAL_REVIEW_REASON.COMMERCE_MISSING,
-      );
+      return this.resolveReversalFromCard(userId, candidate);
     }
     if (!candidate.transactionDate) {
       return this.reversalReview(
@@ -1183,6 +1188,64 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     });
   }
 
+  /**
+   * Sin comercio, el reverso se apoya en la tarjeta: su cuenta y el monto deben
+   * identificar una sola compra en los tres días anteriores al aviso.
+   */
+  private async resolveReversalFromCard(
+    userId: string,
+    candidate: Candidate,
+  ): Promise<ReversalTargetDecision> {
+    const lastFour = candidate.last4?.trim() || null;
+    if (!lastFour) {
+      return this.reversalReview(
+        'CANDIDATE',
+        REVERSAL_REVIEW_REASON.COMMERCE_MISSING,
+      );
+    }
+    const cards = await this.prisma.finCard.findMany({
+      where: { userId, isActive: true, lastFour },
+      select: { id: true, accountId: true },
+    });
+    if (cards.length === 0) {
+      return this.reversalReview(
+        'CARD_ACCOUNT',
+        REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      );
+    }
+    if (cards.length > 1) {
+      return {
+        kind: 'review',
+        step: 'CARD_ACCOUNT',
+        reason: REVERSAL_REVIEW_REASON.ORIGINAL_AMBIGUOUS,
+        candidateIds: [],
+      };
+    }
+    if (!candidate.transactionDate) {
+      return this.reversalReview(
+        'CARD_ACCOUNT',
+        REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      );
+    }
+    const card = cards[0];
+    const reversalDate = new Date(candidate.transactionDate);
+    const candidates = await this.ledger.findReverseCandidatesByCard(userId, {
+      amount: candidate.amount!,
+      currency: candidate.currency!,
+      cardId: card.id,
+      accountId: card.accountId ?? null,
+      from: new Date(reversalDate.getTime() - REVERSAL_CARD_ACCOUNT_WINDOW_MS),
+      to: reversalDate,
+      statuses: ['CONFIRMED'],
+    });
+    return classifyReversalCandidates({
+      candidates: candidates.map(toReversalOriginal),
+      reversalAmount: candidate.amount!,
+      reversalCurrency: candidate.currency!,
+      step: 'CARD_ACCOUNT',
+    });
+  }
+
   private reversalReview(
     step: ReversalTargetDecision['step'],
     reason: ReversalReviewReason,
@@ -1199,6 +1262,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       reverseOfEmailMessageId: candidate.reverseOfEmailMessageId ?? null,
       reversalStep: decision.step,
       reversalAmount: candidate.amount ?? null,
+      ...(decision.step === 'CARD_ACCOUNT'
+        ? { reversalWindowDays: REVERSAL_CARD_ACCOUNT_WINDOW_DAYS }
+        : {}),
       candidateTransactionIds:
         decision.kind === 'review' && decision.candidateIds.length > 0
           ? decision.candidateIds

@@ -338,6 +338,55 @@ describe('PrismaLedgerRepository lookups', () => {
     expect(query.where.merchant).toBeUndefined();
   });
 
+  it('searches card reversal candidates in the window before the notice', async () => {
+    const { repository, prisma } = createRepository();
+
+    await repository.findReverseCandidatesByCard('user-1', {
+      amount: 138.79,
+      currency: 'DOP',
+      cardId: 'card-1',
+      accountId: 'account-1',
+      from: new Date('2026-11-03T19:24:00.000Z'),
+      to: new Date('2026-11-06T19:24:00.000Z'),
+    });
+
+    expect(prisma.finTransaction.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        status: { in: ['CONFIRMED'] },
+        type: 'DEBIT',
+        transferGroupId: null,
+        currency: 'DOP',
+        amount: 138.79,
+        cardId: 'card-1',
+        OR: [{ accountId: null }, { accountId: 'account-1' }],
+        transactionDate: {
+          gte: new Date('2026-11-03T19:24:00.000Z'),
+          lte: new Date('2026-11-06T19:24:00.000Z'),
+        },
+      },
+      orderBy: { transactionDate: 'desc' },
+      take: 10,
+    });
+  });
+
+  it('matches only a null account when the card has no account', async () => {
+    const { repository, prisma } = createRepository();
+
+    await repository.findReverseCandidatesByCard('user-1', {
+      amount: 100,
+      currency: 'DOP',
+      cardId: 'card-1',
+      accountId: null,
+      from: new Date('2026-08-12T00:00:00.000Z'),
+      to: new Date('2026-08-15T00:00:00.000Z'),
+    });
+
+    const query = prisma.finTransaction.findMany.mock.calls[0][0];
+    expect(query.where.accountId).toBeNull();
+    expect(query.where.OR).toBeUndefined();
+  });
+
   it('finds every transaction that shares an external reference', async () => {
     const { repository, prisma } = createRepository();
 

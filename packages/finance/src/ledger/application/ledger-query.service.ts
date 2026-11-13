@@ -156,6 +156,21 @@ export class LedgerQueryService {
     return this.repo.findCandidatesForReverse(userId, params);
   }
 
+  findReverseCandidatesByCard(
+    userId: string,
+    params: {
+      amount: number;
+      currency: string;
+      cardId: string;
+      accountId: string | null;
+      from: Date;
+      to: Date;
+      statuses?: FinTxStatus[];
+    },
+  ) {
+    return this.repo.findReverseCandidatesByCard(userId, params);
+  }
+
   findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
     return this.repo.findImportedTransactionByEmailMessageId(userId, messageId);
   }

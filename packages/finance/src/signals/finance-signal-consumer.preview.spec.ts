@@ -67,6 +67,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     findTransactionsByExternalReference: jest.fn().mockResolvedValue([]),
     findImportedTransactionByEmailMessageId: jest.fn().mockResolvedValue(null),
     findReverseCandidates: jest.fn().mockResolvedValue([]),
+    findReverseCandidatesByCard: jest.fn().mockResolvedValue([]),
     findLinkedRefundTotal: jest.fn().mockResolvedValue(0),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),

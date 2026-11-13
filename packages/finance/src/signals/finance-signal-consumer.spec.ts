@@ -898,6 +898,7 @@ function setupReversal(
       Record<string, unknown> | Array<Record<string, unknown>> | null;
     emailOriginal?: Record<string, unknown> | null;
     candidates?: Array<Record<string, unknown>>;
+    candidatesByCard?: Array<Record<string, unknown>>;
     pending?: Array<Record<string, unknown>>;
     linkedRefundTotal?: number;
   } = {},
@@ -921,6 +922,9 @@ function setupReversal(
     findReverseCandidates: jest
       .fn()
       .mockResolvedValue(options.candidates ?? []),
+    findReverseCandidatesByCard: jest
+      .fn()
+      .mockResolvedValue(options.candidatesByCard ?? []),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
   };
@@ -1035,7 +1039,7 @@ describe('FinanceSignalConsumer reversal chain', () => {
     expect(ambiguous.ledger.findReverseCandidates).toHaveBeenCalledTimes(1);
   });
 
-  it('requires a merchant to search candidates', async () => {
+  it('reviews when neither the merchant nor the card identifies the original', async () => {
     const { consumer, ledger } = setupReversal();
 
     await expect(
@@ -1051,6 +1055,143 @@ describe('FinanceSignalConsumer reversal chain', () => {
     });
 
     expect(ledger.findReverseCandidates).not.toHaveBeenCalled();
+    expect(ledger.findReverseCandidatesByCard).not.toHaveBeenCalled();
+  });
+
+  it('links a reversal without merchant to the only purchase on the same card', async () => {
+    const { consumer, ledger, prisma, reverseTransaction } = setupReversal({
+      candidatesByCard: [
+        { ...reversalOriginal, cardId: 'card-1', accountId: null },
+      ],
+    });
+    prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: 'account-1' },
+    ]);
+
+    await expect(
+      consumer.consume(
+        reversalSignal({
+          merchant: undefined,
+          reverseOfBankReference: undefined,
+          last4: '6506',
+        }),
+      ),
+    ).resolves.toMatchObject({ outcome: 'APPLIED' });
+
+    expect(ledger.findReverseCandidatesByCard).toHaveBeenCalledWith('user-1', {
+      amount: 100,
+      currency: 'DOP',
+      cardId: 'card-1',
+      accountId: 'account-1',
+      from: new Date('2026-11-02T00:00:00.000Z'),
+      to: new Date('2026-11-05T00:00:00.000Z'),
+      statuses: ['CONFIRMED'],
+    });
+    expect(reverseTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      'original-1',
+      expect.objectContaining({
+        reversalStep: 'CARD_ACCOUNT',
+        reversalWindowDays: 3,
+        reversalCardId: 'card-1',
+        reversalAccountId: null,
+      }),
+    );
+    expect(ledger.findReverseCandidates).not.toHaveBeenCalled();
+  });
+
+  it('uses a null account when the card has no account', async () => {
+    const { consumer, ledger, prisma } = setupReversal({
+      candidatesByCard: [reversalOriginal],
+    });
+    prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: null },
+    ]);
+
+    await consumer.consume(
+      reversalSignal({
+        merchant: undefined,
+        reverseOfBankReference: undefined,
+        last4: '6506',
+      }),
+    );
+
+    expect(ledger.findReverseCandidatesByCard).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ cardId: 'card-1', accountId: null }),
+    );
+  });
+
+  it('reviews a card reversal with zero or several matching purchases', async () => {
+    const empty = setupReversal({ candidatesByCard: [] });
+    empty.prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: 'account-1' },
+    ]);
+    await expect(
+      empty.consumer.consume(
+        reversalSignal({
+          merchant: undefined,
+          reverseOfBankReference: undefined,
+          last4: '6506',
+        }),
+      ),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_ORIGINAL_NOT_FOUND',
+    });
+
+    const ambiguous = setupReversal({
+      candidatesByCard: [
+        reversalOriginal,
+        { ...reversalOriginal, id: 'original-2' },
+      ],
+    });
+    ambiguous.prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: 'account-1' },
+    ]);
+    await expect(
+      ambiguous.consumer.consume(
+        reversalSignal({
+          merchant: undefined,
+          reverseOfBankReference: undefined,
+          last4: '6506',
+        }),
+      ),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_ORIGINAL_AMBIGUOUS',
+    });
+  });
+
+  it('reviews when the card is missing or ambiguous', async () => {
+    const cardReversal = reversalSignal({
+      merchant: undefined,
+      reverseOfBankReference: undefined,
+      last4: '6506',
+    });
+
+    const missing = setupReversal();
+    missing.prisma.finCard.findMany.mockResolvedValue([]);
+    await expect(missing.consumer.consume(cardReversal)).resolves.toMatchObject(
+      {
+        outcome: 'REVIEW_REQUIRED',
+        reason: 'REVERSAL_ORIGINAL_NOT_FOUND',
+      },
+    );
+    expect(missing.ledger.findReverseCandidatesByCard).not.toHaveBeenCalled();
+
+    const ambiguous = setupReversal();
+    ambiguous.prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: 'account-1' },
+      { id: 'card-2', accountId: 'account-2' },
+    ]);
+    await expect(
+      ambiguous.consumer.consume(cardReversal),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_ORIGINAL_AMBIGUOUS',
+    });
+    expect(ambiguous.ledger.findReverseCandidatesByCard).not.toHaveBeenCalled();
   });
 
   it('does not reverse a transfer leg', async () => {
