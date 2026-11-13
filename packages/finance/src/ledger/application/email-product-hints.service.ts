@@ -28,18 +28,12 @@ export class FinanceEmailProductHints implements EmailProductHintsPort {
         select: { accountNumberLast4: true },
       }),
     ]);
+    const creditCards = cards.filter((card) => card.type === CREDIT_CARD);
+    const otherProducts = cards.filter((card) => card.type !== CREDIT_CARD);
     return {
-      creditCardLast4: lastFourOf(
-        cards
-          .filter((card) => card.type === CREDIT_CARD)
-          .map((card) => card.lastFour),
-      ),
+      creditCardLast4: lastFourOf(creditCards.map((card) => card.lastFour)),
       ownProductLast4: [
-        ...lastFourOf(
-          cards
-            .filter((card) => card.type !== CREDIT_CARD)
-            .map((card) => card.lastFour),
-        ),
+        ...lastFourOf(otherProducts.map((card) => card.lastFour)),
         ...lastFourOf(accounts.map((account) => account.accountNumberLast4)),
       ],
     };

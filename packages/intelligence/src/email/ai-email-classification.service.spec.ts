@@ -148,6 +148,38 @@ function fixture(
   };
 }
 
+/**
+ * Correo del piloto que cae en la muestra de auditoría de recall: el hash de su
+ * id es múltiplo de 100 y una etiqueta conocida lo marca como irrelevante.
+ */
+const AUDIT_SAMPLE_MESSAGE_ID = 'audit-sample-93';
+
+function auditSampleFixture() {
+  return {
+    messageId: AUDIT_SAMPLE_MESSAGE_ID,
+    role: 'ADMIN',
+    fromDomain: 'bhd.com.do',
+    subject: 'BHD Notificación de Transacciones',
+    body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+    receivedAt: new Date('2026-11-06T15:45:00Z'),
+    knowledge: [
+      {
+        id: 'k1',
+        knowledgeType: 'EMAIL_TEMPLATE',
+        knowledgeKey: 'bhd',
+        scope: 'USER',
+        payload: {
+          label: {
+            relevance: false,
+            semanticType: 'MARKETING',
+            routes: [],
+          },
+        },
+      },
+    ],
+  };
+}
+
 describe('AiEmailClassificationService', () => {
   it('does not call the model for a deterministic OTP', async () => {
     const { service, inference, prisma } = fixture({
@@ -637,6 +669,44 @@ describe('AiEmailClassificationService direct message operations', () => {
     expect(inference.infer).not.toHaveBeenCalled();
   });
 
+  it('keeps the audit measurement failure out of the classification', async () => {
+    const { service, inference } = fixture(auditSampleFixture());
+    inference.infer.mockRejectedValue(new Error('provider down'));
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: AUDIT_SAMPLE_MESSAGE_ID,
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'DETERMINISTIC',
+      classification: { semanticType: 'FIN_TRANSACTION' },
+    });
+  });
+
+  it('classifies a recognized BHD format when the audit measurement has no budget', async () => {
+    const { service, inference, prisma } = fixture({
+      ...auditSampleFixture(),
+      budgetAvailable: false,
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailClassification.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({
+            decisionPath: 'DETERMINISTIC',
+            semanticType: 'FIN_TRANSACTION',
+          }),
+        ],
+      }),
+    );
+  });
+
   it('still asks the model for a BHD email outside the fixed formats', async () => {
     const { service, inference } = fixture({
       fromDomain: 'bhd.com.do',
@@ -653,35 +723,11 @@ describe('AiEmailClassificationService direct message operations', () => {
   });
 
   it('keeps the deterministic classification in an audit sample and only measures with the model', async () => {
-    // El id cae en la muestra de auditoría de recall: hash del id múltiplo de 100.
-    const auditMessageId = 'audit-sample-93';
-    const { service, inference } = fixture({
-      messageId: auditMessageId,
-      role: 'ADMIN',
-      fromDomain: 'bhd.com.do',
-      subject: 'BHD Notificación de Transacciones',
-      body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
-      receivedAt: new Date('2026-11-06T15:45:00Z'),
-      knowledge: [
-        {
-          id: 'k1',
-          knowledgeType: 'EMAIL_TEMPLATE',
-          knowledgeKey: 'bhd',
-          scope: 'USER',
-          payload: {
-            label: {
-              relevance: false,
-              semanticType: 'MARKETING',
-              routes: [],
-            },
-          },
-        },
-      ],
-    });
+    const { service, inference } = fixture(auditSampleFixture());
 
     const preview = await service.previewClassification({
       userId: 'user-1',
-      messageId: auditMessageId,
+      messageId: AUDIT_SAMPLE_MESSAGE_ID,
     });
 
     expect(inference.infer).toHaveBeenCalledTimes(1);

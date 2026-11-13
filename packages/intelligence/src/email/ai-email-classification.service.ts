@@ -445,7 +445,18 @@ export class AiEmailClassificationService {
     }
     let provider: string | null = null;
     let model: string | null = null;
-    if (auditSample || !classification) {
+    // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
+    // clasificación, la llamada no puede cambiarla ni impedir que se guarde.
+    if (auditSample && classification) {
+      await this.measureWithModel({
+        userId,
+        message,
+        modelBudget,
+        recordTelemetry,
+        onModelCall,
+      });
+    }
+    if (!classification) {
       const budgetAvailable =
         modelBudget === 'reserve'
           ? await this.reserveModelCall(userId)
@@ -453,28 +464,17 @@ export class AiEmailClassificationService {
       if (!budgetAvailable) {
         return { kind: 'budget_exhausted' };
       }
-      const content = (message.content?.sanitizedBody ?? '').slice(
-        0,
-        MAX_EMAIL_CONTENT_CHARS,
-      );
       const inferred = await this.classifyWithModel({
         userId,
         message,
-        content,
+        content: modelContent(message),
         recordTelemetry,
         onModelCall,
       });
-      const inferredClassification = validateModelClassification(
-        inferred.value,
-      );
-      // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
-      // clasificación, esa manda y el modelo no la sobrescribe.
-      if (!classification) {
-        classification = inferredClassification;
-        method = 'MODEL';
-        provider = inferred.provider;
-        model = inferred.model;
-      }
+      classification = validateModelClassification(inferred.value);
+      method = 'MODEL';
+      provider = inferred.provider;
+      model = inferred.model;
     }
 
     if (!classification) {
@@ -533,6 +533,49 @@ export class AiEmailClassificationService {
       return null;
     }
     return this.productHints.readEmailProductHints(userId);
+  }
+
+  /**
+   * La muestra de auditoría mide con el modelo sin tocar la clasificación. Un
+   * fallo del proveedor o un presupuesto agotado se registran y el resultado
+   * sigue siendo el que fijó el texto.
+   */
+  private async measureWithModel({
+    userId,
+    message,
+    modelBudget,
+    recordTelemetry,
+    onModelCall,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+    modelBudget: 'reserve' | 'inspect';
+    recordTelemetry?: boolean;
+    onModelCall?: () => void;
+  }): Promise<void> {
+    const budgetAvailable =
+      modelBudget === 'reserve'
+        ? await this.reserveModelCall(userId)
+        : await this.hasModelBudget(userId);
+    if (!budgetAvailable) {
+      this.logger.warn(
+        `Audit sample measurement skipped for message ${message.id}: model budget exhausted`,
+      );
+      return;
+    }
+    try {
+      await this.classifyWithModel({
+        userId,
+        message,
+        content: modelContent(message),
+        recordTelemetry,
+        onModelCall,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Audit sample measurement failed for message ${message.id}: ${this.safeErrorDescription(error)}`,
+      );
+    }
   }
 
   /**
@@ -1034,4 +1077,12 @@ export class AiEmailClassificationService {
     }
     return 'CLASSIFICATION_FAILED';
   }
+}
+
+/** El contenido que ve el modelo, recortado al máximo que acepta el flujo. */
+function modelContent(message: ClassifiableMessage): string {
+  return (message.content?.sanitizedBody ?? '').slice(
+    0,
+    MAX_EMAIL_CONTENT_CHARS,
+  );
 }
