@@ -42,6 +42,9 @@ de Finance en Notifications.
 
 - AI consume `AiCapabilityProvider` y `SignalConsumer` de `@personal-os/contracts`;
   no importa `@personal-os/finance`.
+- Finance implementa `EmailProductHintsPort` de `@personal-os/contracts` para
+  responder los últimos 4 de tarjetas y cuentas activas; AI lo consume por el
+  token `EMAIL_PRODUCT_HINTS` y nunca lee las tablas `fin_*`.
 - Finance puede usar los contratos neutrales, pero no los tipos de chat ni
   infraestructura/proveedores de Gmail.
 - Core transporta eventos y no es propietario de su semántica.

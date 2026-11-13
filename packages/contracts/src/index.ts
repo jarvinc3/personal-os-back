@@ -356,3 +356,5 @@ export interface SignalConsumer<T extends JsonObject = JsonObject> {
   /** Opcional: solo los consumidores que pueden decidir sin escribir. */
   preview?(signal: RoutedSignal<T>): Promise<SignalImportPreview>;
 }
+
+export * from './email-product-hints';

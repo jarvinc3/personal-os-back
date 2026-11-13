@@ -3,6 +3,7 @@ export { FinanceFacade } from './finance.facade';
 export { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 export { FinanceModule } from './finance.module';
 export { FinanceSignalConsumer } from './signals/finance-signal-consumer';
+export { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 export { FINANCE_SETTINGS_DESCRIPTOR } from './settings.descriptor';
 export * from './contracts';
 export { FinanceStatementsModule } from './statements/statements.module';
