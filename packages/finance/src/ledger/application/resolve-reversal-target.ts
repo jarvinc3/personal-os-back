@@ -12,7 +12,12 @@ export const REVERSAL_REVIEW_REASON = {
 export type ReversalReviewReason =
   (typeof REVERSAL_REVIEW_REASON)[keyof typeof REVERSAL_REVIEW_REASON];
 
-export type ReversalStep = 'REFERENCE' | 'EMAIL' | 'CANDIDATE';
+export type ReversalStep = 'REFERENCE' | 'EMAIL' | 'CANDIDATE' | 'CARD_ACCOUNT';
+
+/** A card reversal without merchant matches a purchase on the same card up to 3 days before. */
+export const REVERSAL_CARD_ACCOUNT_WINDOW_DAYS = 3;
+export const REVERSAL_CARD_ACCOUNT_WINDOW_MS =
+  REVERSAL_CARD_ACCOUNT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 export type ReversalOriginal = {
   id: string;

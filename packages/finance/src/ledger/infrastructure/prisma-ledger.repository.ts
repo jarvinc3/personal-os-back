@@ -127,6 +127,21 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findCandidatesForReverse(userId, params);
   }
 
+  findReverseCandidatesByCard(
+    userId: string,
+    params: {
+      amount: number;
+      currency: string;
+      cardId: string;
+      accountId: string | null;
+      from: Date;
+      to: Date;
+      statuses?: FinTxStatus[];
+    },
+  ) {
+    return this.read.findReverseCandidatesByCard(userId, params);
+  }
+
   findTransactionByExternalReference(userId: string, reference: string) {
     return this.read.findTransactionByExternalReference(userId, reference);
   }

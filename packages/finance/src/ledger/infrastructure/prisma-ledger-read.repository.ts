@@ -367,6 +367,37 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow[]>;
   }
 
+  findReverseCandidatesByCard(
+    userId: string,
+    params: {
+      amount: number;
+      currency: string;
+      cardId: string;
+      accountId: string | null;
+      from: Date;
+      to: Date;
+      statuses?: FinTxStatus[];
+    },
+  ) {
+    return this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        status: { in: params.statuses ?? ['CONFIRMED'] },
+        type: 'DEBIT',
+        transferGroupId: null,
+        currency: params.currency,
+        amount: params.amount,
+        cardId: params.cardId,
+        ...(params.accountId
+          ? { OR: [{ accountId: null }, { accountId: params.accountId }] }
+          : { accountId: null }),
+        transactionDate: { gte: params.from, lte: params.to },
+      },
+      orderBy: { transactionDate: 'desc' },
+      take: 10,
+    }) as Promise<LedgerTransactionRow[]>;
+  }
+
   /** The movement imported from that email; reversal rows are not originals. */
   findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
     return this.prisma.finSignalImport
