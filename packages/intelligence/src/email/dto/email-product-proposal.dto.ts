@@ -27,6 +27,17 @@ export class DiscoverEmailProductProposalsDto {
   limit?: number;
 }
 
+export class ApproveEmailProductProposalDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Producto creado con POST /finance/accounts o /finance/cards. Sin él, el back crea el producto desde el borrador (comportamiento anterior).',
+  })
+  @IsOptional()
+  @IsUUID()
+  productId?: string;
+}
+
 export class ListEmailProductProposalsDto {
   @ApiPropertyOptional({
     enum: ['PENDING', 'APPROVING', 'APPROVED', 'DISCARDED'],
@@ -124,6 +135,21 @@ export class EmailProductProposalInstitutionResponseDto {
 
   @ApiProperty()
   country!: string;
+
+  @ApiProperty({
+    nullable: true,
+    format: 'uuid',
+    description:
+      'Institución compatible del usuario (dominio o nombre normalizado); solo cuando hay exactamente una.',
+  })
+  matchedInstitutionId!: string | null;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Todas las instituciones compatibles. Dos o más indican ambigüedad.',
+  })
+  matchedInstitutionIds!: string[];
 }
 
 export class EmailProductProposalDraftResponseDto {
@@ -193,6 +219,21 @@ export class EmailProductProposalResponseDto {
   @ApiProperty({ enum: ['PENDING', 'APPROVING', 'APPROVED', 'DISCARDED'] })
   status!: 'PENDING' | 'APPROVING' | 'APPROVED' | 'DISCARDED';
 
+  @ApiProperty({
+    nullable: true,
+    format: 'uuid',
+    description:
+      'Producto activo compatible que ya existe; se vincula con approve { productId }. Solo cuando hay exactamente uno.',
+  })
+  matchedProductId!: string | null;
+
+  @ApiProperty({
+    type: [String],
+    description:
+      'Productos activos compatibles. Dos o más indican ambigüedad y no se vinculan solos.',
+  })
+  matchedProductIds!: string[];
+
   @ApiProperty({ type: EmailProductProposalDraftResponseDto })
   draft!: EmailProductProposalDraftResponseDto;
 
@@ -238,6 +279,18 @@ export class DiscoverEmailProductProposalsResponseDto {
 
   @ApiProperty()
   ignored!: number;
+
+  @ApiProperty({
+    description:
+      'Correos con un producto que ya existe, activo, en una institución compatible.',
+  })
+  alreadyExists!: number;
+
+  @ApiProperty({
+    description:
+      'Correos con varios productos compatibles: no se crea propuesta.',
+  })
+  ambiguous!: number;
 
   @ApiProperty({ type: [EmailProductProposalResponseDto] })
   proposals!: EmailProductProposalResponseDto[];

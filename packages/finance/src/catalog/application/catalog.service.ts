@@ -7,7 +7,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@personal-os/database';
-import type { EmailProductProposalDraft } from '@personal-os/contracts';
+import {
+  matchesProposalInstitution,
+  type EmailProductProposalDraft,
+} from '@personal-os/contracts';
 import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import type { CursorQueryDto } from '@personal-os/core';
 import type { Env } from '@personal-os/config';
@@ -110,14 +113,6 @@ function omitAccountNumber<
   return rest;
 }
 
-function normalizeInstitutionName(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-}
-
 @Injectable()
 export class CatalogService {
   constructor(
@@ -191,7 +186,7 @@ export class CatalogService {
     const institutionIds = new Set(
       institutions
         .filter((institution) =>
-          this.matchesProposalInstitution(institution, draft.institution),
+          matchesProposalInstitution(institution, draft.institution),
         )
         .map((institution) => institution.id),
     );
@@ -277,7 +272,7 @@ export class CatalogService {
     const institutionMatches = (
       await this.repo.findInstitutionsByUser(userId)
     ).filter((institution) =>
-      this.matchesProposalInstitution(institution, draft.institution),
+      matchesProposalInstitution(institution, draft.institution),
     );
     if (institutionMatches.length > 1) {
       throw new ConflictException(
@@ -343,20 +338,6 @@ export class CatalogService {
         cardType === 'DEBIT' ? (draft.accountId ?? undefined) : undefined,
     });
     return { productId: card.id, duplicate: false };
-  }
-
-  private matchesProposalInstitution(
-    candidate: { name: string; domain: string | null },
-    institution: EmailProductProposalDraft['institution'],
-  ): boolean {
-    const domain = institution.domain?.trim().toLowerCase();
-    if (domain && candidate.domain?.trim().toLowerCase() === domain) {
-      return true;
-    }
-    return (
-      normalizeInstitutionName(candidate.name) ===
-      normalizeInstitutionName(institution.name)
-    );
   }
 
   async listAccounts(userId: string) {

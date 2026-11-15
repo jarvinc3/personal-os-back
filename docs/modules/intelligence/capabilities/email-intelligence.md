@@ -71,13 +71,35 @@ propuesta.
 
 `GET /api/intelligence/email/product-proposals` lista las propuestas con
 asunto, dominio, fecha e indicio mínimo de cada correo de origen. La evidencia
-no incluye cuerpos ni números completos. `PATCH
-/api/intelligence/email/product-proposals/:proposalId` permite corregir el
-borrador; `POST .../:proposalId/approve` es el único paso que crea o reutiliza
-la institución y el producto; `POST .../:proposalId/discard` descarta una
-propuesta pendiente. Las rutas responden 404 en producción. Cada propuesta se
-deduplica por usuario, institución, tipo de producto y últimos cuatro, y la
-evidencia por mensaje es única.
+no incluye cuerpos ni números completos. Cada propuesta trae
+`matchedInstitutionId` (o `matchedInstitutionIds` cuando hay varias
+instituciones compatibles) y `matchedProductId` (o `matchedProductIds` cuando
+hay varios productos). La institución se compara con la misma regla con la que
+Finance la reutiliza (dominio o nombre normalizado) y un producto compatible es
+uno activo, del tipo de la propuesta y con los mismos últimos 4. Con
+`matchedProductId` la web ofrece vincular el producto existente en lugar de
+crear uno. `PATCH .../:proposalId` deja de usarse desde la web y se mantiene por
+compatibilidad.
+
+`POST /api/intelligence/email/product-proposals/:proposalId/approve` acepta
+`{ productId }` y es el único paso que aprueba. Con `productId` valida que el
+producto sea del usuario, esté activo, sea del tipo de la propuesta y no
+pertenezca a Efectivo; vincula sin crear nada, deja `approvedProductId`, guarda
+los últimos 4 finales del producto si el usuario los cambió en el formulario
+nativo y reevalúa las señales. Repetirlo con el mismo producto es idempotente y
+con otro responde 409. Sin cuerpo conserva el comportamiento anterior: crea o
+reutiliza el producto desde el borrador (`duplicate: true` si ya existía) y
+nunca duplica una institución compatible. `POST .../:proposalId/discard`
+descarta una propuesta pendiente. Las rutas responden 404 en producción. Cada
+propuesta se deduplica por usuario, institución, tipo de producto y últimos
+cuatro, y la evidencia por mensaje es única.
+
+El descubrimiento no crea una propuesta cuando ya existe un producto activo
+compatible con los mismos últimos 4: lo cuenta en `alreadyExists` o en
+`ambiguous` si hay varios. Un producto archivado no cuenta como existente y la
+propuesta se puede volver a detectar. Si ya había una propuesta PENDING para ese
+producto, la evidencia nueva se le sigue sumando y el listado la marca con
+`matchedProductId` para vincularla.
 
 Una cuenta requiere tipo y últimos cuatro antes de aprobar. El número completo
 es opcional: si se proporciona se cifra con `DATA_ENCRYPTION_KEY` y el API solo

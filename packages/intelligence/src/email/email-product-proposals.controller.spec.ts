@@ -34,6 +34,26 @@ describe('EmailProductProposalsController', () => {
     expect(proposals.list).not.toHaveBeenCalled();
   });
 
+  it('forwards the linked product, or approves without one', async () => {
+    const { controller, proposals } = makeController('development');
+
+    await controller.approve({ sub: 'user-1' }, 'proposal-1', {
+      productId: 'product-1',
+    });
+    await controller.approve({ sub: 'user-1' }, 'proposal-1', {});
+
+    expect(proposals.approve).toHaveBeenNthCalledWith(1, {
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+      productId: 'product-1',
+    });
+    expect(proposals.approve).toHaveBeenNthCalledWith(2, {
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+      productId: undefined,
+    });
+  });
+
   it('scopes discovery to the authenticated user', async () => {
     const { controller, proposals } = makeController('development');
 

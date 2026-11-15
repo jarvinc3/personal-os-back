@@ -91,7 +91,7 @@ export class CatalogRepository {
   }
   findEmailAccountCandidates(userId: string, lastFour: string) {
     return this.prisma.finAccount.findMany({
-      where: { userId, accountNumberLast4: lastFour },
+      where: { userId, accountNumberLast4: lastFour, isActive: true },
       select: {
         id: true,
         name: true,
@@ -107,7 +107,7 @@ export class CatalogRepository {
   }
   findEmailCardCandidates(userId: string, lastFour: string) {
     return this.prisma.finCard.findMany({
-      where: { userId, lastFour },
+      where: { userId, lastFour, isActive: true },
       select: {
         id: true,
         name: true,

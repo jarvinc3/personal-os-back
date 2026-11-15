@@ -138,3 +138,41 @@ describe('CatalogRepository ensureCashAccount', () => {
     });
   });
 });
+
+describe('CatalogRepository email product candidates', () => {
+  it('only counts active accounts as existing for a proposal', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finAccount: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailAccountCandidates('user-1', '0016');
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-1',
+          accountNumberLast4: '0016',
+          isActive: true,
+        },
+      }),
+    );
+  });
+
+  it('only counts active cards as existing for a proposal', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finCard: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailCardCandidates('user-1', '6506');
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-1', lastFour: '6506', isActive: true },
+      }),
+    );
+  });
+});

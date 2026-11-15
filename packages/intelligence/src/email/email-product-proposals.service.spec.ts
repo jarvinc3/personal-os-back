@@ -54,6 +54,18 @@ function storedSignal(id: string, lastFour = '0016') {
   };
 }
 
+function linkableProduct(overrides: Record<string, unknown> = {}) {
+  return {
+    productId: 'account-1',
+    productType: 'ACCOUNT',
+    lastFour: '0016',
+    isActive: true,
+    institutionId: 'institution-bhd',
+    institutionIsSystem: false,
+    ...overrides,
+  };
+}
+
 function createService(overrides?: {
   signals?: unknown[];
   proposal?: Record<string, unknown>;
@@ -201,6 +213,9 @@ function createService(overrides?: {
       productId: 'account-1',
       duplicate: false,
     }),
+    findProductForLink: jest.fn().mockResolvedValue(null),
+    listInstitutions: jest.fn().mockResolvedValue([]),
+    findProductMatches: jest.fn().mockResolvedValue([]),
     ...overrides?.catalog,
   };
   const catalogRegistry = { get: jest.fn(() => catalog) };
@@ -276,8 +291,14 @@ describe('EmailProductProposalsService', () => {
       accountNumber: '0000000016',
     });
     financeConsumer.preview.mockResolvedValue({ outcome: 'APPLIED' });
-    const result = await service.approve('user-1', 'proposal-1');
-    const secondApproval = await service.approve('user-1', 'proposal-1');
+    const result = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+    });
+    const secondApproval = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+    });
 
     expect(catalog.prepareAccountNumber).toHaveBeenCalledWith({
       accountNumber: '0000000016',
@@ -342,7 +363,10 @@ describe('EmailProductProposalsService', () => {
       domainReferences: [],
     });
 
-    const result = await service.approve('user-1', 'proposal-1');
+    const result = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+    });
 
     expect(financeConsumer.consume).toHaveBeenCalledTimes(1);
     expect(signals.recordConsumerOutcome).toHaveBeenCalledWith(
@@ -370,6 +394,399 @@ describe('EmailProductProposalsService', () => {
     const result = await service.discover({ userId: 'user-1' });
 
     expect(result.created).toBe(0);
+    expect(result.alreadyExists).toBe(1);
     expect(proposals.size).toBe(0);
+  });
+
+  it('reports ambiguous compatible products without creating a proposal', async () => {
+    const { service, proposals } = createService({
+      signals: [storedSignal('message-1')],
+      catalog: {
+        findExisting: jest.fn().mockResolvedValue({
+          productId: 'existing-account',
+          ambiguous: true,
+        }),
+      },
+    });
+
+    const result = await service.discover({ userId: 'user-1' });
+
+    expect(result.created).toBe(0);
+    expect(result.ambiguous).toBe(1);
+    expect(result.alreadyExists).toBe(0);
+    expect(proposals.size).toBe(0);
+  });
+
+  it('keeps collecting evidence in a pending proposal when the product appears later', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, proposals, evidence } = createService({
+      signals: [storedSignal('message-1')],
+      proposal: { ...row, key: 'user-1:bhd.com.do:ACCOUNT:0016' },
+      catalog: {
+        findExisting: jest.fn().mockResolvedValue({
+          productId: 'existing-account',
+          ambiguous: false,
+        }),
+      },
+    });
+
+    const result = await service.discover({ userId: 'user-1' });
+
+    expect(result.created).toBe(0);
+    expect(result.alreadyExists).toBe(0);
+    expect(proposals.size).toBe(1);
+    expect(evidence.size).toBe(1);
+  });
+
+  it('marks the compatible institution and the active product of a pending proposal', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        listInstitutions: jest.fn().mockResolvedValue([
+          { id: 'institution-bhd', name: 'BHD', domain: 'bhd.com.do' },
+          {
+            id: 'institution-other',
+            name: 'Banreservas',
+            domain: 'banreservas.com',
+          },
+        ]),
+        findProductMatches: jest.fn().mockResolvedValue([['account-existing']]),
+      },
+    });
+
+    const [proposal] = await service.list('user-1', 'PENDING');
+
+    expect(proposal.draft.institution.matchedInstitutionId).toBe(
+      'institution-bhd',
+    );
+    expect(proposal.draft.institution.matchedInstitutionIds).toEqual([
+      'institution-bhd',
+    ]);
+    expect(proposal.matchedProductId).toBe('account-existing');
+    expect(proposal.matchedProductIds).toEqual(['account-existing']);
+  });
+
+  it('does not pick one product when several are compatible', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        findProductMatches: jest
+          .fn()
+          .mockResolvedValue([['account-a', 'account-b']]),
+      },
+    });
+
+    const [proposal] = await service.list('user-1', 'PENDING');
+
+    expect(proposal.matchedProductId).toBeNull();
+    expect(proposal.matchedProductIds).toEqual(['account-a', 'account-b']);
+  });
+
+  it('reports several compatible institutions as ambiguous', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        listInstitutions: jest.fn().mockResolvedValue([
+          { id: 'institution-a', name: 'BHD', domain: 'bhd.com.do' },
+          { id: 'institution-b', name: 'Banco BHD', domain: 'BHD.com.do' },
+        ]),
+      },
+    });
+
+    const [proposal] = await service.list('user-1', 'PENDING');
+
+    expect(proposal.draft.institution.matchedInstitutionId).toBeNull();
+    expect(proposal.draft.institution.matchedInstitutionIds).toEqual([
+      'institution-a',
+      'institution-b',
+    ]);
+  });
+
+  it('links an existing product, keeps the evidence and reevaluates the signals', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, prisma, proposals, catalog, financeConsumer, signals } =
+      createService({
+        proposal: row,
+        signals: [storedSignal('message-1')],
+        catalog: {
+          findProductForLink: jest.fn().mockResolvedValue(linkableProduct()),
+        },
+      });
+    prisma.aiEmailProductProposalEvidence.createMany({
+      data: [
+        {
+          userId: 'user-1',
+          proposalId: 'proposal-1',
+          messageId: 'message-1',
+          evidence: {},
+        },
+      ],
+    });
+    financeConsumer.preview.mockResolvedValue({ outcome: 'APPLIED' });
+
+    const approval = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+      productId: 'account-1',
+    });
+
+    expect(catalog.createOrReuse).not.toHaveBeenCalled();
+    expect(catalog.prepareAccountNumber).not.toHaveBeenCalled();
+    expect(proposals.get('proposal-1')?.approvedProductId).toBe('account-1');
+    expect(approval.status).toBe('APPROVED');
+    expect(approval.approval).toEqual({
+      duplicate: false,
+      productId: 'account-1',
+      reevaluatedSignals: 1,
+    });
+    expect(financeConsumer.consume).toHaveBeenCalledTimes(1);
+    expect(signals.recordConsumerOutcome).toHaveBeenCalledTimes(1);
+  });
+
+  it('records the last four of the product created with the native form', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, proposals } = createService({
+      proposal: row,
+      catalog: {
+        findProductForLink: jest
+          .fn()
+          .mockResolvedValue(linkableProduct({ lastFour: '9999' })),
+      },
+    });
+
+    const approvedProposal = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+      productId: 'account-1',
+    });
+
+    expect(approvedProposal.draft.lastFour).toBe('9999');
+    expect(proposals.get('proposal-1')?.draft.lastFour).toBe('9999');
+  });
+
+  it('approves again with the same product without reevaluating twice', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'APPROVED',
+      draft: draft(),
+      approvedProductId: 'account-1',
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, catalog, financeConsumer } = createService({
+      proposal: row,
+      signals: [storedSignal('message-1')],
+    });
+
+    const repeatedApproval = await service.approve({
+      userId: 'user-1',
+      proposalId: 'proposal-1',
+      productId: 'account-1',
+    });
+
+    expect(repeatedApproval.status).toBe('APPROVED');
+    expect(repeatedApproval).not.toHaveProperty('approval');
+    expect(catalog.findProductForLink).not.toHaveBeenCalled();
+    expect(financeConsumer.consume).not.toHaveBeenCalled();
+  });
+
+  it('rejects a proposal already approved with another product', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'APPROVED',
+      draft: draft(),
+      approvedProductId: 'account-1',
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({ proposal: row });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-2',
+      }),
+    ).rejects.toThrow('La propuesta ya está aprobada con otro producto');
+  });
+
+  it('rejects a discarded proposal', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'DISCARDED',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, catalog } = createService({ proposal: row });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-1',
+      }),
+    ).rejects.toThrow('La propuesta no está pendiente de aprobación');
+    expect(catalog.findProductForLink).not.toHaveBeenCalled();
+  });
+
+  it('rejects a product that does not exist for the user', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({ proposal: row });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'missing',
+      }),
+    ).rejects.toThrow('Producto no encontrado');
+  });
+
+  it('rejects an archived product', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        findProductForLink: jest
+          .fn()
+          .mockResolvedValue(linkableProduct({ isActive: false })),
+      },
+    });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-1',
+      }),
+    ).rejects.toThrow('El producto está archivado; desarchívalo o elige otro');
+  });
+
+  it('rejects a product of another type', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        findProductForLink: jest
+          .fn()
+          .mockResolvedValue(linkableProduct({ productType: 'CARD' })),
+      },
+    });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-1',
+      }),
+    ).rejects.toThrow('La propuesta es de cuenta y el producto es de tarjeta');
+  });
+
+  it('rejects a cash product', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        findProductForLink: jest
+          .fn()
+          .mockResolvedValue(linkableProduct({ institutionId: null })),
+      },
+    });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-1',
+      }),
+    ).rejects.toThrow('Vincula un producto de una institución, no de Efectivo');
   });
 });
