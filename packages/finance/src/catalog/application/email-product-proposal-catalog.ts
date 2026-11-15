@@ -90,11 +90,30 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
     }
     const institutions = await this.repo.findInstitutionsByUser(userId);
     const lastFours = [...new Set(lookups.map((lookup) => lookup.lastFour))];
-    const accounts = lookups.some((lookup) => lookup.productType === 'ACCOUNT')
-      ? await this.accountsByLastFour(userId, lastFours)
+    const accounts: ProductMatch[] = lookups.some(
+      (lookup) => lookup.productType === 'ACCOUNT',
+    )
+      ? (
+          await this.repo.findEmailAccountCandidatesByLastFours(
+            userId,
+            lastFours,
+          )
+        ).map((row) => ({
+          id: row.id,
+          lastFour: row.accountNumberLast4,
+          institutionId: row.institutionId,
+        }))
       : [];
-    const cards = lookups.some((lookup) => lookup.productType === 'CARD')
-      ? await this.cardsByLastFour(userId, lastFours)
+    const cards: ProductMatch[] = lookups.some(
+      (lookup) => lookup.productType === 'CARD',
+    )
+      ? (
+          await this.repo.findEmailCardCandidatesByLastFours(userId, lastFours)
+        ).map((row) => ({
+          id: row.id,
+          lastFour: row.lastFour,
+          institutionId: row.institutionId,
+        }))
       : [];
     return lookups.map((lookup) => {
       const institutionIds = new Set(
@@ -114,38 +133,5 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
         )
         .map((product) => product.id);
     });
-  }
-
-  /** Candidatos activos por últimos 4; un producto archivado no cuenta. */
-  private async accountsByLastFour(
-    userId: string,
-    lastFours: readonly string[],
-  ): Promise<ProductMatch[]> {
-    const rows = await Promise.all(
-      lastFours.map((lastFour) =>
-        this.repo.findEmailAccountCandidates(userId, lastFour),
-      ),
-    );
-    return rows.flat().map((row) => ({
-      id: row.id,
-      lastFour: row.accountNumberLast4,
-      institutionId: row.institutionId,
-    }));
-  }
-
-  private async cardsByLastFour(
-    userId: string,
-    lastFours: readonly string[],
-  ): Promise<ProductMatch[]> {
-    const rows = await Promise.all(
-      lastFours.map((lastFour) =>
-        this.repo.findEmailCardCandidates(userId, lastFour),
-      ),
-    );
-    return rows.flat().map((row) => ({
-      id: row.id,
-      lastFour: row.lastFour,
-      institutionId: row.institutionId,
-    }));
   }
 }

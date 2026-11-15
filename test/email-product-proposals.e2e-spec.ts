@@ -143,7 +143,7 @@ describe('Email product proposals API (e2e)', () => {
             where: {
               id?: { in?: string[] };
               userId?: string;
-              accountNumberLast4?: string;
+              accountNumberLast4?: string | { in?: string[] };
             };
           }) => {
             if (where.userId !== USER_ID) {
@@ -153,10 +153,13 @@ describe('Email product proposals API (e2e)', () => {
             if (ids && !ids.includes(ACCOUNT_ID)) {
               return Promise.resolve([]);
             }
-            if (
-              where.accountNumberLast4 &&
-              where.accountNumberLast4 !== '0016'
-            ) {
+            const lastFours =
+              typeof where.accountNumberLast4 === 'object'
+                ? where.accountNumberLast4.in
+                : where.accountNumberLast4
+                  ? [where.accountNumberLast4]
+                  : undefined;
+            if (lastFours && !lastFours.includes('0016')) {
               return Promise.resolve([]);
             }
             return Promise.resolve([accountRow()]);

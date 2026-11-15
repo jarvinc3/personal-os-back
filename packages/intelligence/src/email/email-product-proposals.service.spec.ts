@@ -762,6 +762,36 @@ describe('EmailProductProposalsService', () => {
     ).rejects.toThrow('La propuesta es de cuenta y el producto es de tarjeta');
   });
 
+  it('rejects a product without last four digits', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        findProductForLink: jest
+          .fn()
+          .mockResolvedValue(linkableProduct({ lastFour: null })),
+      },
+    });
+
+    await expect(
+      service.approve({
+        userId: 'user-1',
+        proposalId: 'proposal-1',
+        productId: 'account-1',
+      }),
+    ).rejects.toThrow(
+      'El producto no tiene últimos 4 dígitos; no se puede verificar la propuesta',
+    );
+  });
+
   it('rejects a cash product', async () => {
     const row = {
       id: 'proposal-1',

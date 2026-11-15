@@ -68,13 +68,24 @@ function createAdapter({
 } = {}) {
   const repo = {
     findInstitutionsByUser: jest.fn().mockResolvedValue(institutions),
-    findEmailAccountCandidates: jest.fn((_userId: string, lastFour: string) =>
-      Promise.resolve(
-        accounts.filter((account) => account.accountNumberLast4 === lastFour),
-      ),
+    findEmailAccountCandidatesByLastFours: jest.fn(
+      (_userId: string, lastFours: readonly string[]) =>
+        Promise.resolve(
+          accounts.filter(
+            (account) =>
+              account.accountNumberLast4 !== null &&
+              lastFours.includes(account.accountNumberLast4),
+          ),
+        ),
     ),
-    findEmailCardCandidates: jest.fn((_userId: string, lastFour: string) =>
-      Promise.resolve(cards.filter((card) => card.lastFour === lastFour)),
+    findEmailCardCandidatesByLastFours: jest.fn(
+      (_userId: string, lastFours: readonly string[]) =>
+        Promise.resolve(
+          cards.filter(
+            (card) =>
+              card.lastFour !== null && lastFours.includes(card.lastFour),
+          ),
+        ),
     ),
     findAccountsByIds: jest
       .fn()
@@ -159,6 +170,23 @@ describe('FinanceEmailProductProposalCatalog findProductMatches', () => {
         lookup({ lastFour: '1111' }),
       ]),
     ).resolves.toEqual([['account-1'], ['card-1'], []]);
+  });
+
+  it('queries each product type once for every suffix', async () => {
+    const { adapter, repo } = createAdapter({
+      accounts: [
+        accountRow(),
+        accountRow({ id: 'account-1111', accountNumberLast4: '1111' }),
+      ],
+    });
+
+    await adapter.findProductMatches('user-1', [
+      lookup(),
+      lookup({ lastFour: '1111' }),
+    ]);
+
+    expect(repo.findEmailAccountCandidatesByLastFours).toHaveBeenCalledTimes(1);
+    expect(repo.findEmailCardCandidatesByLastFours).not.toHaveBeenCalled();
   });
 
   it('returns no matches without lookups', async () => {

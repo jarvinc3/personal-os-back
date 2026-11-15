@@ -105,6 +105,31 @@ export class CatalogRepository {
       },
     });
   }
+  /** Una consulta para los sufijos de todas las propuestas del listado. */
+  findEmailAccountCandidatesByLastFours(
+    userId: string,
+    lastFours: readonly string[],
+  ) {
+    return this.prisma.finAccount.findMany({
+      where: {
+        userId,
+        accountNumberLast4: { in: [...lastFours] },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        currency: true,
+        accountNumberLast4: true,
+        institutionId: true,
+        institutionRef: {
+          select: { id: true, name: true, domain: true },
+        },
+      },
+    });
+  }
+
   findEmailCardCandidates(userId: string, lastFour: string) {
     return this.prisma.finCard.findMany({
       where: { userId, lastFour, isActive: true },
@@ -120,6 +145,29 @@ export class CatalogRepository {
       },
     });
   }
+  findEmailCardCandidatesByLastFours(
+    userId: string,
+    lastFours: readonly string[],
+  ) {
+    return this.prisma.finCard.findMany({
+      where: {
+        userId,
+        lastFour: { in: [...lastFours] },
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        lastFour: true,
+        institutionId: true,
+        institution: {
+          select: { id: true, name: true, domain: true },
+        },
+      },
+    });
+  }
+
   findInstitutionsByUser(userId: string) {
     return this.prisma.finInstitution.findMany({
       where: { userId },

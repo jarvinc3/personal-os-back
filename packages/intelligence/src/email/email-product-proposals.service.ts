@@ -456,7 +456,7 @@ export class EmailProductProposalsService {
     userId: string;
     productId: string;
     draft: EmailProductProposalDraft;
-  }): Promise<EmailProductProposalLinkableProduct> {
+  }): Promise<EmailProductProposalLinkableProduct & { lastFour: string }> {
     const product = await this.catalogs
       .get()
       .findProductForLink(userId, productId);
@@ -466,6 +466,11 @@ export class EmailProductProposalsService {
     if (!product.isActive) {
       throw new ConflictException(
         'El producto está archivado; desarchívalo o elige otro',
+      );
+    }
+    if (!product.lastFour) {
+      throw new BadRequestException(
+        'El producto no tiene últimos 4 dígitos; no se puede verificar la propuesta',
       );
     }
     if (product.productType !== draft.productType) {
@@ -482,15 +487,15 @@ export class EmailProductProposalsService {
         'Vincula un producto de una institución, no de Efectivo',
       );
     }
-    return product;
+    return { ...product, lastFour: product.lastFour };
   }
 
   /** El formulario nativo manda: la propuesta guarda los últimos 4 finales. */
   private draftWithFinalLastFour(
     draft: EmailProductProposalDraft,
-    lastFour: string | null,
+    lastFour: string,
   ): EmailProductProposalDraft {
-    if (!lastFour || lastFour === draft.lastFour) {
+    if (lastFour === draft.lastFour) {
       return draft;
     }
     return { ...draft, lastFour };
