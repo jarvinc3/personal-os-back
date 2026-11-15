@@ -74,14 +74,23 @@ async function createUser(): Promise<string> {
   return userId;
 }
 
-async function createInstitution(userId: string): Promise<string> {
+async function createInstitution(
+  userId: string,
+  overrides: {
+    name?: string;
+    type?: string;
+    isSystem?: boolean;
+    domain?: string | null;
+  } = {},
+): Promise<string> {
   const institution = await prisma.finInstitution.create({
     data: {
       userId,
-      name: 'BHD',
-      type: 'bank',
-      domain: 'bhd.com.do',
+      name: overrides.name ?? 'BHD',
+      type: overrides.type ?? 'bank',
+      domain: overrides.domain === undefined ? 'bhd.com.do' : overrides.domain,
       country: 'DO',
+      isSystem: overrides.isSystem ?? false,
     },
     select: { id: true },
   });
@@ -315,7 +324,13 @@ describe('Email product proposals with PostgreSQL', () => {
 
   it('rejects a cash product', async () => {
     currentUserId = await createUser();
-    const accountId = await createAccount(currentUserId, null, {
+    const cashInstitutionId = await createInstitution(currentUserId, {
+      name: 'Efectivo',
+      type: 'cash',
+      isSystem: true,
+      domain: null,
+    });
+    const accountId = await createAccount(currentUserId, cashInstitutionId, {
       type: 'CASH',
     });
     const proposalId = await createProposal(currentUserId);
