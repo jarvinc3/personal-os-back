@@ -11,6 +11,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiTags,
@@ -19,6 +20,7 @@ import type { Env } from '@personal-os/config';
 import { CurrentUser } from '@personal-os/core';
 import { EmailProductProposalsService } from './email-product-proposals.service';
 import {
+  ApproveEmailProductProposalDto,
   DiscoverEmailProductProposalsResponseDto,
   DiscoverEmailProductProposalsDto,
   EmailProductProposalResponseDto,
@@ -81,16 +83,23 @@ export class EmailProductProposalsController {
   }
 
   @Post(':proposalId/approve')
+  @ApiBody({ type: ApproveEmailProductProposalDto, required: false })
   @ApiOkResponse({
-    description: 'Crea o reutiliza el producto y reevalúa señales.',
+    description:
+      'Vincula el producto indicado (o lo crea desde el borrador sin cuerpo) y reevalúa señales.',
     type: EmailProductProposalResponseDto,
   })
   approve(
     @CurrentUser() user: { sub: string },
     @Param('proposalId') proposalId: string,
+    @Body() dto: ApproveEmailProductProposalDto,
   ) {
     this.assertAllowed();
-    return this.proposals.approve(user.sub, proposalId);
+    return this.proposals.approve({
+      userId: user.sub,
+      proposalId,
+      productId: dto?.productId,
+    });
   }
 
   @Post(':proposalId/discard')

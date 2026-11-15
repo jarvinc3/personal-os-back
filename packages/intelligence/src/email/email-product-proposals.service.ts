@@ -4,10 +4,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type {
-  EmailProductProposalDraft,
-  JsonObject,
-  RoutedSignal,
+import {
+  matchesProposalInstitution,
+  type EmailProductProposalDraft,
+  type EmailProductProposalInstitutionCandidate,
+  type EmailProductProposalLinkableProduct,
+  type EmailProductProposalProductLookup,
+  type JsonObject,
+  type RoutedSignal,
 } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
 import { AiSignalConsumerRegistry } from '../signals/ai-signal-consumer.registry';
@@ -25,6 +29,15 @@ const TARGET_REASONS = [
 const MAX_DISCOVERY_LIMIT = 200;
 
 type ProposalStatus = 'PENDING' | 'APPROVING' | 'APPROVED' | 'DISCARDED';
+
+type ProposalRow = {
+  id: string;
+  userId: string;
+  status: ProposalStatus;
+  productType: 'ACCOUNT' | 'CARD';
+  draft: unknown;
+  approvedProductId: string | null;
+};
 
 @Injectable()
 export class EmailProductProposalsService {
@@ -86,6 +99,8 @@ export class EmailProductProposalsService {
     let created = 0;
     let evidenceAdded = 0;
     let ignored = 0;
+    let alreadyExists = 0;
+    let ambiguous = 0;
 
     for (const row of rows) {
       const message = row.emailMessage;
@@ -130,11 +145,6 @@ export class EmailProductProposalsService {
           accountNumberCiphertext: null,
           accountNumberHash: null,
         };
-        const existing = await catalog.findExisting(userId, draft);
-        if (existing) {
-          ignored += 1;
-          continue;
-        }
         const deduplicationKey = [
           detection.institution.domain,
           detection.productType,
@@ -145,6 +155,20 @@ export class EmailProductProposalsService {
             where: { userId_deduplicationKey: { userId, deduplicationKey } },
             select: { id: true },
           });
+        // Si ya hay propuesta para este producto, la evidencia se sigue
+        // sumando aunque el producto exista; el listado la marca para
+        // vincularlo mientras siga pendiente.
+        if (!previousProposal) {
+          const existing = await catalog.findExisting(userId, draft);
+          if (existing) {
+            if (existing.ambiguous) {
+              ambiguous += 1;
+            } else {
+              alreadyExists += 1;
+            }
+            continue;
+          }
+        }
         const proposal = await this.prisma.aiEmailProductProposal.upsert({
           where: { userId_deduplicationKey: { userId, deduplicationKey } },
           create: {
@@ -185,6 +209,8 @@ export class EmailProductProposalsService {
       created,
       evidenceAdded,
       ignored,
+      alreadyExists,
+      ambiguous,
       proposals: await this.list(userId, 'PENDING'),
     };
   }
@@ -210,7 +236,14 @@ export class EmailProductProposalsService {
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_DISCOVERY_LIMIT,
     });
-    return rows.map((row) => this.mapProposal(row));
+    const matches = await this.proposalMatches({ userId, rows });
+    return rows.map((row) =>
+      this.mapProposal(
+        row,
+        matches.institutions,
+        matches.productIdsByProposal.get(row.id) ?? [],
+      ),
+    );
   }
 
   async update(
@@ -310,11 +343,171 @@ export class EmailProductProposalsService {
     return this.get(userId, proposalId);
   }
 
-  async approve(userId: string, proposalId: string) {
+  async approve({
+    userId,
+    proposalId,
+    productId,
+  }: {
+    userId: string;
+    proposalId: string;
+    productId?: string;
+  }) {
     const proposal = await this.findProposal(userId, proposalId);
-    if (proposal.status === 'APPROVED') {
-      return this.get(userId, proposalId);
+    if (productId) {
+      return this.linkExistingProduct({ userId, proposal, productId });
     }
+    return this.approveFromDraft({ userId, proposal });
+  }
+
+  /** Vincula el producto que el usuario creó con el formulario nativo. */
+  private async linkExistingProduct({
+    userId,
+    proposal,
+    productId,
+  }: {
+    userId: string;
+    proposal: ProposalRow;
+    productId: string;
+  }) {
+    if (proposal.status === 'APPROVED') {
+      if (proposal.approvedProductId === productId) {
+        return this.get(userId, proposal.id);
+      }
+      throw new ConflictException(
+        'La propuesta ya está aprobada con otro producto',
+      );
+    }
+    if (proposal.status !== 'PENDING') {
+      throw new ConflictException(
+        'La propuesta no está pendiente de aprobación',
+      );
+    }
+    const draft = parseDraft(proposal.draft);
+    const product = await this.assertLinkableProduct({
+      userId,
+      productId,
+      draft,
+    });
+    await this.lockForApproval({ userId, proposalId: proposal.id });
+    try {
+      const reevaluatedSignals = await this.reevaluateEvidence(
+        userId,
+        proposal.id,
+      );
+      await this.markApproved({
+        userId,
+        proposalId: proposal.id,
+        productId,
+        draft: this.draftWithFinalLastFour(draft, product.lastFour),
+      });
+      return {
+        ...(await this.get(userId, proposal.id)),
+        approval: { duplicate: false, productId, reevaluatedSignals },
+      };
+    } catch (error) {
+      await this.releaseToPending({ userId, proposalId: proposal.id });
+      throw error;
+    }
+  }
+
+  /** Comportamiento anterior: crea o reutiliza el producto desde el borrador. */
+  private async approveFromDraft({
+    userId,
+    proposal,
+  }: {
+    userId: string;
+    proposal: ProposalRow;
+  }) {
+    if (proposal.status === 'APPROVED') {
+      return this.get(userId, proposal.id);
+    }
+    await this.lockForApproval({ userId, proposalId: proposal.id });
+    try {
+      const draft = parseDraft(proposal.draft);
+      const result = await this.catalogs.get().createOrReuse(userId, draft);
+      const reevaluatedSignals = await this.reevaluateEvidence(
+        userId,
+        proposal.id,
+      );
+      await this.markApproved({
+        userId,
+        proposalId: proposal.id,
+        productId: result.productId,
+      });
+      return {
+        ...(await this.get(userId, proposal.id)),
+        approval: {
+          duplicate: result.duplicate,
+          productId: result.productId,
+          reevaluatedSignals,
+        },
+      };
+    } catch (error) {
+      await this.releaseToPending({ userId, proposalId: proposal.id });
+      throw error;
+    }
+  }
+
+  private async assertLinkableProduct({
+    userId,
+    productId,
+    draft,
+  }: {
+    userId: string;
+    productId: string;
+    draft: EmailProductProposalDraft;
+  }): Promise<EmailProductProposalLinkableProduct & { lastFour: string }> {
+    const product = await this.catalogs
+      .get()
+      .findProductForLink(userId, productId);
+    if (!product) {
+      throw new NotFoundException('Producto no encontrado');
+    }
+    if (!product.isActive) {
+      throw new ConflictException(
+        'El producto está archivado; desarchívalo o elige otro',
+      );
+    }
+    if (!product.lastFour) {
+      throw new BadRequestException(
+        'El producto no tiene últimos 4 dígitos; no se puede verificar la propuesta',
+      );
+    }
+    if (product.productType !== draft.productType) {
+      const proposalKind =
+        draft.productType === 'ACCOUNT' ? 'cuenta' : 'tarjeta';
+      const productKind =
+        product.productType === 'ACCOUNT' ? 'cuenta' : 'tarjeta';
+      throw new BadRequestException(
+        `La propuesta es de ${proposalKind} y el producto es de ${productKind}`,
+      );
+    }
+    if (product.institutionId === null || product.institutionIsSystem) {
+      throw new BadRequestException(
+        'Vincula un producto de una institución, no de Efectivo',
+      );
+    }
+    return { ...product, lastFour: product.lastFour };
+  }
+
+  /** El formulario nativo manda: la propuesta guarda los últimos 4 finales. */
+  private draftWithFinalLastFour(
+    draft: EmailProductProposalDraft,
+    lastFour: string,
+  ): EmailProductProposalDraft {
+    if (lastFour === draft.lastFour) {
+      return draft;
+    }
+    return { ...draft, lastFour };
+  }
+
+  private async lockForApproval({
+    userId,
+    proposalId,
+  }: {
+    userId: string;
+    proposalId: string;
+  }) {
     const locked = await this.prisma.aiEmailProductProposal.updateMany({
       where: { id: proposalId, userId, status: 'PENDING' },
       data: { status: 'APPROVING' },
@@ -324,41 +517,54 @@ export class EmailProductProposalsService {
         'La propuesta no está pendiente de aprobación',
       );
     }
+  }
 
-    try {
-      const draft = parseDraft(proposal.draft);
-      const result = await this.catalogs.get().createOrReuse(userId, draft);
-      const evidence =
-        await this.prisma.aiEmailProductProposalEvidence.findMany({
-          where: { userId, proposalId },
-          select: { messageId: true },
-        });
-      const reevaluatedSignals = await this.reevaluateSignals(
-        userId,
-        evidence.map((item) => item.messageId),
-      );
-      await this.prisma.aiEmailProductProposal.updateMany({
-        where: { id: proposalId, userId, status: 'APPROVING' },
-        data: {
-          status: 'APPROVED',
-          approvedProductId: result.productId,
-        },
-      });
-      return {
-        ...(await this.get(userId, proposalId)),
-        approval: {
-          duplicate: result.duplicate,
-          productId: result.productId,
-          reevaluatedSignals,
-        },
-      };
-    } catch (error) {
-      await this.prisma.aiEmailProductProposal.updateMany({
-        where: { id: proposalId, userId, status: 'APPROVING' },
-        data: { status: 'PENDING' },
-      });
-      throw error;
-    }
+  private async markApproved({
+    userId,
+    proposalId,
+    productId,
+    draft,
+  }: {
+    userId: string;
+    proposalId: string;
+    productId: string;
+    draft?: EmailProductProposalDraft;
+  }) {
+    await this.prisma.aiEmailProductProposal.updateMany({
+      where: { id: proposalId, userId, status: 'APPROVING' },
+      data: {
+        status: 'APPROVED',
+        approvedProductId: productId,
+        ...(draft ? { draft } : {}),
+      },
+    });
+  }
+
+  private async releaseToPending({
+    userId,
+    proposalId,
+  }: {
+    userId: string;
+    proposalId: string;
+  }) {
+    await this.prisma.aiEmailProductProposal.updateMany({
+      where: { id: proposalId, userId, status: 'APPROVING' },
+      data: { status: 'PENDING' },
+    });
+  }
+
+  private async reevaluateEvidence(
+    userId: string,
+    proposalId: string,
+  ): Promise<number> {
+    const evidence = await this.prisma.aiEmailProductProposalEvidence.findMany({
+      where: { userId, proposalId },
+      select: { messageId: true },
+    });
+    return this.reevaluateSignals(
+      userId,
+      evidence.map((item) => item.messageId),
+    );
   }
 
   async discard(userId: string, proposalId: string) {
@@ -394,10 +600,50 @@ export class EmailProductProposalsService {
     if (!row) {
       throw new NotFoundException('Propuesta no encontrada');
     }
-    return this.mapProposal(row);
+    const matches = await this.proposalMatches({ userId, rows: [row] });
+    return this.mapProposal(
+      row,
+      matches.institutions,
+      matches.productIdsByProposal.get(row.id) ?? [],
+    );
   }
 
-  private async findProposal(userId: string, proposalId: string) {
+  /**
+   * Instituciones compatibles de todas las filas y productos activos que ya
+   * existen para cada propuesta pendiente. Una sola consulta por tipo.
+   */
+  private async proposalMatches({
+    userId,
+    rows,
+  }: {
+    userId: string;
+    rows: readonly { id: string; status: ProposalStatus; draft: unknown }[];
+  }) {
+    const institutions = await this.catalogs.get().listInstitutions(userId);
+    const pending = rows.filter((row) => row.status === 'PENDING');
+    const lookups: EmailProductProposalProductLookup[] = pending.map((row) => {
+      const draft = parseDraft(row.draft);
+      return {
+        productType: draft.productType,
+        lastFour: draft.lastFour,
+        institution: draft.institution,
+      };
+    });
+    const productMatches = await this.catalogs
+      .get()
+      .findProductMatches(userId, lookups);
+    return {
+      institutions,
+      productIdsByProposal: new Map(
+        pending.map((row, index) => [row.id, productMatches[index] ?? []]),
+      ),
+    };
+  }
+
+  private async findProposal(
+    userId: string,
+    proposalId: string,
+  ): Promise<ProposalRow> {
     const proposal = await this.prisma.aiEmailProductProposal.findFirst({
       where: { id: proposalId, userId },
       select: {
@@ -406,6 +652,7 @@ export class EmailProductProposalsService {
         status: true,
         productType: true,
         draft: true,
+        approvedProductId: true,
       },
     });
     if (!proposal) {
@@ -446,25 +693,29 @@ export class EmailProductProposalsService {
     return reevaluated;
   }
 
-  private mapProposal(row: {
-    id: string;
-    productType: 'ACCOUNT' | 'CARD';
-    status: ProposalStatus;
-    draft: unknown;
-    approvedProductId: string | null;
-    createdAt: Date;
-    evidence: Array<{
-      messageId: string;
-      evidence: unknown;
+  private mapProposal(
+    row: {
+      id: string;
+      productType: 'ACCOUNT' | 'CARD';
+      status: ProposalStatus;
+      draft: unknown;
+      approvedProductId: string | null;
       createdAt: Date;
-      message: {
-        id: string;
-        fromDomain: string;
-        subject: string;
-        receivedAt: Date;
-      };
-    }>;
-  }) {
+      evidence: Array<{
+        messageId: string;
+        evidence: unknown;
+        createdAt: Date;
+        message: {
+          id: string;
+          fromDomain: string;
+          subject: string;
+          receivedAt: Date;
+        };
+      }>;
+    },
+    institutions: readonly EmailProductProposalInstitutionCandidate[],
+    matchedProductIds: readonly string[],
+  ) {
     const draft = parseDraft(row.draft);
     const accountNumberProvided = Boolean(draft.accountNumberCiphertext);
     const {
@@ -474,13 +725,29 @@ export class EmailProductProposalsService {
     } = draft;
     void _ciphertext;
     void _hash;
+    const matchedInstitutionIds = institutions
+      .filter((institution) =>
+        matchesProposalInstitution(institution, draft.institution),
+      )
+      .map((institution) => institution.id);
     return {
       id: row.id,
       productType: row.productType,
       status: row.status,
+      matchedProductId:
+        matchedProductIds.length === 1 ? matchedProductIds[0] : null,
+      matchedProductIds: [...matchedProductIds],
       draft: {
         ...editableDraft,
         accountNumberProvided,
+        institution: {
+          ...editableDraft.institution,
+          matchedInstitutionId:
+            matchedInstitutionIds.length === 1
+              ? matchedInstitutionIds[0]
+              : null,
+          matchedInstitutionIds,
+        },
       },
       approvedProductId: row.approvedProductId,
       createdAt: row.createdAt.toISOString(),

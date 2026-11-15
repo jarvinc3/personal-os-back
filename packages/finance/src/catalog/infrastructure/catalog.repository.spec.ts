@@ -138,3 +138,86 @@ describe('CatalogRepository ensureCashAccount', () => {
     });
   });
 });
+
+describe('CatalogRepository email product candidates', () => {
+  it('only counts active accounts as existing for a proposal', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finAccount: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailAccountCandidates('user-1', '0016');
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-1',
+          accountNumberLast4: '0016',
+          isActive: true,
+        },
+      }),
+    );
+  });
+
+  it('only counts active cards as existing for a proposal', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finCard: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailCardCandidates('user-1', '6506');
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-1', lastFour: '6506', isActive: true },
+      }),
+    );
+  });
+});
+
+describe('CatalogRepository batch email candidates', () => {
+  it('reads active accounts for every suffix in one query', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finAccount: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailAccountCandidatesByLastFours('user-1', [
+      '0016',
+      '6506',
+    ]);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-1',
+          accountNumberLast4: { in: ['0016', '6506'] },
+          isActive: true,
+        },
+      }),
+    );
+  });
+
+  it('reads active cards for every suffix in one query', async () => {
+    const findMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finCard: { findMany },
+    } as unknown as PrismaService;
+
+    const repo = new CatalogRepository(prisma, {} as never);
+    await repo.findEmailCardCandidatesByLastFours('user-1', ['6506']);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-1',
+          lastFour: { in: ['6506'] },
+          isActive: true,
+        },
+      }),
+    );
+  });
+});
