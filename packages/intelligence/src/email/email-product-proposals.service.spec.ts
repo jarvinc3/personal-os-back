@@ -537,6 +537,36 @@ describe('EmailProductProposalsService', () => {
     ]);
   });
 
+  it('reports no compatible institution when none matches', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service } = createService({
+      proposal: row,
+      catalog: {
+        listInstitutions: jest.fn().mockResolvedValue([
+          {
+            id: 'institution-other',
+            name: 'Banreservas',
+            domain: 'banreservas.com',
+          },
+        ]),
+      },
+    });
+
+    const [proposal] = await service.list('user-1', 'PENDING');
+
+    expect(proposal.draft.institution.matchedInstitutionId).toBeNull();
+    expect(proposal.draft.institution.matchedInstitutionIds).toEqual([]);
+    expect(proposal.matchedProductId).toBeNull();
+  });
+
   it('links an existing product, keeps the evidence and reevaluates the signals', async () => {
     const row = {
       id: 'proposal-1',
