@@ -10,6 +10,7 @@ import {
   OPERATION_LEG_ROLE,
   type OperationLegRole,
 } from '../../shared/domain/transfer';
+import type { ResolvedAmounts } from '../../shared/domain/money';
 import {
   TRANSFER_STATUS,
   type FinTxStatus,
@@ -17,6 +18,28 @@ import {
 } from './commands/ledger.commands';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
+
+function withRateMetadata(
+  aiMetadata: unknown,
+  amounts: ResolvedAmounts,
+): unknown {
+  const baseMetadata =
+    aiMetadata && typeof aiMetadata === 'object' && !Array.isArray(aiMetadata)
+      ? aiMetadata
+      : {};
+  return {
+    ...baseMetadata,
+    ...(amounts.exchangeRateDate
+      ? { exchangeRateDate: amounts.exchangeRateDate }
+      : {}),
+    ...(amounts.baseExchangeRateDate
+      ? {
+          baseExchangeRate: amounts.baseExchangeRate,
+          baseExchangeRateDate: amounts.baseExchangeRateDate,
+        }
+      : {}),
+  };
+}
 
 function toTransferStatus(status: FinTxStatus): TransferStatus {
   if (
@@ -92,6 +115,7 @@ export class ImportFinancialTransactionUseCase {
 
     const created = await this.repo.createImportedTransaction(userId, {
       ...data,
+      aiMetadata: withRateMetadata(data.aiMetadata, amounts),
       merchantId: resolvedMerchant?.id ?? null,
       amounts,
     });

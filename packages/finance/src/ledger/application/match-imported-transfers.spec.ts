@@ -23,6 +23,7 @@ function candidate(
       movementClass:
         overrides.type === 'DEBIT' ? 'TRANSFER_OUT' : 'TRANSFER_IN',
     },
+    accountId: overrides.accountId ?? null,
     account: { institutionId: 'inst-a' },
     card: null,
     emailMessage: null,
@@ -43,6 +44,44 @@ describe('pickTransferMatch', () => {
       account: { institutionId: 'qik' },
     });
     expect(pickTransferMatch(debit, [debit, credit]).match?.id).toBe('c1');
+  });
+
+  it('pairs the two notices of the same transfer in the same account', () => {
+    const outgoing = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+    });
+    const incoming = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      transactionDate: new Date('2026-09-15T11:58:00.000Z'),
+    });
+
+    expect(pickTransferMatch(outgoing, [outgoing, incoming]).match?.id).toBe(
+      'c1',
+    );
+  });
+
+  it('does not pair same-account notices beyond ten minutes', () => {
+    const outgoing = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+    });
+    const incoming = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      transactionDate: new Date('2026-09-15T11:49:00.000Z'),
+    });
+
+    expect(pickTransferMatch(outgoing, [outgoing, incoming]).match).toBeNull();
   });
 
   it('leaves ambiguous same-amount candidates unmatched', () => {

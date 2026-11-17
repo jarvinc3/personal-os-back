@@ -8,6 +8,7 @@ import { TRANSFER_REFERENCE_WINDOW_MS } from '../../shared/domain/transfer';
 export type ImportTransferCandidate = {
   id: string;
   type: string;
+  accountId?: string | null;
   externalReference?: string | null;
   amount: { toString(): string } | number;
   currency: string;
@@ -23,6 +24,8 @@ export type ImportTransferCandidate = {
 };
 
 const DEFAULT_MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+/** Two BHD notices for the same transfer arrive about two minutes apart. */
+export const DOUBLE_NOTICE_WINDOW_MS = 10 * 60 * 1000;
 /** Dos correos con la misma referencia tienen más margen para emparejar. */
 export const REFERENCE_MATCH_WINDOW_MS = TRANSFER_REFERENCE_WINDOW_MS;
 const FEE_TOLERANCE = 50;
@@ -121,7 +124,19 @@ export function pickTransferMatch(
     .filter((other) => other.id !== row.id)
     .filter((other) => other.type === opposite)
     .filter((other) => other.currency === row.currency)
-    .filter((other) => institutionOf(other) !== institution)
+    .filter((other) => {
+      const sameAccountDoubleNotice =
+        row.accountId != null &&
+        other.accountId != null &&
+        row.accountId === other.accountId;
+      if (sameAccountDoubleNotice) {
+        const delta = Math.abs(
+          other.transactionDate.getTime() - row.transactionDate.getTime(),
+        );
+        return delta <= DOUBLE_NOTICE_WINDOW_MS;
+      }
+      return institutionOf(other) !== institution;
+    })
     .filter((other) => {
       const delta = Math.abs(
         other.transactionDate.getTime() - row.transactionDate.getTime(),

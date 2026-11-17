@@ -1100,6 +1100,48 @@ describe('FinanceSignalConsumer reversal chain', () => {
     expect(ledger.findReverseCandidates).not.toHaveBeenCalled();
   });
 
+  it('retries a reversal in review for a missing merchant when its purchase arrives', async () => {
+    const pendingCandidate = reversalSignal({
+      merchant: undefined,
+      reverseOfBankReference: undefined,
+      last4: '6506',
+    }).payload;
+    const { consumer, prisma, finSignalImport, reverseTransaction } =
+      setupReversal({
+        pending: [
+          {
+            signalId: 'signal-reversal-1',
+            sourceEmailMessageId: 'email-reversal-1',
+            createdAt: new Date('2026-11-05T00:00:00.000Z'),
+            candidate: pendingCandidate,
+          },
+        ],
+        candidatesByCard: [{ ...reversalOriginal, cardId: 'card-1' }],
+      });
+    prisma.finCard.findMany.mockResolvedValue([
+      { id: 'card-1', accountId: 'account-1' },
+    ]);
+
+    await expect(consumer.consume(signal)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+
+    expect(finSignalImport.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          reviewReason: {
+            in: expect.arrayContaining(['REVERSAL_COMMERCE_MISSING']),
+          },
+        }),
+      }),
+    );
+    expect(reverseTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      'original-1',
+      expect.objectContaining({ reversalStep: 'CARD_ACCOUNT' }),
+    );
+  });
+
   it('uses a null account when the card has no account', async () => {
     const { consumer, ledger, prisma } = setupReversal({
       candidatesByCard: [reversalOriginal],

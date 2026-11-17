@@ -87,4 +87,53 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
     const second = execute.mock.calls[1][1] as TransferLegCommand;
     expect(first.transferGroupId).not.toBe(second.transferGroupId);
   });
+
+  it('records the FX rate date and base rate in the imported metadata', async () => {
+    const repo = {
+      findAccountById: jest
+        .fn()
+        .mockResolvedValue({ id: 'account-1', currency: 'DOP' }),
+      createImportedTransaction: jest
+        .fn()
+        .mockResolvedValue({ id: 'transaction-1' }),
+    };
+    const resolveAmounts = {
+      execute: jest.fn().mockResolvedValue({
+        amount: 59.99,
+        currency: 'USD',
+        ledgerAmount: 3627.09,
+        ledgerCurrency: 'DOP',
+        amountBaseCurrency: 3627.09,
+        exchangeRate: 60.4617,
+        exchangeRateDate: '2026-11-06',
+        baseExchangeRate: 60.4617,
+        baseExchangeRateDate: '2026-11-06',
+      }),
+    };
+    const useCase = new ImportFinancialTransactionUseCase(
+      repo as never,
+      resolveAmounts as never,
+      { execute: jest.fn().mockResolvedValue('DOP') },
+      { wake: jest.fn() },
+      { resolve: jest.fn() } as never,
+    );
+
+    await useCase.execute('user-1', {
+      ...movement,
+      currency: 'USD',
+      aiMetadata: { signalId: 'signal-1' },
+    });
+
+    expect(repo.createImportedTransaction).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        aiMetadata: expect.objectContaining({
+          signalId: 'signal-1',
+          exchangeRateDate: '2026-11-06',
+          baseExchangeRate: 60.4617,
+          baseExchangeRateDate: '2026-11-06',
+        }),
+      }),
+    );
+  });
 });

@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
@@ -46,10 +51,10 @@ export class ResolveAmountsUseCase {
     const date = params.transactionDate.toISOString().slice(0, 10);
 
     const ledgerRate = await this.requireRate(currency, ledgerCurrency, date);
-    const ledgerAmount = convertAmount(params.amount, ledgerRate);
+    const ledgerAmount = convertAmount(params.amount, ledgerRate.rate);
 
     const baseRate = await this.requireRate(currency, baseCurrency, date);
-    const amountBaseCurrency = convertAmount(params.amount, baseRate);
+    const amountBaseCurrency = convertAmount(params.amount, baseRate.rate);
 
     return {
       amount: params.amount,
@@ -57,7 +62,10 @@ export class ResolveAmountsUseCase {
       ledgerAmount,
       ledgerCurrency,
       amountBaseCurrency,
-      exchangeRate: ledgerRate,
+      exchangeRate: ledgerRate.rate,
+      exchangeRateDate: ledgerRate.rateDate,
+      baseExchangeRate: baseRate.rate,
+      baseExchangeRateDate: baseRate.rateDate,
     };
   }
 
@@ -145,7 +153,7 @@ export class ResolveAmountsUseCase {
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
     const rate = await this.requireRate(from, target, date);
-    return convertDecimal(amount, rate);
+    return convertDecimal(amount, rate.rate);
   }
 
   /**
@@ -186,13 +194,23 @@ export class ResolveAmountsUseCase {
     from: string,
     to: string,
     date: string,
-  ): Promise<number> {
-    const result = await this.rates.getHistoricalRate({ from, to, date });
-    if (!result.ok) {
-      throw new BadRequestException(
-        `Exchange rate unavailable for ${from}->${to} on ${date}: ${result.message}`,
+  ): Promise<{ rate: number; rateDate: string }> {
+    const rateResult = await this.rates.getLedgerRate({ from, to, date });
+    if (rateResult.ok) {
+      return { rate: rateResult.rate, rateDate: rateResult.rateDate ?? date };
+    }
+    if (
+      rateResult.code === 'PROVIDER_UNAUTHORIZED' ||
+      rateResult.code === 'PROVIDER_UNAVAILABLE' ||
+      rateResult.code === 'API_KEY_MISSING' ||
+      rateResult.code === 'PROVIDER_ERROR'
+    ) {
+      throw new ServiceUnavailableException(
+        `Exchange rate provider unavailable for ${from}->${to} on ${date}: ${rateResult.message}`,
       );
     }
-    return result.rate;
+    throw new BadRequestException(
+      `Exchange rate unavailable for ${from}->${to} on ${date}: ${rateResult.message}`,
+    );
   }
 }

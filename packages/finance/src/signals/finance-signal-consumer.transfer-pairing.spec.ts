@@ -40,6 +40,8 @@ function pairCandidate({
   daysFromIncoming,
   transferGroupId,
   extraMs = 0,
+  accountId = null,
+  institutionId,
 }: {
   id: string;
   type: 'DEBIT' | 'CREDIT';
@@ -47,10 +49,13 @@ function pairCandidate({
   daysFromIncoming: number;
   transferGroupId?: string;
   extraMs?: number;
+  accountId?: string | null;
+  institutionId?: string;
 }) {
   return {
     id,
     type,
+    accountId: accountId ?? null,
     externalReference,
     amount: 1000,
     amountBaseCurrency: 1000,
@@ -70,7 +75,7 @@ function pairCandidate({
     aiMetadata: {
       movementClass: type === 'DEBIT' ? 'TRANSFER_OUT' : 'TRANSFER_IN',
     },
-    account: { institutionId: `inst-${id}`, type: 'SAVINGS' },
+    account: { institutionId: institutionId ?? `inst-${id}`, type: 'SAVINGS' },
     card: null,
   };
 }
@@ -78,6 +83,7 @@ function pairCandidate({
 const currentLeg = {
   id: 'transaction-1',
   type: 'DEBIT',
+  accountId: 'account-1',
   externalReference: 'REF-1',
   amount: 1000,
   amountBaseCurrency: 1000,
@@ -190,6 +196,30 @@ describe('FinanceSignalConsumer transfer pairing', () => {
     await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
       outcome: 'APPLIED',
     });
+    expect(importEmail.pairTransferLegs).toHaveBeenCalledWith(
+      'user-1',
+      'transaction-1',
+      'credit-1',
+    );
+  });
+
+  it('pairs the two BHD notices of the same transfer in the same account', async () => {
+    const { consumer, importEmail } = setup({
+      candidates: [
+        pairCandidate({
+          id: 'credit-1',
+          type: 'CREDIT',
+          externalReference: null,
+          daysFromIncoming: 0,
+          extraMs: 2 * 60 * 1000,
+          accountId: 'account-1',
+          institutionId: 'bhd',
+        }),
+      ],
+    });
+
+    await consumer.consume(transferSignal());
+
     expect(importEmail.pairTransferLegs).toHaveBeenCalledWith(
       'user-1',
       'transaction-1',

@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -253,12 +254,22 @@ export class ChangeBaseCurrencyUseCase {
     date: Date,
   ): Promise<number> {
     const day = date.toISOString().slice(0, 10);
-    const rateResult = await this.rates.getHistoricalRate({
+    const rateResult = await this.rates.getLedgerRate({
       from,
       to,
       date: day,
     });
     if (!rateResult.ok) {
+      if (
+        rateResult.code === 'PROVIDER_UNAUTHORIZED' ||
+        rateResult.code === 'PROVIDER_UNAVAILABLE' ||
+        rateResult.code === 'API_KEY_MISSING' ||
+        rateResult.code === 'PROVIDER_ERROR'
+      ) {
+        throw new ServiceUnavailableException(
+          `Exchange rate provider unavailable for ${from}->${to} on ${day}: ${rateResult.message}`,
+        );
+      }
       throw new BadRequestException(
         `Exchange rate unavailable for ${from}->${to} on ${day}: ${rateResult.message}`,
       );

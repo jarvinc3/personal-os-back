@@ -117,9 +117,26 @@ function setup({
 }
 
 describe('EmailSampleImportService', () => {
-  it('rejects more than twenty ids', async () => {
+  it('allows up to fifty ids in dry run', async () => {
+    const messages = Array.from({ length: 50 }, (_, index) =>
+      message(`message-${index + 1}`),
+    );
+    const { service } = setup({ messages });
+    const messageIds = messages.map((item) => item.id);
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds },
+    });
+
+    expect(manifest.selection.cap).toBe(50);
+    expect(manifest.items).toHaveLength(50);
+  });
+
+  it('rejects more than fifty ids', async () => {
     const { service, classificationService } = setup();
-    const messageIds = Array.from({ length: 21 }, (_, index) => `m-${index}`);
+    const messageIds = Array.from({ length: 51 }, (_, index) => `m-${index}`);
     await expect(
       service.run({
         userId: 'user-1',
@@ -128,6 +145,19 @@ describe('EmailSampleImportService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(classificationService.previewClassification).not.toHaveBeenCalled();
+  });
+
+  it('keeps the real import capped at twenty', async () => {
+    const { service, classificationService } = setup();
+    const messageIds = Array.from({ length: 21 }, (_, index) => `m-${index}`);
+    await expect(
+      service.run({
+        userId: 'user-1',
+        dryRun: false,
+        selection: { messageIds },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(classificationService.reclassifyMessageNow).not.toHaveBeenCalled();
   });
 
   it('rejects an empty id list', async () => {
@@ -168,7 +198,7 @@ describe('EmailSampleImportService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('selects by sender and window with a cap of twenty', async () => {
+  it('selects by sender and window with a cap of fifty in dry run', async () => {
     const { service, findMany } = setup();
 
     await service.run({
@@ -194,8 +224,26 @@ describe('EmailSampleImportService', () => {
             { fromAddress: { equals: 'bhd.com.do', mode: 'insensitive' } },
           ],
         },
-        take: 20,
+        take: 50,
       }),
+    );
+  });
+
+  it('caps the real sender window at twenty', async () => {
+    const { service, findMany } = setup();
+
+    await service.run({
+      userId: 'user-1',
+      dryRun: false,
+      selection: {
+        sender: 'bhd.com.do',
+        dateFrom: new Date('2026-10-26T00:00:00.000Z'),
+        dateTo: new Date('2026-11-02T23:59:59.999Z'),
+      },
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 20 }),
     );
   });
 
@@ -270,6 +318,58 @@ describe('EmailSampleImportService', () => {
     expect(manifest.items[0]).toMatchObject({
       provider: null,
       model: null,
+    });
+  });
+
+  it('marks a provider failure apart from a non-transaction', async () => {
+    const { service } = setup({
+      classification: {
+        kind: 'unavailable',
+        reason: 'INFERENCE_PROVIDER_FAILURE',
+      },
+    });
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(manifest.items[0]).toMatchObject({
+      classification: null,
+      classificationUnavailableReason: 'INFERENCE_PROVIDER_FAILURE',
+      signal: { published: false, reason: 'CLASSIFICATION_UNAVAILABLE' },
+      prediction: null,
+    });
+  });
+
+  it('keeps a non-transaction separate from a provider failure', async () => {
+    const { service } = setup({
+      classification: {
+        kind: 'classified',
+        classification: {
+          relevance: true,
+          semanticType: 'FIN_STATEMENT_NOTICE',
+          routes: ['FINANCE'],
+          confidence: 0.99,
+        },
+        method: 'DETERMINISTIC',
+        provider: null,
+        model: null,
+        auditSample: false,
+        knowledgeUsed: [],
+      },
+    });
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(manifest.items[0]).toMatchObject({
+      signal: { published: false, reason: 'NO_TRANSACTION_CANDIDATE' },
+      prediction: null,
     });
   });
 

@@ -30,9 +30,6 @@ const INCOMING_PRODUCT_PATTERN = /producto\s*:\s*(\S{4,40})/i;
 const INCOMING_TRANSFER_PATTERN = /has recibido una transferencia/i;
 const INCOMING_SENDER_PATTERN = /ordenante:\s*(.{1,160}?)monto:/i;
 const OWN_PRODUCTS_PATTERN = /producto origen:[\s\S]*producto destino:/i;
-/** La variante a otros bancos declara que el destino no es un producto propio. */
-const OTHER_BANKS_TRANSFER_PATTERN =
-  /transacciones entre productos bhd y a otros bancos/i;
 const STATEMENT_NOTICE_PATTERN =
   /ya est[aá]n disponibles los estados de cuenta/i;
 const CARD_LAST4_PATTERN = /#\s*(\d{4})\b/;
@@ -165,7 +162,6 @@ function readOwnProductsTransfer({
       ...decideOwnProductsMovement({
         destinationLast4,
         productHints,
-        otherBankDestination: OTHER_BANKS_TRANSFER_PATTERN.test(text),
       }),
     },
   });
@@ -173,20 +169,17 @@ function readOwnProductsTransfer({
 
 /**
  * El destino decide la clase: solo una tarjeta de crédito es un pago de tarjeta,
- * porque el pago de Finance exige una tarjeta de crédito. Una cuenta o una
- * tarjeta de débito son una transferencia entre productos, y la variante a otros
- * bancos también sale del origen sin inventar contraparte. Si el destino no es
- * ninguno de los productos propios, la clase queda sin decidir y el motor la
- * manda a revisión sin inventar el lado.
+ * porque el pago de Finance exige una tarjeta de crédito. Cualquier otro
+ * destino es una transferencia enviada desde el producto de origen; si el
+ * destino no está registrado no se inventa la contraparte, pero la pata de
+ * origen sí se registra.
  */
 function decideOwnProductsMovement({
   destinationLast4,
   productHints,
-  otherBankDestination,
 }: {
   destinationLast4: string;
   productHints: EmailProductHints;
-  otherBankDestination: boolean;
 }): Pick<BhdTransaction, 'movementClass' | 'direction' | 'last4'> {
   if (productHints.creditCardLast4.includes(destinationLast4)) {
     return {
@@ -195,13 +188,7 @@ function decideOwnProductsMovement({
       last4: destinationLast4,
     };
   }
-  if (
-    otherBankDestination ||
-    productHints.ownProductLast4.includes(destinationLast4)
-  ) {
-    return { movementClass: 'TRANSFER_OUT', direction: 'TRANSFER' };
-  }
-  return { movementClass: 'OTHER', direction: 'TRANSFER' };
+  return { movementClass: 'TRANSFER_OUT', direction: 'TRANSFER' };
 }
 
 function readIncomingTransfer({

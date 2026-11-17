@@ -114,7 +114,7 @@ Cuando llega una segunda señal válida, se aplica el comportamiento actual de `
 
 - mismo usuario;
 - tipo opuesto;
-- institución distinta (el código actual usa la institución, no solo la cuenta);
+- institución distinta (el código actual usa la institución, no solo la cuenta), o la misma cuenta en el doble aviso BHD: tipo opuesto, mismo monto y moneda, y hasta 10 minutos de diferencia;
 - misma moneda base del usuario;
 - fecha dentro de 3 días, o de 7 cuando las dos patas comparten la referencia bancaria;
 - monto exacto o tolerancia de comisión de 50 o 2 %;
@@ -130,13 +130,17 @@ El emparejamiento ocurre después de guardar la pata. Si ese paso falla, la pata
 
 La tolerancia de 50 o 2 % es comportamiento actual del código y se conserva. La ventana es de 3 días; con la misma referencia bancaria en las dos patas pasa a 7 días, por la decisión del owner del 2026-11-11 registrada en el issue #335.
 
+El doble aviso BHD de una misma transferencia (el aviso de recibido y la confirmación entre productos, unos dos minutos después y con el mismo monto) se importa como dos patas y se empareja con el mismo `transferGroupId`, aunque las dos sean de la misma cuenta. La operación neta del par queda en cero. El resto de las transferencias sigue exigiendo institución distinta. Un aviso de salida sin pareja se guarda como una pata conocida.
+
+La transferencia entre productos propios usa el origen como pata conocida. Si el destino no es un producto registrado, la clase es `TRANSFER_OUT` y se registra la pata de origen; no queda en `OTHER`. Solo un destino que sea una tarjeta de crédito registrada se trata como `CARD_PAYMENT`.
+
 ### 3.4 Dedupe
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
 - Un match de referencia es un candidato, no prueba de duplicado.
 - Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto y misma moneda, con fecha de operación dentro de 7 días, `DUPLICATE`, sin segunda fila.
 - Contraparte legítima: misma referencia, mismo usuario, tipo opuesto y cuenta distinta. No es duplicado ni conflicto; se importa la segunda pata y puede emparejar. La excepción se evalúa antes del conflicto y no se extiende a otros atributos.
-- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto o moneda distintos, o fecha fuera de la ventana de 7 días, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
+- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto o moneda distintos, o fecha fuera de la ventana de 7 días, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión. El doble aviso BHD de la sección 3.3 es la excepción: se empareja en vez de ir a conflicto.
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
 La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias compara referencia más tipo y cuenta, y además monto y moneda; lo que no es contraparte legítima va a revisión.
@@ -260,7 +264,7 @@ Los códigos son estables; el texto visible puede cambiar sin cambiar el código
 | `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` | Varios pagos parecidos.                                                                                                | Sin movimiento; candidatos.                                                          |
 | `REVERSAL_ORIGINAL_NOT_FOUND`           | No hay original por referencia, correo ni tarjeta.                                                                     | Sin movimiento; se reintenta cuando el original aparezca.                            |
 | `REVERSAL_REFERENCE_NOT_FOUND`          | Referencia explícita sin original elegible.                                                                            | Revisión; no usa candidato por heurística; se reintenta cuando el original aparezca. |
-| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio y sin tarjeta (`last4`) que identifique el original.                                              | Revisión; no auto-vincula.                                                           |
+| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio y sin tarjeta (`last4`) que identifique el original.                                              | Revisión; si el correo trae `last4`, se reintenta cuando la compra original aparece. |
 | `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales o varias tarjetas posibles.                                                                          | Sin movimiento; candidatos.                                                          |
 | `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                                                      |
 | `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.                                               |
@@ -295,7 +299,7 @@ Reglas de la cadena:
 - Si no hay referencia, se busca por el id de correo y luego por candidatos; el paso usado queda en la evidencia.
 - Sin comercio, el candidato se busca por la tarjeta: se resuelve la tarjeta activa por `last4`, su `accountId` es la cuenta, y una compra sin `accountId` cuenta como la cuenta de esa tarjeta. La ventana es de tres días antes del aviso, no ±14.
 - El paso usado (`REFERENCE`, `EMAIL`, `CANDIDATE` o `CARD_ACCOUNT`) queda en la evidencia. La tarjeta ausente o ambigua, cero compras o varias dejan el reverso en revisión.
-- Si el original no aparece, el reverso queda en revisión sin crear movimiento y se reintenta cada vez que se importa un movimiento nuevo del mismo usuario. Si el original aparece, se vincula automáticamente y la fila de revisión pasa al resultado del vínculo (decisión 2 del owner).
+- Si el original no aparece, el reverso queda en revisión sin crear movimiento y se reintenta cada vez que se importa un movimiento nuevo del mismo usuario. El reintento incluye `REVERSAL_ORIGINAL_NOT_FOUND`, `REVERSAL_REFERENCE_NOT_FOUND` y `REVERSAL_COMMERCE_MISSING` cuando el correo trae `last4`. Si el original aparece, se vincula automáticamente y la fila de revisión pasa al resultado del vínculo (decisión 2 del owner).
 - Un candidato único válido se vincula automáticamente. No se exige confirmación humana para todos los reversos.
 - Cero candidatos, varios candidatos o un candidato no elegible dejan el reverso en revisión sin compensar nada.
 
@@ -438,23 +442,25 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                                   | Código actual                                                                                                                                                                                                                                         | Estado                         |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| La transferencia resuelve una cuenta propia               | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                                                                                     | `IMPLEMENTADO` (PR #340)       |
-| La transferencia crea una sola pata con rol               | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                                                                                   | `IMPLEMENTADO` (PR #340)       |
-| El emparejamiento usa ventana por referencia y tolerancia | `match-imported-transfers.ts` usa 3 días, o 7 con referencia compartida; conserva tolerancia y exige un candidato único.                                                                                                                              | `VERIFICADO` (PR #348)         |
-| La referencia compartida identifica la misma pata         | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha dentro de 7 días; la contraparte legítima se importa.                                                                                                                | `IMPLEMENTADO` (PR #348)       |
-| El pago de tarjeta reutiliza dos patas                    | El correo llama `ImportCardPaymentUseCase`, que concilia pagos manuales y crea dos patas `CARD_PAYMENT` sin gasto.                                                                                                                                    | `IMPLEMENTADO` (PR #335)       |
-| El clasificador emite las pistas                          | Esquema y prompt incluyen `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con fuente y `reverseOfEmailMessageId`; la fecha recibida se aplica fuera del modelo.                                                                                  | `IMPLEMENTADO` (PR #343)       |
-| La fecha del encabezado es solo sugerencia                | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes en #337.                                                                                                                            | `PARCIALMENTE IMPLEMENTADO`    |
-| El reverso sigue la cadena del ADR-003                    | `resolveReversal` resuelve por `reverseOfBankReference`, luego `reverseOfEmailMessageId` y después candidato único cuando no hay referencia explícita; no usa `bankReference` de la reversión.                                                        | `IMPLEMENTADO` (PR #345)       |
-| El reverso filtra tipo, transferencia y tarjeta           | `findCandidatesForReverse` (con comercio: ±14 días) y `findReverseCandidatesByCard` (sin comercio: tarjeta, cuenta, 3 días antes) filtran usuario, estado, `type DEBIT`, `transferGroupId` nulo, moneda y monto (`prisma-ledger-read.repository.ts`). | `IMPLEMENTADO` (PR #345, #369) |
-| El reverso sin comercio usa la tarjeta y su cuenta        | `resolveReversalFromCard` resuelve la tarjeta activa por `last4`, toma su `accountId` y consulta compras con `CARD_ACCOUNT`; una compra sin `accountId` cuenta como la cuenta de la tarjeta.                                                          | `IMPLEMENTADO` (#369)          |
-| El reverso pendiente se vincula al aparecer el original   | Tras importar un movimiento se reintentan los reversos en revisión con `REVERSAL_ORIGINAL_NOT_FOUND` o `REVERSAL_REFERENCE_NOT_FOUND` (`finance-signal-consumer.ts`).                                                                                 | `IMPLEMENTADO` (PR #345)       |
-| El reverso parcial mantiene el monto original y su tope   | Fila `CREDIT` vinculada; el original sigue `CONFIRMED`; suma y límite decimal exactos dentro de la transacción; el gasto y el presupuesto se ajustan por lo devuelto.                                                                                 | `IMPLEMENTADO` (PR #345)       |
-| El correo sin comercio se registra y se marca             | Se guarda `Comercio desconocido` con `aiMetadata.merchantMissing`; el texto de relleno no se resuelve como comercio (`unknown-merchant.ts`).                                                                                                          | `IMPLEMENTADO` (PR #345)       |
-| La pata de tarjeta no repite `importReference`            | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo está implementada en el PR #335.                                                                                                                           | `IMPLEMENTADO` (PR #335)       |
-| Un import en revisión por falta de destino se recalcula   | `buildImportPlan` vuelve a resolver la cuenta o la tarjeta de un `fin_signal_import` en `REVIEW_REQUIRED` con un motivo de destino; conserva los imports aplicados y las revisiones por otros motivos (`finance-signal-consumer.ts`).                 | `IMPLEMENTADO` (#376)          |
+| Afirmación del contrato                                   | Código actual                                                                                                                                                                                                                                                    | Estado                         |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| La transferencia resuelve una cuenta propia               | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                                                                                                | `IMPLEMENTADO` (PR #340)       |
+| La transferencia crea una sola pata con rol               | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                                                                                              | `IMPLEMENTADO` (PR #340)       |
+| El emparejamiento usa ventana por referencia y tolerancia | `match-imported-transfers.ts` usa 3 días, o 7 con referencia compartida; conserva tolerancia y exige un candidato único.                                                                                                                                         | `VERIFICADO` (PR #348)         |
+| La referencia compartida identifica la misma pata         | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha dentro de 7 días; la contraparte legítima se importa.                                                                                                                           | `IMPLEMENTADO` (PR #348)       |
+| El pago de tarjeta reutiliza dos patas                    | El correo llama `ImportCardPaymentUseCase`, que concilia pagos manuales y crea dos patas `CARD_PAYMENT` sin gasto.                                                                                                                                               | `IMPLEMENTADO` (PR #335)       |
+| El clasificador emite las pistas                          | Esquema y prompt incluyen `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con fuente y `reverseOfEmailMessageId`; la fecha recibida se aplica fuera del modelo.                                                                                             | `IMPLEMENTADO` (PR #343)       |
+| La fecha del encabezado es solo sugerencia                | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes en #337.                                                                                                                                       | `PARCIALMENTE IMPLEMENTADO`    |
+| El reverso sigue la cadena del ADR-003                    | `resolveReversal` resuelve por `reverseOfBankReference`, luego `reverseOfEmailMessageId` y después candidato único cuando no hay referencia explícita; no usa `bankReference` de la reversión.                                                                   | `IMPLEMENTADO` (PR #345)       |
+| El reverso filtra tipo, transferencia y tarjeta           | `findCandidatesForReverse` (con comercio: ±14 días) y `findReverseCandidatesByCard` (sin comercio: tarjeta, cuenta, 3 días antes) filtran usuario, estado, `type DEBIT`, `transferGroupId` nulo, moneda y monto (`prisma-ledger-read.repository.ts`).            | `IMPLEMENTADO` (PR #345, #369) |
+| El reverso sin comercio usa la tarjeta y su cuenta        | `resolveReversalFromCard` resuelve la tarjeta activa por `last4`, toma su `accountId` y consulta compras con `CARD_ACCOUNT`; una compra sin `accountId` cuenta como la cuenta de la tarjeta.                                                                     | `IMPLEMENTADO` (#369)          |
+| El reverso pendiente se vincula al aparecer el original   | Tras importar un movimiento se reintentan los reversos en revisión con `REVERSAL_ORIGINAL_NOT_FOUND`, `REVERSAL_REFERENCE_NOT_FOUND` o `REVERSAL_COMMERCE_MISSING` (`finance-signal-consumer.ts`).                                                               | `IMPLEMENTADO` (PR #345, #380) |
+| El reverso parcial mantiene el monto original y su tope   | Fila `CREDIT` vinculada; el original sigue `CONFIRMED`; suma y límite decimal exactos dentro de la transacción; el gasto y el presupuesto se ajustan por lo devuelto.                                                                                            | `IMPLEMENTADO` (PR #345)       |
+| El correo sin comercio se registra y se marca             | Se guarda `Comercio desconocido` con `aiMetadata.merchantMissing`; el texto de relleno no se resuelve como comercio (`unknown-merchant.ts`).                                                                                                                     | `IMPLEMENTADO` (PR #345)       |
+| La pata de tarjeta no repite `importReference`            | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo está implementada en el PR #335.                                                                                                                                      | `IMPLEMENTADO` (PR #335)       |
+| Un import en revisión por falta de destino se recalcula   | `buildImportPlan` vuelve a resolver la cuenta o la tarjeta de un `fin_signal_import` en `REVIEW_REQUIRED` con un motivo de destino; conserva los imports aplicados y las revisiones por otros motivos (`finance-signal-consumer.ts`).                            | `IMPLEMENTADO` (#376)          |
+| El doble aviso BHD se empareja en la misma cuenta         | `pickTransferMatch` acepta tipo opuesto, mismo monto y moneda, misma cuenta y hasta 10 minutos; la pata de salida se registra como `TRANSFER_OUT` aunque el destino no sea un producto propio (`match-imported-transfers.ts`, `bhd-email-format.ts`).            | `IMPLEMENTADO` (#380)          |
+| El fallo del proveedor FX conserva su causa               | `ExchangeRateHostAdapter` devuelve `PROVIDER_UNAUTHORIZED`, `PROVIDER_UNAVAILABLE`, `API_KEY_MISSING` o `NO_EXACT_RATE`; el ledger usa la última tasa publicada en o antes y registra su fecha (`exchange-rate-host.adapter.ts`, `resolve-amounts.use-case.ts`). | `IMPLEMENTADO` (#379)          |
 
 La tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente. La ventana de emparejamiento es de 3 días, y de 7 cuando las dos patas comparten referencia, por decisión del owner. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
@@ -483,7 +489,7 @@ Las pruebas de esta unidad cubren la cadena de reverso, el reverso parcial con s
 
 Una llamada usa una sola forma de selección:
 
-- `messageIds`: lista explícita. Tope 20. Más de 20 responde 400 sin tocar nada.
+- `messageIds`: lista explícita. Tope 50 en `dryRun: true`; la ejecución real mantiene 20. Más del tope responde 400 sin tocar nada.
 - `sender` con `dateFrom` y `dateTo`: ventana de fechas sobre la recepción.
 
 Enviar las dos formas, o ninguna, responde 400. El remitente se compara exacto con
@@ -539,6 +545,8 @@ comparten código, así el manifiesto no se separa del resultado.
 | `prediction.reviewReasons`        | Todos los códigos de revisión aplicables, sin duplicados y ordenados por gravedad: reverso/confianza, destino de cuenta/ledger y luego datos por confirmar; códigos empatados se ordenan alfabéticamente. El `prediction.reason` escalar coincide con el primer código de la lista. |
 | `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                                                                                                                                                                                                           |
 
+Un fallo de clasificación no se confunde con un correo sin transacción. El primero deja `classification: null`, `classificationUnavailableReason` (por ejemplo `INFERENCE_PROVIDER_FAILURE`) y `signal.reason = CLASSIFICATION_UNAVAILABLE`; el segundo deja `signal.reason = NO_TRANSACTION_CANDIDATE`. Ninguno crea movimiento.
+
 ### 11.5 Diferencias posibles entre vista previa y ejecución
 
 - La clasificación se recalcula al ejecutar. El modelo puede devolver otra
@@ -559,10 +567,7 @@ comparten código, así el manifiesto no se separa del resultado.
 
 ### 11.7 Tiempo de respuesta
 
-- La selección está limitada a 20 correos y se procesa en serie. Tanto la vista
-  previa como la ejecución usan un timeout de ruta de 480 segundos para dar
-  margen al modelo en una muestra completa. El interceptor global conserva sus
-  5 segundos por defecto en las demás rutas.
+- La selección está limitada a 50 correos en `dryRun: true` y a 20 en la ejecución real. Se procesa en serie. La vista previa y la ejecución usan un timeout de ruta de 480 segundos para dar margen al modelo en una muestra completa. El interceptor global conserva sus 5 segundos por defecto en las demás rutas.
 - Si vence el límite de 480 segundos, el cliente recibe 408. El timeout corta la
   respuesta, pero no cancela una operación que ya esté ejecutándose. La vista
   previa no escribe; la ejecución es idempotente por correo, así que el cliente

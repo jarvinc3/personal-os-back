@@ -40,6 +40,19 @@ const currencyListSchema = z.object({
   symbols: z.record(z.string(), z.string()).optional(),
 });
 
+type FxProviderFailureKind = 'auth' | 'transient' | 'no_rate' | 'shape';
+
+class FxProviderError extends Error {
+  constructor(
+    message: string,
+    readonly providerStatus: number | null,
+    readonly kind: FxProviderFailureKind,
+  ) {
+    super(message);
+    this.name = 'FxProviderError';
+  }
+}
+
 @Injectable()
 export class ExchangeRateHostAdapter implements ExchangeRatePort {
   private readonly logger = new Logger(ExchangeRateHostAdapter.name);
@@ -80,7 +93,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     const from = normalizeCurrencyCode(params.from);
     const to = normalizeCurrencyCode(params.to);
     if (from === to) {
-      return { ok: true, rate: 1, source: 'identity' };
+      return { ok: true, rate: 1, source: 'identity', rateDate: params.date };
     }
 
     const cached = await this.prisma.finExchangeRate.findUnique({
@@ -93,7 +106,12 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       },
     });
     if (cached) {
-      return { ok: true, rate: Number(cached.rate), source: 'cache' };
+      return {
+        ok: true,
+        rate: Number(cached.rate),
+        source: 'cache',
+        rateDate: params.date,
+      };
     }
 
     const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', {
@@ -102,7 +120,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     if (!apiKey) {
       return {
         ok: false,
-        code: 'RATE_UNAVAILABLE',
+        code: 'API_KEY_MISSING',
         message:
           'EXCHANGE_RATE_HOST_API_KEY is not configured and no cached rate exists',
         retryable: false,
@@ -127,21 +145,93 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         },
         update: { rate },
       });
-      return { ok: true, rate, source: 'api' };
+      return { ok: true, rate, source: 'api', rateDate: params.date };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(
-        `FX API failed for ${from}->${to} on ${params.date}: ${message}`,
-      );
+      return this.providerFailure({
+        from,
+        to,
+        date: params.date,
+        error,
+      });
+    }
+  }
 
-      // Policy: only exact-date cache (already missed above). No "latest rate".
+  async getLedgerRate(params: {
+    from: string;
+    to: string;
+    date: string;
+  }): Promise<ExchangeRateResult> {
+    const exact = await this.getHistoricalRate(params);
+    if (exact.ok) {
+      return exact;
+    }
+    if (exact.code !== 'NO_EXACT_RATE') {
+      return exact;
+    }
+    const latest = await this.getLatestRateOnOrBefore(params);
+    if (!latest.ok) {
+      return latest;
+    }
+    return {
+      ...latest,
+      source: 'cache_last_published',
+      rateDate: latest.rateDate,
+    };
+  }
+
+  private providerFailure({
+    from,
+    to,
+    date,
+    error,
+  }: {
+    from: string;
+    to: string;
+    date: string;
+    error: unknown;
+  }): ExchangeRateResult {
+    const message = error instanceof Error ? error.message : String(error);
+    const providerStatus =
+      error instanceof FxProviderError
+        ? (error.providerStatus ?? undefined)
+        : undefined;
+    const kind = error instanceof FxProviderError ? error.kind : 'transient';
+    this.logger.warn(`FX API failed for ${from}->${to} on ${date}: ${message}`);
+
+    if (kind === 'auth') {
       return {
         ok: false,
-        code: 'RATE_UNAVAILABLE',
-        message: `No exact-date rate for ${from}->${to} on ${params.date}`,
-        retryable: true,
+        code: 'PROVIDER_UNAUTHORIZED',
+        message: `FX provider unauthorized (HTTP ${providerStatus ?? 'unknown'}) for ${from}->${to} on ${date}`,
+        retryable: false,
+        providerStatus,
       };
     }
+    if (kind === 'no_rate') {
+      return {
+        ok: false,
+        code: 'NO_EXACT_RATE',
+        message: `No rate for ${from}->${to} on ${date}`,
+        retryable: false,
+        providerStatus,
+      };
+    }
+    if (kind === 'shape') {
+      return {
+        ok: false,
+        code: 'PROVIDER_ERROR',
+        message: `FX provider returned an unexpected response for ${from}->${to} on ${date}: ${message}`,
+        retryable: true,
+        providerStatus,
+      };
+    }
+    return {
+      ok: false,
+      code: 'PROVIDER_UNAVAILABLE',
+      message: `FX provider unavailable (${message}) for ${from}->${to} on ${date}`,
+      retryable: true,
+      providerStatus,
+    };
   }
 
   async getLatestRateOnOrBefore(params: {
@@ -152,7 +242,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     const from = normalizeCurrencyCode(params.from);
     const to = normalizeCurrencyCode(params.to);
     if (from === to) {
-      return { ok: true, rate: 1, source: 'identity' };
+      return { ok: true, rate: 1, source: 'identity', rateDate: params.date };
     }
 
     const cached = await this.prisma.finExchangeRate.findFirst({
@@ -164,12 +254,17 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       orderBy: { rateDate: 'desc' },
     });
     if (cached) {
-      return { ok: true, rate: Number(cached.rate), source: 'cache' };
+      return {
+        ok: true,
+        rate: Number(cached.rate),
+        source: 'cache',
+        rateDate: cached.rateDate.toISOString().slice(0, 10),
+      };
     }
 
     return {
       ok: false,
-      code: 'RATE_UNAVAILABLE',
+      code: 'NO_EXACT_RATE',
       message: `No rate for ${from}->${to} on or before ${params.date}`,
       retryable: false,
     };
@@ -227,17 +322,34 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const kind: FxProviderFailureKind =
+        response.status === 401 || response.status === 403
+          ? 'auth'
+          : response.status === 429 || response.status >= 500
+            ? 'transient'
+            : 'no_rate';
+      throw new FxProviderError(
+        `HTTP ${response.status}`,
+        response.status,
+        kind,
+      );
     }
 
     const json: unknown = await response.json();
     const parsed = historicalSchema.safeParse(json);
     if (!parsed.success) {
-      throw new Error('Unexpected FX response shape');
+      throw new FxProviderError('Unexpected FX response shape', null, 'shape');
     }
     if (parsed.data.success === false) {
-      throw new Error(
-        parsed.data.error?.info ?? 'FX provider rejected request',
+      const providerMessage =
+        parsed.data.error?.info ?? 'FX provider rejected request';
+      const auth = /access key|unauthori[sz]ed|invalid key|forbidden/i.test(
+        providerMessage,
+      );
+      throw new FxProviderError(
+        providerMessage,
+        null,
+        auth ? 'auth' : 'no_rate',
       );
     }
 
@@ -247,7 +359,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     const fromRates = parsed.data.rates?.[to];
     const rate = fromQuotes ?? fromRates;
     if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
-      throw new Error(`Missing rate for ${to}`);
+      throw new FxProviderError(`Missing rate for ${to}`, null, 'no_rate');
     }
     return rate;
   }

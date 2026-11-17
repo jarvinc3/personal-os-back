@@ -1,0 +1,349 @@
+{
+  "source": "Piloto BHD v6",
+  "note": "Textos saneados de los 20 correos del piloto; titular, cuentas, tarjeta, referencias y comercios sustituidos por valores ficticios.",
+  "productHints": {
+    "creditCardLast4": ["1111"],
+    "ownProductLast4": ["1111"]
+  },
+  "emails": [
+    {
+      "messageId": "7e97abf8-4ff5-4355-b5c1-2c9c5d4839f3",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-08T08:06:00.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 08/11/2026 04:05 am \n \n \n US \n \n \n $59.99 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 59.99,
+        "currency": "USD",
+        "transactionDate": "2026-11-08T08:05:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "5314c7e3-43ba-480c-9195-5e9982a9c560",
+      "from": "servicios@bhd.com.do",
+      "subject": "Ya están disponibles los estados de cuenta de octubre de tu cuenta de ahorro en BHD",
+      "date": "2026-11-07T20:34:04.000Z",
+      "text": "Ya están disponibles los estados de cuenta de octubre de tu cuenta de ahorro en BHD. Ingresa a Internet Banking para consultarlos.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_STATEMENT_NOTICE"
+      }
+    },
+    {
+      "messageId": "862ea155-aa8a-48f7-a545-bc303f292bc0",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T23:02:00.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 07:01 pm \n \n \n US \n \n \n $29.99 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 29.99,
+        "currency": "USD",
+        "transactionDate": "2026-11-06T23:01:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "603b46fe-0b11-478b-961d-be5fe44a8560",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T19:30:15.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 03:29 pm \n \n \n RD \n \n \n $178.71 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 178.71,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T19:29:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "f7f20f1c-6430-469f-b808-68d177aaf2eb",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T19:24:30.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 03:24 pm \n \n \n RD \n \n \n $138.79 \n \n \n \n \n \n Reversada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "REFUND",
+        "direction": "CREDIT",
+        "amount": 138.79,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T19:24:00.000Z",
+        "last4": "1111"
+      }
+    },
+    {
+      "messageId": "5d906c05-f811-464c-8919-be6bf2bcfc9c",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T19:23:45.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 03:23 pm \n \n \n RD \n \n \n $138.79 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 138.79,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T19:23:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "62cef65f-7071-44a5-a40b-a0e738a46951",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T19:12:15.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 03:11 pm \n \n \n RD \n \n \n $895.00 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 895,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T19:11:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "2bc6e0c8-cbdb-4f9a-a18e-35076f573ffa",
+      "from": "info@bhd.com.do",
+      "subject": "Modo Plus Friday: solicita tu Tarjeta Preaprobada BHD",
+      "date": "2026-11-06T19:01:24.000Z",
+      "text": "Modo Plus Friday: solicita tu Tarjeta Preaprobada BHD. Beneficios exclusivos para clientes BHD.",
+      "expected": {
+        "fixedFormat": false
+      }
+    },
+    {
+      "messageId": "6df13156-5a2d-4c11-911f-3a5b831c25c1",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T18:10:45.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 02:10 pm \n \n \n RD \n \n \n $770.00 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 770,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T18:10:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "971a50df-527c-466c-bc09-95e37de2b015",
+      "from": "Alertas@bhd.com.do",
+      "subject": "Transacciones entre mis productos",
+      "date": "2026-11-06T16:49:02.000Z",
+      "text": "Estimado(a): TITULAR DE PRUEBA A continuaci&oacute;n la informaci&oacute;n relacionada a tu transacci&oacute;n: Producto origen: XXXXXXX1111 Producto destino: XXXXXXX2222 Descripci&oacute;n: Monto: RD$ 500.00 Beneficiario: CTA DE AHORRO MÓVIL N&uacute;mero de confirmaci&oacute;n: M01-1111-2222-3333-4 Fecha y hora de la transacci&oacute;n: 06/11/2026 - 12:49 PM Tipo de transacci&oacute;n: Transacciones entre mis productos Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5282. Cordialmente, Banco BHD",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "TRANSFER_OUT",
+        "direction": "TRANSFER",
+        "amount": 500,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T16:49:00.000Z",
+        "accountNumberLast4": "1111"
+      }
+    },
+    {
+      "messageId": "f2e3f931-8ff2-4b7e-93bc-33c9187ad482",
+      "from": "Notificaciones@bhd.com.do",
+      "subject": "Notificaciones",
+      "date": "2026-11-06T16:47:29.000Z",
+      "text": "Estimado(a): TITULAR DE PRUEBA TERRER Has recibido una transferencia de Pago al Instante. A continuaci&oacute;n, el detalle de la transacci&oacute;n: Producto : DO26BCBHXXXXXXXXXXXXXXXX1111 Tipo de producto: CUENTA DE AHORRO Banco Origen: BANCO POPULAR DOMINICANO, C. POR A. Ordenante: ORDENANTE DE PRUEBA Monto: RD$500.00 Fecha y hora de la transacci&oacute;n: 06/11/2026 12:47 PM Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En Caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5000. Cordialmente, Banco BHD",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "TRANSFER_IN",
+        "direction": "TRANSFER",
+        "amount": 500,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T16:47:00.000Z",
+        "accountNumberLast4": "1111"
+      }
+    },
+    {
+      "messageId": "ba29c1a4-a41e-4168-a3c3-8a4d7aa3240e",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T16:10:15.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 12:09 pm \n \n \n RD \n \n \n $119.01 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 119.01,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T16:09:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "c20448bf-da32-43bb-a6d8-c3bc6c6fb04b",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T15:45:00.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 11:44 am \n \n \n RD \n \n \n $151.30 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 151.3,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T15:44:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "b2348da0-9b4b-49ee-83ab-96a0607eb6b7",
+      "from": "Alertas@bhd.com.do",
+      "subject": "Transacciones entre mis productos",
+      "date": "2026-11-06T15:18:16.000Z",
+      "text": "Estimado(a): TITULAR DE PRUEBA A continuaci&oacute;n la informaci&oacute;n relacionada a tu transacci&oacute;n: Producto origen: XXXXXXX1111 Producto destino: XXXXXXX2222 Descripci&oacute;n: Monto: RD$ 1,000.00 Beneficiario: CTA DE AHORRO MÓVIL N&uacute;mero de confirmaci&oacute;n: M01-1111-2222-3333-4 Fecha y hora de la transacci&oacute;n: 06/11/2026 - 11:18 AM Tipo de transacci&oacute;n: Transacciones entre mis productos Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5282. Cordialmente, Banco BHD",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "TRANSFER_OUT",
+        "direction": "TRANSFER",
+        "amount": 1000,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T15:18:00.000Z",
+        "accountNumberLast4": "1111"
+      }
+    },
+    {
+      "messageId": "82f7524f-9d8c-4d1e-8290-42666efa19b5",
+      "from": "Notificaciones@bhd.com.do",
+      "subject": "Notificaciones",
+      "date": "2026-11-06T15:16:41.000Z",
+      "text": "Estimado(a): TITULAR DE PRUEBA TERRER Has recibido una transferencia de Pago al Instante. A continuaci&oacute;n, el detalle de la transacci&oacute;n: Producto : DO26BCBHXXXXXXXXXXXXXXXX1111 Tipo de producto: CUENTA DE AHORRO Banco Origen: BANCO POPULAR DOMINICANO, C. POR A. Ordenante: ORDENANTE DE PRUEBA Monto: RD$1,000.00 Fecha y hora de la transacci&oacute;n: 06/11/2026 11:16 AM Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En Caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5000. Cordialmente, Banco BHD",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "TRANSFER_IN",
+        "direction": "TRANSFER",
+        "amount": 1000,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T15:16:00.000Z",
+        "accountNumberLast4": "1111"
+      }
+    },
+    {
+      "messageId": "64e73dbf-4d6a-4369-b310-0377c7ce6183",
+      "from": "Alertas@bhd.com.do",
+      "subject": "Transacciones entre mis productos",
+      "date": "2026-11-06T15:12:58.000Z",
+      "text": "Estimado(a): TITULAR DE PRUEBA A continuaci&oacute;n la informaci&oacute;n relacionada a tu transacci&oacute;n: Producto origen: XXXXXXX1111 Producto destino: XXXXXXX2222 Descripci&oacute;n: Monto: RD$ 757.62 Beneficiario: CTA DE AHORRO MÓVIL N&uacute;mero de confirmaci&oacute;n: M01-1111-2222-3333-4 Fecha y hora de la transacci&oacute;n: 06/11/2026 - 11:12 AM Tipo de transacci&oacute;n: Transacciones entre mis productos Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5282. Cordialmente, Banco BHD",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "TRANSFER_OUT",
+        "direction": "TRANSFER",
+        "amount": 757.62,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T15:12:00.000Z",
+        "accountNumberLast4": "1111"
+      }
+    },
+    {
+      "messageId": "03ab866f-9a23-4fc4-8204-53736d7fc3bc",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T13:20:45.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 09:20 am \n \n \n RD \n \n \n $78.39 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 78.39,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T13:20:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "4f327e5e-112e-4542-bcfb-03c398439fbc",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-06T12:44:45.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 06/11/2026 08:44 am \n \n \n RD \n \n \n $106.68 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 106.68,
+        "currency": "DOP",
+        "transactionDate": "2026-11-06T12:44:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "896716d6-997b-4b60-ac65-650fe452d241",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-05T23:22:15.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 05/11/2026 07:21 pm \n \n \n RD \n \n \n $700.00 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 700,
+        "currency": "DOP",
+        "transactionDate": "2026-11-05T23:21:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    },
+    {
+      "messageId": "b7ff6a79-e4c8-489f-bf4f-c6c461b714b2",
+      "from": "Alertas@bhd.com.do",
+      "subject": "BHD Notificación de Transacciones",
+      "date": "2026-11-05T23:18:45.000Z",
+      "text": "BHD Notificación de Transacciones Visa Premia # 1111 Detalle de Criterios Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 1111 \n \nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282. Detalle de Transacciones \n \n \n \n \n Fecha \n \n \n Moneda \n \n \n Monto \n \n \n Comercio \n \n \n Estado \n \n \n Tipo \n \n \n \n \n \n \n 05/11/2026 07:18 pm \n \n \n RD \n \n \n $6.32 \n \n \n COMERCIO DE PRUEBA \n \n \n Aprobada \n \n \n Compra \n \n \n \n \n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas. \n \n Recuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD. \n \nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+      "expected": {
+        "fixedFormat": true,
+        "semanticType": "FIN_TRANSACTION",
+        "movementClass": "PURCHASE",
+        "direction": "DEBIT",
+        "amount": 6.32,
+        "currency": "DOP",
+        "transactionDate": "2026-11-05T23:18:00.000Z",
+        "last4": "1111",
+        "merchant": "COMERCIO DE PRUEBA"
+      }
+    }
+  ]
+}

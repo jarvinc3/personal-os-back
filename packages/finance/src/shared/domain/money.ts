@@ -109,4 +109,9 @@ export type ResolvedAmounts = {
   amountBaseCurrency: number;
   /** Rate original → ledger (1 when same). */
   exchangeRate: number;
+  /** Fecha de la tasa del ledger; en fines de semana es la última publicada. */
+  exchangeRateDate?: string;
+  /** Tasa original → moneda base usada para analytics. */
+  baseExchangeRate?: number;
+  baseExchangeRateDate?: string;
 };

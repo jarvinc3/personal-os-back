@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { ExchangeRateResult } from './ports/exchange-rate.port';
 import { ResolveAmountsUseCase } from './resolve-amounts.use-case';
 
@@ -25,6 +28,11 @@ function build() {
     .mockImplementation((params: { from: string; to: string }) =>
       Promise.resolve(rateFor(params.from, params.to)),
     );
+  const getLedgerRate = jest
+    .fn()
+    .mockImplementation((params: { from: string; to: string }) =>
+      Promise.resolve(rateFor(params.from, params.to)),
+    );
   const getLatestRateOnOrBefore = jest.fn().mockResolvedValue({
     ok: false,
     code: 'RATE_UNAVAILABLE',
@@ -33,9 +41,15 @@ function build() {
   } satisfies ExchangeRateResult);
   const useCase = new ResolveAmountsUseCase({
     getHistoricalRate,
+    getLedgerRate,
     getLatestRateOnOrBefore,
   } as never);
-  return { useCase, getHistoricalRate, getLatestRateOnOrBefore };
+  return {
+    useCase,
+    getHistoricalRate,
+    getLedgerRate,
+    getLatestRateOnOrBefore,
+  };
 }
 
 describe('ResolveAmountsUseCase', () => {
@@ -57,6 +71,9 @@ describe('ResolveAmountsUseCase', () => {
       ledgerCurrency: 'DOP',
       amountBaseCurrency: 18123,
       exchangeRate: 1,
+      exchangeRateDate: '2026-10-08',
+      baseExchangeRate: 0.018123,
+      baseExchangeRateDate: '2026-10-08',
     });
   });
 
@@ -82,8 +99,8 @@ describe('ResolveAmountsUseCase', () => {
   });
 
   it('fails closed when the rate is unavailable', async () => {
-    const { useCase, getHistoricalRate } = build();
-    getHistoricalRate.mockResolvedValue({
+    const { useCase, getLedgerRate } = build();
+    getLedgerRate.mockResolvedValue({
       ok: false,
       code: 'RATE_UNAVAILABLE',
       message: 'missing',
@@ -93,6 +110,48 @@ describe('ResolveAmountsUseCase', () => {
     await expect(
       useCase.toBaseCurrency('10', 'DOP', 'EUR', asOf),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('does not disguise a provider auth failure as a missing exact rate', async () => {
+    const { useCase, getLedgerRate } = build();
+    getLedgerRate.mockResolvedValue({
+      ok: false,
+      code: 'PROVIDER_UNAUTHORIZED',
+      message: 'FX provider unauthorized (HTTP 401) for USD->DOP on 2026-10-08',
+      retryable: false,
+      providerStatus: 401,
+    });
+
+    await expect(
+      useCase.execute({
+        amount: 59.99,
+        currency: 'USD',
+        ledgerCurrency: 'DOP',
+        baseCurrency: 'DOP',
+        transactionDate: asOf,
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('records the date of the last published rate used', async () => {
+    const { useCase, getLedgerRate } = build();
+    getLedgerRate.mockResolvedValue({
+      ok: true,
+      rate: 60.4617,
+      source: 'cache_last_published',
+      rateDate: '2026-10-06',
+    });
+
+    const resolved = await useCase.execute({
+      amount: 59.99,
+      currency: 'USD',
+      ledgerCurrency: 'DOP',
+      baseCurrency: 'DOP',
+      transactionDate: asOf,
+    });
+
+    expect(resolved.exchangeRateDate).toBe('2026-10-06');
+    expect(resolved.baseExchangeRateDate).toBe('2026-10-06');
   });
 
   it('falls back to the latest rate on or before the day', async () => {

@@ -177,13 +177,13 @@ describe('parseBhdFixedFormat', () => {
     expect(parsed?.transaction?.last4).toBeUndefined();
   });
 
-  it('leaves the class undecided when the destination is not a known product', () => {
+  it('keeps the outgoing side when the destination is not a known product', () => {
     const parsed = parse({
       fixture: readFixture('transferencia-entre-productos-757-62.json'),
     });
 
     expect(parsed?.transaction).toMatchObject({
-      movementClass: 'OTHER',
+      movementClass: 'TRANSFER_OUT',
       direction: 'TRANSFER',
       accountNumberLast4: '0016',
     });

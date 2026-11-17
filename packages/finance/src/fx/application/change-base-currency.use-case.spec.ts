@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AppEvents } from '@personal-os/core';
 import { Prisma } from '@personal-os/database';
 import { ChangeBaseCurrencyUseCase } from './change-base-currency.use-case';
@@ -73,7 +76,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
   const createUseCase = () =>
     new ChangeBaseCurrencyUseCase(
       prisma as never,
-      { getHistoricalRate } as never,
+      { getHistoricalRate, getLedgerRate: getHistoricalRate } as never,
       config as never,
       { emit } as never,
     );
@@ -115,6 +118,22 @@ describe('ChangeBaseCurrencyUseCase', () => {
     await expect(
       createUseCase().execute('user-1', 'USD'),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.finTransaction.update).not.toHaveBeenCalled();
+  });
+
+  it('aborts with 503 when the provider is unauthorized', async () => {
+    getHistoricalRate.mockResolvedValue({
+      ok: false,
+      code: 'PROVIDER_UNAUTHORIZED',
+      message: 'FX provider unauthorized (HTTP 401)',
+      retryable: false,
+      providerStatus: 401,
+    });
+
+    await expect(
+      createUseCase().execute('user-1', 'USD'),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.finTransaction.update).not.toHaveBeenCalled();
   });
