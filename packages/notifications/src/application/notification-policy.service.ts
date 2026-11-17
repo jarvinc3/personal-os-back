@@ -123,7 +123,7 @@ export class NotificationPolicyService {
       return { allowed: true };
     }
 
-    if (!this.settings.has(moduleSlug)) {
+    if (!this.settings.hasDescriptor(moduleSlug)) {
       return { allowed: true };
     }
 

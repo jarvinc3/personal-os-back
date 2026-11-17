@@ -46,7 +46,7 @@ export class EnabledModuleGuard implements CanActivate {
       return false;
     }
 
-    if (!this.settings.has(slug)) {
+    if (!this.settings.hasDescriptor(slug)) {
       throw new ForbiddenException(moduleDisabledMessage(slug));
     }
 

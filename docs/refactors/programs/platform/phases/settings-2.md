@@ -12,9 +12,9 @@ Notifications, los guards de módulos y los procesos programados dejan de leer d
 
 ## Resultado
 
-- La policy de Notifications consulta `MODULE_SETTINGS_READER` (`has`, `read`, `notificationEnabled`) en vez del registro y sus defaults; conserva los mismos motivos de bloqueo (`module_disabled_or_missing`, `module_notification_disabled:<slug>.<key>`).
-- `EnabledModuleGuard` deja de consultar `user_module` con Prisma y usa `has`/`read` del lector; un slug sin descriptor sigue respondiendo 403.
-- El lector expone `has(slug)` y lo delega en el registro; ningún consumidor compartido importa defaults de un módulo.
+- La policy de Notifications consulta `MODULE_SETTINGS_READER` (`hasDescriptor`, `read`, `notificationEnabled`) en vez del registro y sus defaults; conserva los mismos motivos de bloqueo (`module_disabled_or_missing`, `module_notification_disabled:<slug>.<key>`).
+- `EnabledModuleGuard` deja de consultar `user_module` con Prisma y usa `hasDescriptor`/`read` del lector; un slug sin descriptor sigue respondiendo 403.
+- El lector expone `hasDescriptor(slug)` y lo delega en el registro; ningún consumidor compartido importa defaults de un módulo.
 - Finance y Agenda, Projects y Health siguen resolviendo sus propias reglas desde sus descriptores.
 - Sin cambios de formato guardado, respuestas HTTP ni textos.
 

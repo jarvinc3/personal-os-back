@@ -18,8 +18,9 @@ Cada módulo es dueño de sus defaults y reglas:
 
 `ModuleSettingsRegistry` registra descriptores sin interpretar sus campos,
 rechaza slugs duplicados y delega normalización y parches en el módulo dueño;
-`has(slug)` responde si un módulo está registrado. `ModuleSettingsService` lee el
-registro `UserModule` y devuelve la configuración normalizada, responde `has` y
+`hasDescriptor(slug)` responde si un módulo está registrado. `ModuleSettingsService` lee el
+registro `UserModule` y devuelve la configuración normalizada, responde
+`hasDescriptor` y
 consulta una preferencia con la semántica del descriptor. `apps/api` compone los
 providers en `ModuleSettingsModule.register([...])`.
 
@@ -32,9 +33,9 @@ registrados.
 Los consumidores consultan el lector, no defaults de otros módulos:
 
 - La policy de Notifications resuelve el módulo habilitado y el toggle con
-  `has`, `read` y `notificationEnabled`; no importa defaults ni claves de un
+  `hasDescriptor`, `read` y `notificationEnabled`; no importa defaults ni claves de un
   dominio.
-- El guard `EnabledModuleGuard` usa `has` y `read` para decidir si la ruta sigue
+- El guard `EnabledModuleGuard` usa `hasDescriptor` y `read` para decidir si la ruta sigue
   habilitada.
 - Intelligence ya lee su propia configuración con el lector.
 

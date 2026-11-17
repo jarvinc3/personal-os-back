@@ -28,7 +28,7 @@ export class ModuleSettingsService implements ModuleSettingsReader {
     };
   }
 
-  has(slug: string): boolean {
+  hasDescriptor(slug: string): boolean {
     return this.registry.has(slug);
   }
 

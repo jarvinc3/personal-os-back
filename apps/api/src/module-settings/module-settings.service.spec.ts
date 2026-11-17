@@ -71,7 +71,7 @@ describe('ModuleSettingsService', () => {
     const has = jest.fn().mockReturnValue(true);
     const service = new ModuleSettingsService({} as never, { has } as never);
 
-    expect(service.has('sample')).toBe(true);
+    expect(service.hasDescriptor('sample')).toBe(true);
     expect(has).toHaveBeenCalledWith('sample');
   });
 });

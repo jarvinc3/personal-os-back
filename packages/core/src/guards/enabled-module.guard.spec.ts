@@ -3,11 +3,11 @@ import { EnabledModuleGuard } from './enabled-module.guard';
 
 describe('EnabledModuleGuard', () => {
   const getAllAndOverride = jest.fn();
-  const has = jest.fn();
+  const hasDescriptor = jest.fn();
   const read = jest.fn();
   const guard = new EnabledModuleGuard(
     { getAllAndOverride } as never,
-    { has, read } as never,
+    { hasDescriptor, read } as never,
   );
 
   const context = (user?: { sub?: string }) =>
@@ -21,7 +21,7 @@ describe('EnabledModuleGuard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    has.mockReturnValue(true);
+    hasDescriptor.mockReturnValue(true);
   });
 
   it('skips @Public() routes without looking up modules', async () => {
@@ -55,7 +55,7 @@ describe('EnabledModuleGuard', () => {
     getAllAndOverride
       .mockReturnValueOnce(undefined)
       .mockReturnValueOnce('retired');
-    has.mockReturnValue(false);
+    hasDescriptor.mockReturnValue(false);
 
     await expect(guard.canActivate(context({ sub: 'user-1' }))).rejects.toThrow(
       ForbiddenException,

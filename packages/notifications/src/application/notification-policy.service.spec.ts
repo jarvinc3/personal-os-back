@@ -19,11 +19,11 @@ describe('NotificationPolicyService', () => {
     findById: jest.fn(),
   } as unknown as UsersRepositoryPort;
 
-  const has = jest.fn();
+  const hasDescriptor = jest.fn();
   const read = jest.fn();
   const notificationEnabled = jest.fn();
   const settings = {
-    has,
+    hasDescriptor,
     read,
     notificationEnabled,
   } as unknown as ModuleSettingsReader;
@@ -42,7 +42,7 @@ describe('NotificationPolicyService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    has.mockReturnValue(true);
+    hasDescriptor.mockReturnValue(true);
     read.mockResolvedValue({ enabled: true, version: 2, config: {} });
     notificationEnabled.mockResolvedValue(true);
     usersRepository.findById = jest.fn().mockResolvedValue(existingUser());
@@ -215,7 +215,7 @@ describe('NotificationPolicyService', () => {
   });
 
   it('allows a module slug without a registered descriptor', async () => {
-    has.mockReturnValue(false);
+    hasDescriptor.mockReturnValue(false);
 
     await expect(
       service.evaluate({
