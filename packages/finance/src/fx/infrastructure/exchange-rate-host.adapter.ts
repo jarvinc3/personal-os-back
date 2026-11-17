@@ -243,12 +243,17 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         `FX API failed for ${from}->${to} on ${date}: ${message}`,
       );
     }
+    const statusText = providerStatus ? ` (HTTP ${providerStatus})` : '';
+    const detail =
+      message === (providerStatus ? `HTTP ${providerStatus}` : '')
+        ? ''
+        : `: ${message}`;
 
     if (kind === 'auth') {
       return {
         ok: false,
         code: 'PROVIDER_UNAUTHORIZED',
-        message: `FX provider unauthorized (HTTP ${providerStatus ?? 'unknown'}) for ${from}->${to} on ${date}`,
+        message: `FX provider unauthorized${statusText} for ${from}->${to} on ${date}${detail}`,
         retryable: false,
         providerStatus,
       };
@@ -266,7 +271,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       return {
         ok: false,
         code: 'PROVIDER_ERROR',
-        message: `FX provider rejected the request (HTTP ${providerStatus ?? 'unknown'}) for ${from}->${to} on ${date}: ${message}`,
+        message: `FX provider rejected the request${statusText} for ${from}->${to} on ${date}${detail}`,
         retryable: false,
         providerStatus,
       };
@@ -283,7 +288,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     return {
       ok: false,
       code: 'PROVIDER_UNAVAILABLE',
-      message: `FX provider unavailable (${message}) for ${from}->${to} on ${date}`,
+      message: `FX provider unavailable${statusText} for ${from}->${to} on ${date}${detail}`,
       retryable: true,
       providerStatus,
     };
@@ -405,9 +410,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         /quota|rate limit|too many|limit exceeded|usage limit/i.test(
           providerMessage,
         );
-      const noData = /no data|not found|no result|no rate|not available/i.test(
-        providerMessage,
-      );
+      const noData = /no data|no result|no rate/i.test(providerMessage);
       const kind: FxProviderFailureKind = auth
         ? 'auth'
         : transient

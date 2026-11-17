@@ -132,12 +132,19 @@ describe('ExchangeRateHostAdapter', () => {
       }),
     );
 
-    await expect(
-      adapter.getHistoricalRate({ from: 'USD', to: 'DOP', date: DATE }),
-    ).resolves.toMatchObject({
+    const historical = await adapter.getHistoricalRate({
+      from: 'USD',
+      to: 'DOP',
+      date: DATE,
+    });
+    expect(historical).toMatchObject({
       ok: false,
       code: 'PROVIDER_UNAUTHORIZED',
     });
+    if (!historical.ok) {
+      expect(historical.message).toContain('Access key is invalid');
+      expect(historical.message).not.toContain('unknown');
+    }
   });
 
   it('uses the last published rate for a day without a quote', async () => {
@@ -199,13 +206,19 @@ describe('ExchangeRateHostAdapter', () => {
       .fn()
       .mockResolvedValue(jsonResponse({ error: 'bad request' }, 400));
 
-    await expect(
-      adapter.getLedgerRate({ from: 'USD', to: 'DOP', date: DATE }),
-    ).resolves.toMatchObject({
+    const rateResult = await adapter.getLedgerRate({
+      from: 'USD',
+      to: 'DOP',
+      date: DATE,
+    });
+    expect(rateResult).toMatchObject({
       ok: false,
       code: 'PROVIDER_ERROR',
       providerStatus: 400,
     });
+    if (!rateResult.ok) {
+      expect(rateResult.message).toContain('HTTP 400');
+    }
   });
 
   it('reports a quota rejection as unavailable, not a missing rate', async () => {
@@ -219,11 +232,38 @@ describe('ExchangeRateHostAdapter', () => {
       }),
     );
 
+    const rateResult = await adapter.getLedgerRate({
+      from: 'USD',
+      to: 'DOP',
+      date: DATE,
+    });
+    expect(rateResult).toMatchObject({
+      ok: false,
+      code: 'PROVIDER_UNAVAILABLE',
+    });
+    if (!rateResult.ok) {
+      expect(rateResult.message).toContain('Quota exceeded');
+    }
+  });
+
+  it('uses the prior publication only for a confirmed no-data response', async () => {
+    const { adapter } = setup({
+      cachedByDate: { '2026-11-06': { rate: '60.4617' } },
+    });
+    global.fetch = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: false,
+        error: { info: 'No data for this date' },
+      }),
+    );
+
     await expect(
       adapter.getLedgerRate({ from: 'USD', to: 'DOP', date: DATE }),
     ).resolves.toMatchObject({
-      ok: false,
-      code: 'PROVIDER_UNAVAILABLE',
+      ok: true,
+      rate: 60.4617,
+      source: 'cache_last_published',
+      rateDate: '2026-11-06',
     });
   });
 
