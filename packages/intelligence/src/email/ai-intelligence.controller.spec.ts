@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Response } from 'express';
@@ -8,17 +9,26 @@ import { AiIntelligenceController } from './ai-intelligence.controller';
 
 function makeController({
   completeAuthorization,
+  nodeEnv = 'development',
 }: {
   completeAuthorization: jest.Mock;
+  nodeEnv?: string;
 }) {
   const email = { completeAuthorization };
   const sync = {
     syncConnection: jest.fn().mockResolvedValue({ connected: true }),
+    syncScopedBhdForUser: jest.fn().mockResolvedValue({ connected: true }),
   };
   const config = {
-    get: jest.fn((key: string) =>
-      key === 'CORS_ORIGIN' ? 'http://localhost:3000' : undefined,
-    ),
+    get: jest.fn((key: string) => {
+      if (key === 'CORS_ORIGIN') {
+        return 'http://localhost:3000';
+      }
+      if (key === 'NODE_ENV') {
+        return nodeEnv;
+      }
+      return undefined;
+    }),
   };
   const controller = new AiIntelligenceController(
     email as never,
@@ -101,5 +111,48 @@ describe('AiIntelligenceController callback OAuth', () => {
       expect.stringContaining('Gmail OAuth callback failed'),
     );
     expect(warn.mock.calls[0][0]).toContain('invalid_grant');
+  });
+});
+
+describe('AiIntelligenceController scoped BHD sync', () => {
+  it('delega la sync acotada en desarrollo', async () => {
+    const { controller, sync } = makeController({
+      completeAuthorization: jest.fn(),
+    });
+
+    await controller.syncBhd(
+      { sub: 'user-1' },
+      {
+        dateFrom: '2026-08-17T00:00:00.000Z',
+        dateTo: '2026-11-18T00:00:00.000Z',
+        maxMessages: 10,
+      },
+    );
+
+    expect(sync.syncScopedBhdForUser).toHaveBeenCalledWith('user-1', {
+      dateFrom: new Date('2026-08-17T00:00:00.000Z'),
+      dateTo: new Date('2026-11-18T00:00:00.000Z'),
+      maxMessages: 10,
+      pageToken: undefined,
+    });
+  });
+
+  it('no existe en producción', () => {
+    const { controller, sync } = makeController({
+      completeAuthorization: jest.fn(),
+      nodeEnv: 'production',
+    });
+
+    expect(() =>
+      controller.syncBhd(
+        { sub: 'user-1' },
+        {
+          dateFrom: '2026-08-17T00:00:00.000Z',
+          dateTo: '2026-11-18T00:00:00.000Z',
+          maxMessages: 10,
+        },
+      ),
+    ).toThrow(NotFoundException);
+    expect(sync.syncScopedBhdForUser).not.toHaveBeenCalled();
   });
 });

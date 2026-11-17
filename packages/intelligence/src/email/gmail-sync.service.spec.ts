@@ -921,4 +921,62 @@ describe('GmailSyncService', () => {
       expect.stringContaining('Unable to list Gmail connections'),
     );
   });
+
+  describe('GmailSyncService scoped BHD sync', () => {
+    it('consulta solo BHD en la ventana y reporta nuevos y existentes', async () => {
+      const fixture = makeFixture();
+      fixture.source.gmailApiRequest.mockResolvedValueOnce({
+        messages: [{ id: 'bhd-1' }, { id: 'bhd-2' }],
+        nextPageToken: 'next-page',
+        resultSizeEstimate: 7,
+      });
+      const importBatch = jest
+        .spyOn(fixture.service as never, 'importMessageBatch')
+        .mockResolvedValue(1);
+
+      const syncResult = await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-08-17T00:00:00.000Z'),
+        dateTo: new Date('2026-11-18T00:00:00.000Z'),
+        maxMessages: 2,
+      });
+
+      expect(syncResult).toMatchObject({
+        connected: true,
+        found: 2,
+        imported: 1,
+        skipped: 1,
+        nextPageToken: 'next-page',
+        estimatedTotal: 7,
+      });
+      const gmailUrl = fixture.source.gmailApiRequest.mock
+        .calls[0][1] as string;
+      const decoded = decodeURIComponent(gmailUrl);
+      expect(decoded).toContain('from:bhd.com.do');
+      expect(decoded).toContain('after:2026/08/17');
+      expect(decoded).toContain('before:2026/11/18');
+      expect(decoded).toContain('maxResults=2');
+      expect(syncResult.query).toBe(
+        'from:bhd.com.do after:2026/08/17 before:2026/11/18',
+      );
+      expect(importBatch).toHaveBeenCalledWith(
+        'connection-1',
+        'user-1',
+        'token',
+        [{ id: 'bhd-1' }, { id: 'bhd-2' }],
+      );
+    });
+
+    it('rechaza una ventana invertida sin consultar Gmail', async () => {
+      const { service, source } = makeFixture();
+
+      await expect(
+        service.syncScopedBhdForUser('user-1', {
+          dateFrom: new Date('2026-11-18T00:00:00.000Z'),
+          dateTo: new Date('2026-11-17T00:00:00.000Z'),
+          maxMessages: 10,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(source.gmailApiRequest).not.toHaveBeenCalled();
+    });
+  });
 });

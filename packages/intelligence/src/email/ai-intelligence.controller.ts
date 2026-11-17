@@ -29,6 +29,7 @@ import { EmailSampleImportService } from './email-sample-import.service';
 import { GmailSyncService } from './gmail-sync.service';
 import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
 import { EmailSampleImportDto } from './dto/email-sample-import.dto';
+import { SyncBhdScopeDto } from './dto/sync-bhd-scope.dto';
 import {
   AiEmailConnectResponseDto,
   AiEmailDashboardResponseDto,
@@ -38,6 +39,7 @@ import {
   AiEmailResetResponseDto,
   AiEmailSampleImportResponseDto,
   AiEmailSyncResponseDto,
+  SyncBhdResponseDto,
 } from './ai-intelligence-response.dto';
 
 const SAMPLE_IMPORT_TIMEOUT_MS = 480_000;
@@ -97,7 +99,7 @@ export class AiIntelligenceController {
     @CurrentUser() user: { sub: string },
     @Body() dto: EmailSampleImportDto,
   ) {
-    this.assertSampleImportAllowed();
+    this.assertDevOperationAllowed();
     return this.sampleImport.run({
       userId: user.sub,
       dryRun: dto.dryRun,
@@ -115,7 +117,7 @@ export class AiIntelligenceController {
   }
 
   /** Operación de piloto: fuera de producción la ruta no existe. */
-  private assertSampleImportAllowed(): void {
+  private assertDevOperationAllowed(): void {
     if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
       throw new NotFoundException();
     }
@@ -134,6 +136,20 @@ export class AiIntelligenceController {
   @ApiAcceptedResponse({ type: AiEmailSyncResponseDto })
   syncNow(@CurrentUser() user: { sub: string }) {
     return this.sync.syncForUser(user.sub);
+  }
+
+  @Post('email/sync-bhd')
+  @HttpCode(200)
+  @Timeout(480_000)
+  @ApiOkResponse({ type: SyncBhdResponseDto })
+  syncBhd(@CurrentUser() user: { sub: string }, @Body() dto: SyncBhdScopeDto) {
+    this.assertDevOperationAllowed();
+    return this.sync.syncScopedBhdForUser(user.sub, {
+      dateFrom: new Date(dto.dateFrom),
+      dateTo: new Date(dto.dateTo),
+      maxMessages: dto.maxMessages,
+      pageToken: dto.pageToken,
+    });
   }
 
   @Post('email/reset')
