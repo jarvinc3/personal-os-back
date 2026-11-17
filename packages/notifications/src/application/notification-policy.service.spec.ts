@@ -1,38 +1,56 @@
-import type { ModuleSettingsRegistry } from '@personal-os/contracts';
-import { FINANCE_SETTINGS_DESCRIPTOR } from '@personal-os/finance';
+import type { ModuleSettingsReader } from '@personal-os/contracts';
 import type { UsersRepositoryPort } from '@personal-os/users';
 import { NotificationPolicyService } from './notification-policy.service';
+
+const BASE_PREFERENCES = {
+  notifications: {
+    channels: { push: true, email: false, inApp: true },
+    quietHours: {
+      enabled: false,
+      start: '22:00',
+      end: '08:00',
+      timezone: null,
+    },
+  },
+};
 
 describe('NotificationPolicyService', () => {
   const usersRepository = {
     findById: jest.fn(),
   } as unknown as UsersRepositoryPort;
 
-  const settingsRegistry = {
-    has: (slug: string) => slug === FINANCE_SETTINGS_DESCRIPTOR.slug,
-    get: (slug: string) => {
-      if (slug !== FINANCE_SETTINGS_DESCRIPTOR.slug) {
-        throw new Error(`Settings descriptor not registered: ${slug}`);
-      }
-      return FINANCE_SETTINGS_DESCRIPTOR;
-    },
-  } as unknown as ModuleSettingsRegistry;
+  const hasDescriptor = jest.fn();
+  const read = jest.fn();
+  const notificationEnabled = jest.fn();
+  const settings = {
+    hasDescriptor,
+    read,
+    notificationEnabled,
+  } as unknown as ModuleSettingsReader;
 
-  const service = new NotificationPolicyService(
-    usersRepository,
-    settingsRegistry,
-  );
+  const service = new NotificationPolicyService(usersRepository, settings);
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('blocks IN_APP when channel disabled', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
+  function existingUser(preferences: unknown = BASE_PREFERENCES) {
+    return {
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
       locale: 'es-DO',
-      preferences: {
+      preferences,
+      userModules: [],
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    hasDescriptor.mockReturnValue(true);
+    read.mockResolvedValue({ enabled: true, version: 2, config: {} });
+    notificationEnabled.mockResolvedValue(true);
+    usersRepository.findById = jest.fn().mockResolvedValue(existingUser());
+  });
+
+  it('blocks IN_APP when channel disabled', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue(
+      existingUser({
         notifications: {
           channels: { push: true, email: false, inApp: false },
           quietHours: {
@@ -42,41 +60,34 @@ describe('NotificationPolicyService', () => {
             timezone: null,
           },
         },
-      },
-      userModules: [],
-    });
+      }),
+    );
 
-    const result = await service.evaluate({
+    const decision = await service.evaluate({
       userId: 'user-1',
       channel: 'IN_APP',
     });
 
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toBe('channel_in_app_disabled');
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.reason).toBe('channel_in_app_disabled');
     }
   });
 
   it('blocks PUSH during quiet hours but allows IN_APP', async () => {
-    const prefs = {
-      notifications: {
-        channels: { push: true, email: true, inApp: true },
-        quietHours: {
-          enabled: true,
-          start: '00:00',
-          end: '23:59',
-          timezone: null,
+    usersRepository.findById = jest.fn().mockResolvedValue(
+      existingUser({
+        notifications: {
+          channels: { push: true, email: true, inApp: true },
+          quietHours: {
+            enabled: true,
+            start: '00:00',
+            end: '23:59',
+            timezone: null,
+          },
         },
-      },
-    };
-
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'UTC',
-      locale: 'es-DO',
-      preferences: prefs,
-      userModules: [],
-    });
+      }),
+    );
 
     const pushResult = await service.evaluate({
       userId: 'user-1',
@@ -92,67 +103,19 @@ describe('NotificationPolicyService', () => {
   });
 
   it('blocks module notification when toggle is false', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      preferences: {
-        notifications: {
-          channels: { push: true, email: false, inApp: true },
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-            timezone: null,
-          },
-        },
-      },
-      userModules: [
-        {
-          isEnabled: true,
-          module: { slug: 'finance' },
-          config: {
-            notifications: { budgetAlerts: false },
-          },
-        },
-      ],
-    });
+    notificationEnabled.mockResolvedValue(false);
 
-    const result = await service.evaluate({
+    const decision = await service.evaluate({
       userId: 'user-1',
       channel: 'IN_APP',
       data: { moduleSlug: 'finance', notificationKey: 'budgetAlerts' },
     });
 
-    expect(result.allowed).toBe(false);
+    expect(decision.allowed).toBe(false);
   });
 
   it('reads the module toggle from the dispatch context', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      preferences: {
-        notifications: {
-          channels: { push: true, email: false, inApp: true },
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-            timezone: null,
-          },
-        },
-      },
-      userModules: [
-        {
-          isEnabled: true,
-          module: { slug: 'finance' },
-          config: {
-            notifications: { budgetAlerts: false },
-          },
-        },
-      ],
-    });
+    notificationEnabled.mockResolvedValue(false);
 
     const decision = await service.evaluate({
       userId: 'user-1',
@@ -167,36 +130,17 @@ describe('NotificationPolicyService', () => {
         'module_notification_disabled:finance.budgetAlerts',
       );
     }
+    expect(notificationEnabled).toHaveBeenCalledWith(
+      'user-1',
+      'finance',
+      'budgetAlerts',
+    );
   });
 
   it('blocks finance transaction notifications when transactionDetected is false', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      preferences: {
-        notifications: {
-          channels: { push: true, email: false, inApp: true },
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-            timezone: null,
-          },
-        },
-      },
-      userModules: [
-        {
-          isEnabled: true,
-          module: { slug: 'finance' },
-          config: {
-            notifications: { transactionDetected: false },
-          },
-        },
-      ],
-    });
+    notificationEnabled.mockResolvedValue(false);
 
-    const result = await service.evaluate({
+    const decision = await service.evaluate({
       userId: 'user-1',
       channel: 'IN_APP',
       data: {
@@ -205,40 +149,16 @@ describe('NotificationPolicyService', () => {
       },
     });
 
-    expect(result.allowed).toBe(false);
-    if (!result.allowed) {
-      expect(result.reason).toBe(
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.reason).toBe(
         'module_notification_disabled:finance.transactionDetected',
       );
     }
   });
 
   it('blocks subscription renewals when subscriptionReminders is false', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      preferences: {
-        notifications: {
-          channels: { push: true, email: false, inApp: true },
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-            timezone: null,
-          },
-        },
-      },
-      userModules: [
-        {
-          isEnabled: true,
-          module: { slug: 'finance' },
-          config: {
-            notifications: { subscriptionReminders: false },
-          },
-        },
-      ],
-    });
+    notificationEnabled.mockResolvedValue(false);
 
     const subscriptionResult = await service.evaluate({
       userId: 'user-1',
@@ -258,31 +178,7 @@ describe('NotificationPolicyService', () => {
   });
 
   it('blocks price increase alerts when priceIncreaseAlerts is false', async () => {
-    usersRepository.findById = jest.fn().mockResolvedValue({
-      id: 'user-1',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      preferences: {
-        notifications: {
-          channels: { push: true, email: false, inApp: true },
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-            timezone: null,
-          },
-        },
-      },
-      userModules: [
-        {
-          isEnabled: true,
-          module: { slug: 'finance' },
-          config: {
-            notifications: { priceIncreaseAlerts: false },
-          },
-        },
-      ],
-    });
+    notificationEnabled.mockResolvedValue(false);
 
     const priceResult = await service.evaluate({
       userId: 'user-1',
@@ -299,5 +195,45 @@ describe('NotificationPolicyService', () => {
         'module_notification_disabled:finance.priceIncreaseAlerts',
       );
     }
+  });
+
+  it('blocks when the module is missing or disabled', async () => {
+    read.mockResolvedValue({ enabled: false, version: 2, config: {} });
+
+    const decision = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      moduleSlug: 'finance',
+      preferenceKey: 'budgetAlerts',
+    });
+
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.reason).toBe('module_disabled_or_missing');
+    }
+    expect(notificationEnabled).not.toHaveBeenCalled();
+  });
+
+  it('allows a module slug without a registered descriptor', async () => {
+    hasDescriptor.mockReturnValue(false);
+
+    await expect(
+      service.evaluate({
+        userId: 'user-1',
+        channel: 'IN_APP',
+        moduleSlug: 'unknown',
+        preferenceKey: 'anything',
+      }),
+    ).resolves.toEqual({ allowed: true });
+    expect(read).not.toHaveBeenCalled();
+    expect(notificationEnabled).not.toHaveBeenCalled();
+  });
+
+  it('rejects notifications from a missing user', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.evaluate({ userId: 'user-1', channel: 'IN_APP' }),
+    ).resolves.toEqual({ allowed: false, reason: 'user_not_found' });
   });
 });

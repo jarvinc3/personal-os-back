@@ -64,11 +64,11 @@ La decisión registrada en #308 mantiene las diez fases como requisito del relea
 | FIN-1               | [#317](https://github.com/jarvinc3/personal-os-back/issues/317)                                                                                     | En revisión (#332) |
 | FIN-2               | AI-8 [#211](https://github.com/jarvinc3/personal-os-back/issues/211)                                                                                | Cubierto           |
 | FIN-3               | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto           |
-| FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | En revisión (#386) |
+| FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | Cerrado (#386)     |
 | PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | Cerrado (#378)     |
 | PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Cerrado (#381)     |
-| PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | Pendiente          |
-| NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | En revisión (#387) |
+| PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | En revisión (#388) |
+| NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Cerrado (#387)     |
 | NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | Pendiente          |
 | NOTIF-3             | [#324](https://github.com/jarvinc3/personal-os-back/issues/324)                                                                                     | Pendiente          |
 

@@ -18,21 +18,27 @@ Cada módulo es dueño de sus defaults y reglas:
 
 `ModuleSettingsRegistry` registra descriptores sin interpretar sus campos,
 rechaza slugs duplicados y delega normalización y parches en el módulo dueño;
-`has(slug)` responde si un módulo está registrado. `ModuleSettingsService` lee el
-registro `UserModule` y devuelve la configuración normalizada, y
-`notificationEnabled` consulta la preferencia con la semántica del descriptor.
-`apps/api` compone los providers en `ModuleSettingsModule.register([...])`.
+`hasDescriptor(slug)` responde si un módulo está registrado. `ModuleSettingsService` lee el
+registro `UserModule` y devuelve la configuración normalizada, responde
+`hasDescriptor` y
+consulta una preferencia con la semántica del descriptor. `apps/api` compone los
+providers en `ModuleSettingsModule.register([...])`.
 
 Users conserva identidad, perfil, preferencias globales y persistencia genérica:
 valida el slug contra el registro, aplica el parche del descriptor y persiste el
 resultado; no contiene defaults, claves de notificación ni validadores de
 módulos. El reset de settings del vaciado pide al registro los defaults
-registrados. Notifications evalúa cada toggle con los defaults del descriptor
-correspondiente.
+registrados.
 
-El formato persistido y el contrato HTTP no cambian en PLATFORM-SETTINGS-1. Los
-consumers y el endpoint siguen con su implementación vigente hasta las fases de
-migración restantes.
+Los consumidores consultan el lector, no defaults de otros módulos:
 
-Un módulo de prueba puede crear y registrar un descriptor propio mediante el
-contrato genérico, sin agregar una rama por slug a Users ni editar sus defaults.
+- La policy de Notifications resuelve el módulo habilitado y el toggle con
+  `hasDescriptor`, `read` y `notificationEnabled`; no importa defaults ni claves de un
+  dominio.
+- El guard `EnabledModuleGuard` usa `hasDescriptor` y `read` para decidir si la ruta sigue
+  habilitada.
+- Intelligence ya lee su propia configuración con el lector.
+
+El formato persistido y el contrato HTTP no cambian. Un módulo de prueba puede
+crear y registrar un descriptor propio mediante el contrato genérico, sin
+agregar una rama por slug a Users ni editar sus defaults.

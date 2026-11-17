@@ -1,11 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
-  MODULE_SETTINGS_REGISTRY,
-  type ModuleSettingsRegistry,
+  MODULE_SETTINGS_READER,
+  type ModuleSettingsReader,
 } from '@personal-os/contracts';
 import type { NotificationChannel } from '@personal-os/database';
 import {
-  mergeWithDefaults,
   parseUserPreferences,
   USERS_REPOSITORY,
   type UsersRepositoryPort,
@@ -32,8 +31,8 @@ export class NotificationPolicyService {
   constructor(
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: UsersRepositoryPort,
-    @Inject(MODULE_SETTINGS_REGISTRY)
-    private readonly settingsRegistry: ModuleSettingsRegistry,
+    @Inject(MODULE_SETTINGS_READER)
+    private readonly settings: ModuleSettingsReader,
   ) {}
 
   async evaluate(
@@ -49,7 +48,7 @@ export class NotificationPolicyService {
       locale: user.locale,
     });
 
-    const moduleCheck = this.evaluateModuleToggle(context, user.userModules);
+    const moduleCheck = await this.evaluateModuleToggle(context);
     if (!moduleCheck.allowed) {
       return moduleCheck;
     }
@@ -112,12 +111,10 @@ export class NotificationPolicyService {
     return { allowed: true };
   }
 
-  private evaluateModuleToggle(
+  /** The module owner declares the toggle; Notifications only asks for it. */
+  private async evaluateModuleToggle(
     context: NotificationDispatchContext,
-    userModules: NonNullable<
-      Awaited<ReturnType<UsersRepositoryPort['findById']>>
-    >['userModules'],
-  ): PolicyEvaluationResult {
+  ): Promise<PolicyEvaluationResult> {
     const moduleSlug = context.moduleSlug ?? context.data?.moduleSlug;
     const notificationKey =
       context.preferenceKey ?? context.data?.notificationKey;
@@ -126,30 +123,21 @@ export class NotificationPolicyService {
       return { allowed: true };
     }
 
-    if (!this.settingsRegistry.has(moduleSlug)) {
+    if (!this.settings.hasDescriptor(moduleSlug)) {
       return { allowed: true };
     }
 
-    const entry = userModules.find(
-      (row) => row.module.slug === moduleSlug && row.isEnabled,
-    );
-
-    if (!entry) {
+    const module = await this.settings.read(context.userId, moduleSlug);
+    if (!module.enabled) {
       return { allowed: false, reason: 'module_disabled_or_missing' };
     }
 
-    const defaults = this.settingsRegistry.get(moduleSlug).defaults as Record<
-      string,
-      unknown
-    >;
-    const config = mergeWithDefaults(entry.config, defaults) as {
-      notifications?: Record<string, boolean>;
-    };
-
-    const toggles = config.notifications ?? {};
-    const enabled = toggles[notificationKey];
-
-    if (enabled === false) {
+    const enabled = await this.settings.notificationEnabled(
+      context.userId,
+      moduleSlug,
+      notificationKey,
+    );
+    if (!enabled) {
       return {
         allowed: false,
         reason: `module_notification_disabled:${moduleSlug}.${notificationKey}`,

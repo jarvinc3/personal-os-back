@@ -172,6 +172,7 @@ export interface ModuleSettingsRegistry {
   applyPatch(slug: string, current: unknown, patch: unknown): JsonObject;
 }
 export interface ModuleSettingsReader {
+  hasDescriptor(slug: string): boolean;
   read(
     userId: string,
     slug: string,

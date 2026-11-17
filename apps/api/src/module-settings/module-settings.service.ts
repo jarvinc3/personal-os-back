@@ -28,6 +28,10 @@ export class ModuleSettingsService implements ModuleSettingsReader {
     };
   }
 
+  hasDescriptor(slug: string): boolean {
+    return this.registry.has(slug);
+  }
+
   async notificationEnabled(
     userId: string,
     slug: string,

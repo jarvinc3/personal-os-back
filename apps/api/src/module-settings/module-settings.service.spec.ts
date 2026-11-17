@@ -66,4 +66,12 @@ describe('ModuleSettingsService', () => {
       config: { version: 2, notifications: { digest: true } },
     });
   });
+
+  it('delegates whether a descriptor is registered to the registry', () => {
+    const has = jest.fn().mockReturnValue(true);
+    const service = new ModuleSettingsService({} as never, { has } as never);
+
+    expect(service.hasDescriptor('sample')).toBe(true);
+    expect(has).toHaveBeenCalledWith('sample');
+  });
 });
