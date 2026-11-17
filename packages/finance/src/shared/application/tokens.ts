@@ -1,5 +1,4 @@
 export const EXCHANGE_RATE_PORT = Symbol('EXCHANGE_RATE_PORT');
-export const DOMAIN_EVENT_PUBLISHER = Symbol('DOMAIN_EVENT_PUBLISHER');
 export const QUICK_ENTRY_EXTRACTOR = Symbol('QUICK_ENTRY_EXTRACTOR');
 export const LEDGER_REPOSITORY = Symbol('LEDGER_REPOSITORY');
 /** Planning capability port used by ledger after budget spend adjustments. */

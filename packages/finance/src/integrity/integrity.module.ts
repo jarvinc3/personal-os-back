@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { BalanceIntegrityService } from './application/balance-integrity.service';
 import { BalanceIntegrityScheduler } from './infrastructure/balance-integrity.scheduler';
 import { IntegrityRepository } from './infrastructure/integrity.repository';
 import { IntegrityController } from './presentation/integrity.controller';
 
 @Module({
-  imports: [FinanceEventsModule],
+  imports: [DomainEventsModule],
   controllers: [IntegrityController],
   providers: [
     IntegrityRepository,

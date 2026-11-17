@@ -13,7 +13,7 @@ Catálogo de plataforma: [`packages/core/src/events/event.constants.ts`](../../p
 
 Los nombres y payloads Finance viven en `FinanceEvents` de `@personal-os/finance`; consulte [eventos Finance](../modules/finance/capabilities/events.md).
 
-Patrón Finance: persistir outbox en la misma TX → `FinanceOutboxDispatcher` (cron `EVERY_30_SECONDS` + wake) → `EventEmitter2` → listeners con `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`).
+Patrón de outbox: persistir el evento en la misma TX que el cambio → `OutboxRelay` de Core (cron `EVERY_30_SECONDS` + wake) → `EventEmitter2` → listeners con `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`). La infraestructura es genérica: vive en `packages/core/src/events/outbox/` y cada dominio aporta solo nombres, payloads y versiones. Los productores dependen de los ports neutrales de `@personal-os/contracts`: `DomainEventPublisher` (`enqueue`), `DomainEventRelay` (`wake`) y `DomainEventOutboxReader` (`hasEvent`).
 
 AI-7 escribe `ai.signal.routed` en el mismo commit que `AiSignal` y su evidencia. El listener `AiSignalOutboxBridge` entrega a `ai-signal-routing` con un `jobId` estable; si Redis/cola no está configurado o falla el enqueue, propaga el error para que el relay reintente el outbox.
 
@@ -54,7 +54,8 @@ rollback de código, detener primero los workers nuevos; conservar columnas y
 recibos, y revisar las filas `PROCESSING` porque el código viejo no las recupera.
 El merge y la ejecución de este despliegue corresponden al owner.
 
-Evidencia: `finance-outbox.dispatcher.spec.ts`,
+Evidencia: `packages/core/src/events/outbox/outbox-relay.spec.ts`,
+`domain-events.module.spec.ts`,
 `domain-event-idempotency.guard.spec.ts` y
 `test/integration/outbox.integration-spec.ts` (PostgreSQL real y procesos terminados).
 
@@ -73,7 +74,7 @@ Evidencia: `finance-outbox.dispatcher.spec.ts`,
 
 | Cron               | Handler                                                                            |
 | ------------------ | ---------------------------------------------------------------------------------- |
-| `EVERY_30_SECONDS` | `FinanceOutboxDispatcher`                                                          |
+| `EVERY_30_SECONDS` | `OutboxRelay` (Core)                                                               |
 | `EVERY_MINUTE`     | `AuthDeletionOutboxProcessor`                                                      |
 | `EVERY_5_MINUTES`  | `AiActionsReaperService` (RUNNING > 15 min)                                        |
 | `EVERY_6_HOURS`    | `GmailAutoSyncScheduler` (opt-in `emailSync.automatic`; LLM solo con mails nuevos) |

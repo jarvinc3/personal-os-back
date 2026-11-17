@@ -1,4 +1,3 @@
-export { FinanceEventsModule } from './events/events.module';
 export { FinanceFacade } from './finance.facade';
 export { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 export { FinanceAiCapabilities } from './ai/finance-ai-capabilities';

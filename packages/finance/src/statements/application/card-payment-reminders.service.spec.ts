@@ -63,14 +63,14 @@ function build(
   const outbox = {
     hasEvent: jest.fn().mockResolvedValue(options.hasEvent ?? false),
   };
-  const dispatcher = { processBatch: jest.fn().mockResolvedValue(undefined) };
+  const dispatcher = { wake: jest.fn().mockResolvedValue(0) };
 
   const service = new CardPaymentRemindersService(
     repo as never,
     users as never,
     events,
-    outbox as never,
-    dispatcher as never,
+    outbox,
+    dispatcher,
   );
 
   return { service, repo, events };

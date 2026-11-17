@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransferUseCase } from './create-transfer.use-case';
@@ -41,10 +41,10 @@ describe('CreateTransferUseCase', () => {
     execute,
     resolveTransferDestination,
   } as unknown as ResolveAmountsUseCase;
-  const processBatch = jest.fn();
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const wake = jest.fn();
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
   const baseCurrency = {
     execute: jest.fn().mockResolvedValue('DOP'),
   } as unknown as ResolveUserBaseCurrencyUseCase;
@@ -53,7 +53,7 @@ describe('CreateTransferUseCase', () => {
     repo,
     resolveAmounts,
     baseCurrency,
-    outboxDispatcher,
+    relay,
   );
 
   beforeEach(() => {
@@ -122,7 +122,7 @@ describe('CreateTransferUseCase', () => {
       expect.objectContaining({ sourceAmount: 50, sourceCurrency: 'DOP' }),
     );
     expect(createTransfer).toHaveBeenCalled();
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('suggests the goal that earmarks the destination account', async () => {
@@ -136,7 +136,7 @@ describe('CreateTransferUseCase', () => {
       goalRepo,
       resolveAmounts,
       baseCurrency,
-      outboxDispatcher,
+      relay,
     );
 
     const createdTransfer = await goalUseCase.execute('user-1', {

@@ -1,6 +1,7 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
+import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { MerchantsService } from '../../merchants/application/merchants.service';
@@ -57,7 +58,8 @@ export class ImportFinancialTransactionUseCase {
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
     private readonly merchants: MerchantsService,
   ) {}
 
@@ -93,7 +95,7 @@ export class ImportFinancialTransactionUseCase {
       merchantId: resolvedMerchant?.id ?? null,
       amounts,
     });
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return created;
   }
 
@@ -165,7 +167,7 @@ export class ImportFinancialTransactionUseCase {
       toAmounts,
       estimated,
     });
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return created;
   }
 
@@ -208,7 +210,7 @@ export class ImportFinancialTransactionUseCase {
         status: data.status,
       },
     );
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return created;
   }
 
@@ -218,7 +220,7 @@ export class ImportFinancialTransactionUseCase {
       debitId,
       creditId,
     );
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return created;
   }
 }

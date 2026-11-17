@@ -1,10 +1,11 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
+import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -28,7 +29,8 @@ export class AdjustBalanceUseCase {
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   async execute(userId: string, command: AdjustBalanceCommand) {
@@ -87,7 +89,7 @@ export class AdjustBalanceUseCase {
       throw new NotFoundException('Cuenta o tarjeta no encontrada');
     }
 
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return {
       adjusted: true,
       balance: command.balance,

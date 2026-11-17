@@ -1181,7 +1181,7 @@ export function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },
-    // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
+    // Root-level model used by OutboxRelay.processBatch after the commit wake.
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),

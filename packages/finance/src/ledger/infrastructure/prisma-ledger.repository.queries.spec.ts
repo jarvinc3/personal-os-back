@@ -1,5 +1,5 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { IMPORT_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/import-dedupe';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
@@ -26,7 +26,7 @@ function createRepository() {
     finCardBalance: { findFirst: jest.fn() },
   };
 
-  const events = { enqueue: jest.fn() } as unknown as DomainEventPublisherPort;
+  const events = { enqueue: jest.fn() } as unknown as DomainEventPublisher;
   const journal = {
     record: jest.fn(),
     restore: jest.fn(),

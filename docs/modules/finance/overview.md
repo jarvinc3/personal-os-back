@@ -10,11 +10,11 @@ Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categoriz
 - Web (`personal-os-web`) y móvil (otro repo)
 - AI capabilities `moduleSlug=finance` se publican desde Finance; AI-9 expone un resumen mensual solo lectura mediante `FinanceAiCapabilities`.
 
-`FinanceModule` exporta `FinanceFacade` y `FinanceAiCapabilities`. El runtime AI usa el provider contractual de Finance y no importa la facade. Barrel: `FinanceModule`, `FinanceFacade`, `FinanceAiCapabilities`, `FinanceEventsModule`, `DomainEventIdempotencyGuard`. Fuera de finance no importar `ledger/`, `catalog/`, etc.
+`FinanceModule` exporta `FinanceFacade` y `FinanceAiCapabilities`. El runtime AI usa el provider contractual de Finance y no importa la facade. Barrel: `FinanceModule`, `FinanceFacade`, `FinanceAiCapabilities`, `FinanceSignalConsumer`, `FinanceEmailProductProposalCatalog`, `FINANCE_SETTINGS_DESCRIPTOR`. Fuera de finance no importar `ledger/`, `catalog/`, etc. La infraestructura de eventos ya no vive en Finance: los productores dependen de los ports de `@personal-os/contracts` y los módulos importan `DomainEventsModule` de `@personal-os/core`.
 
 ## Arquitectura
 
-Composition root puro. Capabilities: `catalog`, `ledger`, `planning`, `analytics`, `balance-sheet`, `fx`, `events`, `shared`.
+Composition root puro. Capabilities: `catalog`, `ledger`, `planning`, `analytics`, `balance-sheet`, `fx`, `shared`.
 
 Use-cases para writes con reglas distintas (ledger, importación de señales, FX amounts). Fat services para CRUD/read (catalog, planning, analytics). Ports cuando hay ≥2 adapters o contrato cross-capability (`LEDGER_REPOSITORY`, `BUDGET_THRESHOLD_PORT`, FX).
 

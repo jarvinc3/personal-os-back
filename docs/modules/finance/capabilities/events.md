@@ -3,11 +3,17 @@
 Finance es dueño de los nombres, payloads y versiones semánticas de sus
 eventos. Los contratos están en
 [`packages/finance/src/contracts/finance-events.ts`](../../../../packages/finance/src/contracts/finance-events.ts).
-Core aporta el envelope durable y el dispatcher. El catálogo `AppEvents` de Core
-solo contiene eventos de plataforma; los consumidores Finance importan los
+Core aporta el outbox durable y el relay compartido; el catálogo `AppEvents` de
+Core solo contiene eventos de plataforma y los consumidores Finance importan los
 nombres desde `@personal-os/finance`.
 
-Filas `domain_event_outbox` → dispatcher.
+Los productores de Finance dependen de los ports de `@personal-os/contracts`:
+`DomainEventPublisher` para escribir el evento en la transacción en curso,
+`DomainEventOutboxReader` para no repetir un aviso ya emitido y
+`DomainEventRelay` para despertar la entrega tras el commit. Ningún caso de uso
+de Finance importa la infraestructura del relay.
+
+Filas `domain_event_outbox` → `OutboxRelay` de Core.
 
 Consumidores: ver [infrastructure/events-and-queues.md](../../../infrastructure/events-and-queues.md).
 

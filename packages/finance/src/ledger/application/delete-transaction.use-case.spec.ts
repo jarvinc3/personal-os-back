@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { DeleteTransactionUseCase } from './delete-transaction.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -6,7 +6,7 @@ describe('DeleteTransactionUseCase', () => {
   const findTransactionById = jest.fn();
   const deleteTransaction = jest.fn();
   const deleteTransactionsByTransferGroupId = jest.fn();
-  const processBatch = jest.fn();
+  const wake = jest.fn();
 
   const repo = {
     findTransactionById,
@@ -14,11 +14,11 @@ describe('DeleteTransactionUseCase', () => {
     deleteTransactionsByTransferGroupId,
   } as unknown as LedgerRepositoryPort;
 
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
 
-  const useCase = new DeleteTransactionUseCase(repo, outboxDispatcher);
+  const useCase = new DeleteTransactionUseCase(repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -37,7 +37,7 @@ describe('DeleteTransactionUseCase', () => {
     });
     expect(deleteTransaction).toHaveBeenCalledWith('user-1', 'tx-1');
     expect(deleteTransactionsByTransferGroupId).not.toHaveBeenCalled();
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('deletes a transfer group and wakes the outbox dispatcher', async () => {
@@ -56,7 +56,7 @@ describe('DeleteTransactionUseCase', () => {
       'grp-1',
     );
     expect(deleteTransaction).not.toHaveBeenCalled();
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('throws without waking the dispatcher when the row is missing', async () => {
@@ -66,6 +66,6 @@ describe('DeleteTransactionUseCase', () => {
       /no encontrad/i,
     );
     expect(deleteTransaction).not.toHaveBeenCalled();
-    expect(processBatch).not.toHaveBeenCalled();
+    expect(wake).not.toHaveBeenCalled();
   });
 });

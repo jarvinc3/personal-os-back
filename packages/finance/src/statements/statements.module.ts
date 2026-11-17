@@ -2,7 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
 import { QueueNames } from '@personal-os/core';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { STATEMENT_EXTRACTOR } from './application/ports/statement-extractor.port';
@@ -37,7 +37,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   imports: [
     FinanceOwnershipModule,
     FinanceLedgerModule,
-    FinanceEventsModule,
+    DomainEventsModule,
     ...(bullMqEnabled
       ? [BullModule.registerQueue({ name: QueueNames.STATEMENT_IMPORT })]
       : []),

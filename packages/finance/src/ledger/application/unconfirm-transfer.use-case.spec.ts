@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { UnconfirmTransferUseCase } from './unconfirm-transfer.use-case';
 import type {
   LedgerRepositoryPort,
@@ -42,12 +42,12 @@ describe('UnconfirmTransferUseCase', () => {
     unconfirmTransactionsByTransferGroupId,
   } as unknown as LedgerRepositoryPort;
 
-  const processBatch = jest.fn();
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const wake = jest.fn();
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
 
-  const useCase = new UnconfirmTransferUseCase(repo, outboxDispatcher);
+  const useCase = new UnconfirmTransferUseCase(repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -62,7 +62,7 @@ describe('UnconfirmTransferUseCase', () => {
       'user-1',
       'grp-1',
     );
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('refuses a movement that is not part of a transfer', async () => {

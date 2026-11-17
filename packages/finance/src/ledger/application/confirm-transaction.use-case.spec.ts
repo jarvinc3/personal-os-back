@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { ConfirmTransactionUseCase } from './confirm-transaction.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -6,7 +6,7 @@ describe('ConfirmTransactionUseCase', () => {
   const findTransactionById = jest.fn();
   const confirmTransaction = jest.fn();
   const confirmTransactionsByTransferGroupId = jest.fn();
-  const processBatch = jest.fn();
+  const wake = jest.fn();
 
   const repo = {
     findTransactionById,
@@ -14,11 +14,11 @@ describe('ConfirmTransactionUseCase', () => {
     confirmTransactionsByTransferGroupId,
   } as unknown as LedgerRepositoryPort;
 
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
 
-  const useCase = new ConfirmTransactionUseCase(repo, outboxDispatcher);
+  const useCase = new ConfirmTransactionUseCase(repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -59,7 +59,7 @@ describe('ConfirmTransactionUseCase', () => {
     const result = await useCase.execute('user-1', 'tx-1');
     expect(result.status).toBe('CONFIRMED');
     expect(confirmTransaction).toHaveBeenCalledWith('user-1', 'tx-1');
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('throws when missing', async () => {

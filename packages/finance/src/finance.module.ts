@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceAnalyticsModule } from './analytics/analytics.module';
 import { FinanceBalanceSheetModule } from './balance-sheet/balance-sheet.module';
 import { FinanceCatalogModule } from './catalog/catalog.module';
 import { FinanceEntitiesModule } from './entities/entities.module';
-import { FinanceEventsModule } from './events/events.module';
 import { FinanceFacade } from './finance.facade';
 import { FinanceFxModule } from './fx/fx.module';
 import { FinanceIntegrityModule } from './integrity/integrity.module';
@@ -28,7 +28,7 @@ import { FinanceEmailProductProposalCatalog } from './catalog/application/email-
 @Module({
   imports: [
     FinanceFxModule,
-    FinanceEventsModule,
+    DomainEventsModule,
     FinanceCatalogModule,
     FinanceStatementsModule,
     FinancePlanningModule,

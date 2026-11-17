@@ -18,7 +18,8 @@ de caracterización deben seguir ejecutándose durante todo ese intervalo.
 ## Corrección previa del outbox
 
 Es una corrección independiente, anterior al reset y apta para llevarse a la
-línea de producción. No espera a AI-7 ni mueve todavía el relay a Core.
+línea de producción. No espera a AI-7 ni mueve todavía el relay a Core;
+PLATFORM-EVENTS-1 (#319) hizo esa mudanza después.
 
 - Lease de cinco minutos con `claimedAt`; un lease vencido vuelve a `PENDING`
   o termina en `DEAD` si agotó ocho intentos. También se recuperan filas antiguas

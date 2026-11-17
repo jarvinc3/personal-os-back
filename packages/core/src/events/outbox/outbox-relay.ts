@@ -1,15 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
 
 const MAX_ATTEMPTS = 8;
 const BATCH_SIZE = 20;
 const LEASE_MS = 5 * 60_000;
 
+/**
+ * Generic outbox relay: claims, delivers and acknowledges `domain_event_outbox`
+ * rows so any domain can publish without owning transport infrastructure.
+ */
 @Injectable()
-export class FinanceOutboxDispatcher {
-  private readonly logger = new Logger(FinanceOutboxDispatcher.name);
+export class OutboxRelay implements DomainEventRelay {
+  private readonly logger = new Logger(OutboxRelay.name);
   private running = false;
 
   constructor(
@@ -30,7 +35,12 @@ export class FinanceOutboxDispatcher {
     }
   }
 
-  /** Exposed for tests and wake-after-commit. */
+  /** Wake after commit; the cron covers a failed or skipped wake. */
+  async wake(): Promise<number> {
+    return this.processBatch();
+  }
+
+  /** Exposed for tests and the cron handler. */
   async processBatch(): Promise<number> {
     await this.recoverExpiredLeases();
     let processed = 0;
@@ -87,7 +97,7 @@ export class FinanceOutboxDispatcher {
       return null;
     }
 
-    const result = await this.prisma.domainEventOutbox.updateMany({
+    const claim = await this.prisma.domainEventOutbox.updateMany({
       where: {
         id: pending.id,
         status: { in: ['PENDING', 'FAILED'] },
@@ -99,7 +109,7 @@ export class FinanceOutboxDispatcher {
         claimedAt: now,
       },
     });
-    if (result.count === 0) {
+    if (claim.count === 0) {
       return null;
     }
     // attempts is a monotonic fencing token. Never re-read another worker's

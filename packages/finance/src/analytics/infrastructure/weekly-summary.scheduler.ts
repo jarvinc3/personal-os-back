@@ -1,11 +1,17 @@
+import type {
+  DomainEventRelay,
+  DomainEventOutboxReader,
+  DomainEventPublisher,
+} from '@personal-os/contracts';
+import {
+  DOMAIN_EVENT_RELAY,
+  DOMAIN_EVENT_OUTBOX_READER,
+  DOMAIN_EVENT_PUBLISHER,
+} from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UsersService } from '@personal-os/users';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
-import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import {
   WeeklySummaryService,
   previousWeekStartIso,
@@ -46,9 +52,11 @@ export class WeeklySummaryScheduler {
     private readonly users: UsersService,
     private readonly summaries: WeeklySummaryService,
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
-    private readonly outbox: PrismaOutboxRepository,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    private readonly events: DomainEventPublisher,
+    @Inject(DOMAIN_EVENT_OUTBOX_READER)
+    private readonly outbox: DomainEventOutboxReader,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -79,7 +87,7 @@ export class WeeklySummaryScheduler {
         userId,
         payload: { weekStart, summary },
       });
-      void this.outboxDispatcher.processBatch();
+      void this.relay.wake();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`weekly_summary_failed userId=${userId}: ${message}`);

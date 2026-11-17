@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { BUDGET_THRESHOLD_PORT } from '../shared/application/tokens';
 import { BudgetThresholdService } from './application/budget-threshold.service';
 
@@ -8,7 +8,7 @@ import { BudgetThresholdService } from './application/budget-threshold.service';
  * without depending on full PlanningModule (avoids circular deps).
  */
 @Module({
-  imports: [FinanceEventsModule],
+  imports: [DomainEventsModule],
   providers: [
     BudgetThresholdService,
     {

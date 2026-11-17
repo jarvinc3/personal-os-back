@@ -29,4 +29,4 @@ domain/         quiet-hours
 
 **Barrel:** `NotificationsModule`, `NotificationsService`, `NotificationsGateway`, `PushTokensService`, `NotificationPolicyService`.
 
-Imports `FinanceEventsModule` solo por `DomainEventIdempotencyGuard`. Payload llega por EventEmitter2.
+Imports `DomainEventsModule` de Core solo por `DomainEventIdempotencyGuard`. Payload llega por EventEmitter2.

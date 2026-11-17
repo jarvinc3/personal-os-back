@@ -8,8 +8,8 @@ const {
   DomainEventIdempotencyGuard,
 } = require('../../packages/core/dist/events/domain-event-idempotency.guard');
 const {
-  FinanceOutboxDispatcher,
-} = require('../../packages/finance/dist/events/infrastructure/finance-outbox.dispatcher');
+  OutboxRelay,
+} = require('../../packages/core/dist/events/outbox/outbox-relay');
 
 const url = new URL(process.env.TEST_DATABASE_URL);
 if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
@@ -27,7 +27,7 @@ const waitForKill = () => new Promise(() => {});
 
 async function main() {
   const mode = process.argv[2];
-  const dispatcher = new FinanceOutboxDispatcher(prisma, {
+  const dispatcher = new OutboxRelay(prisma, {
     emitAsync: async () => {
       if (mode === 'uncommitted') {
         await guard.runOnce('crash-event', 'worker', async (tx) => {

@@ -11,7 +11,7 @@ import {
   getPrismaClientClass,
   type PrismaService,
 } from '@personal-os/database';
-import { DomainEventIdempotencyGuard } from '@personal-os/core';
+import { DomainEventIdempotencyGuard, OutboxRelay } from '@personal-os/core';
 import { FinanceEvents } from '@personal-os/finance';
 import {
   NotificationsGateway,
@@ -19,8 +19,6 @@ import {
 } from '@personal-os/notifications';
 // eslint-disable-next-line no-restricted-imports -- Verify the real Nest event decorator and consumer transaction together.
 import { NotificationsEventsListener } from '../../packages/notifications/src/application/notifications-events.listener';
-// eslint-disable-next-line no-restricted-imports -- Integration exercises the private relay without widening its production barrel.
-import { FinanceOutboxDispatcher } from '../../packages/finance/src/events/infrastructure/finance-outbox.dispatcher';
 
 // Fail instead of silently skipping: CI must supply a dedicated local database.
 const connectionString = process.env.TEST_DATABASE_URL;
@@ -50,10 +48,7 @@ function deferred() {
 }
 
 function dispatcher(emitAsync: () => Promise<unknown>) {
-  return new FinanceOutboxDispatcher(
-    prisma as PrismaService,
-    { emitAsync } as never,
-  );
+  return new OutboxRelay(prisma as PrismaService, { emitAsync } as never);
 }
 
 async function insertEvent(attempts = 0) {

@@ -16,13 +16,9 @@ function pattern(nextExpectedDate: Date): RecurringPatternWithMerchant {
 function build(hasEvent = false) {
   const events = { enqueue: jest.fn() };
   const outbox = { hasEvent: jest.fn().mockResolvedValue(hasEvent) };
-  const dispatcher = { processBatch: jest.fn() };
+  const relay = { wake: jest.fn().mockResolvedValue(0) };
   return {
-    service: new RecurringAlertsService(
-      events,
-      outbox as unknown as never,
-      dispatcher as unknown as never,
-    ),
+    service: new RecurringAlertsService(events, outbox, relay),
     events,
   };
 }

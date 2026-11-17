@@ -23,7 +23,7 @@ Normalización `error`/`message`: `packages/core/src/exceptions/http-error.util.
 
 ## Event-driven selectivo
 
-No hay EDA en todo el CRUD. Finance persiste ledger + outbox en la misma `$transaction`; `FinanceOutboxDispatcher` (cron 30s + wake post-commit) emite `EventEmitter2`. Listeners usan `DomainEventIdempotencyGuard`.
+No hay EDA en todo el CRUD. Finance persiste ledger + outbox en la misma `$transaction`; el `OutboxRelay` de Core (cron 30s + wake post-commit) emite `EventEmitter2`. Listeners usan `DomainEventIdempotencyGuard`. Los productores dependen de los ports de `@personal-os/contracts`, no de la infraestructura de Core.
 
 Otros módulos emiten in-process sin outbox: `user.logged_in`, `notification.created`, `user.preferences.updated`, `module.*`.
 

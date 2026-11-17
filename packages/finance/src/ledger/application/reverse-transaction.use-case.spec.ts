@@ -1,5 +1,5 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { NotFoundException } from '@nestjs/common';
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -36,12 +36,12 @@ function ledgerRow(overrides: Record<string, unknown> = {}) {
 
 describe('ReverseTransactionUseCase', () => {
   const reverseTransaction = jest.fn();
-  const processBatch = jest.fn();
+  const wake = jest.fn();
   const repo = { reverseTransaction } as unknown as LedgerRepositoryPort;
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
-  const useCase = new ReverseTransactionUseCase(repo, outboxDispatcher);
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
+  const useCase = new ReverseTransactionUseCase(repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -65,7 +65,7 @@ describe('ReverseTransactionUseCase', () => {
       status: 'REVERSED',
       amount: '10',
     });
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('is a no-op map when the repository returns an already reversed row', async () => {
@@ -76,7 +76,7 @@ describe('ReverseTransactionUseCase', () => {
 
     const result = await useCase.execute('user-1', 'tx-1');
     expect(result.status).toBe('REVERSED');
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('throws when missing', async () => {

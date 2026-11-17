@@ -1,4 +1,4 @@
-# ADR-002: Outbox finance, no event sourcing
+# ADR-002: Outbox durable, no event sourcing
 
 - Estado: `accepted`
 
@@ -8,7 +8,9 @@ Notificaciones e IA deben reaccionar a mutaciones de ledger sin perder eventos s
 
 ## Decisión
 
-Escribir `DomainEventOutbox` en la misma `$transaction` que el ledger. Dispatcher cron 30s + wake post-commit emite `EventEmitter2`. Idempotencia por consumidor en `ProcessedDomainEvent`. No dual-enqueue de nombres legacy.
+Escribir `DomainEventOutbox` en la misma `$transaction` que el ledger. El relay de Core (`OutboxRelay`, cron 30s + wake post-commit) emite `EventEmitter2`. Idempotencia por consumidor en `ProcessedDomainEvent`. No dual-enqueue de nombres legacy.
+
+PLATFORM-EVENTS-1 (#319) movió el relay genérico y la escritura del outbox a Core detrás de los ports `DomainEventPublisher`, `DomainEventOutboxReader` y `DomainEventRelay` de `@personal-os/contracts`; cada dominio conserva los nombres, payloads y versiones de sus eventos. La decisión de fondo no cambia: outbox durable con leases, fencing y reintentos, sin event sourcing.
 
 ## Alternativas
 

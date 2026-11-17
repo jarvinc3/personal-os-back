@@ -1,12 +1,12 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
+import { DOMAIN_EVENT_PUBLISHER } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
   BUDGET_THRESHOLD_PORT,
-  DOMAIN_EVENT_PUBLISHER,
   SUBSCRIPTION_MATCHER,
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
@@ -46,7 +46,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     private readonly prisma: PrismaService,
     private readonly read: PrismaLedgerReadRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
+    private readonly events: DomainEventPublisher,
     private readonly deletion: PrismaLedgerDeletionRepository,
     private readonly importRepository: PrismaLedgerImportRepository,
     private readonly write: PrismaLedgerWriteRepository,

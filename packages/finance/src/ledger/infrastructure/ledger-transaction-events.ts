@@ -1,5 +1,5 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
 import type { Prisma } from '@personal-os/database';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { notificationTransactionPayload } from '../../shared/domain/mappers';
 
 const transactionNotificationInclude = {
@@ -10,7 +10,7 @@ const transactionNotificationInclude = {
 
 type EnqueueTransactionEventInput = {
   tx: Prisma.TransactionClient;
-  events: DomainEventPublisherPort;
+  events: DomainEventPublisher;
   userId: string;
   /** Null for a status that has no creation event. */
   eventName: string | null;

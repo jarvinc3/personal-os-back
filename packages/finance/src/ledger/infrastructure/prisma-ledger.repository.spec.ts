@@ -1,5 +1,5 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
 import { PrismaLedgerImportRepository } from './prisma-ledger-import.repository';
 import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
@@ -43,7 +43,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
   it('passes the same transaction client to outbox enqueue on create', async () => {
     const fakeTx = { name: 'tx-client' };
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
 
     const finTransactionCreate = jest.fn().mockResolvedValue({
       id: 'tx-1',
@@ -167,7 +167,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('marks the movement as quiet when the action already announced itself', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const prisma = {
       $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
@@ -248,7 +248,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('createTransfer applies balances on both legs and enqueues finance.transfer.created', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const finAccountUpdate = jest.fn();
 
     const finTransactionCreate = jest
@@ -387,7 +387,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('deleteTransaction restores CONFIRMED balances once and enqueues finance.transaction.deleted', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const finAccountUpdate = jest.fn();
     const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
     const existing = {
@@ -487,7 +487,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('deleteTransaction removes the collected payment and recomputes the receivable', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const paymentDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
     const receivableUpdate = jest.fn().mockResolvedValue({});
 
@@ -547,7 +547,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('deleteTransaction un-pays the instalment and moves the loan back', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const installmentUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
     const loanUpdate = jest.fn().mockResolvedValue({});
 
@@ -616,7 +616,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('reverseTransaction reverts the collected payment too', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const paymentDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
 
     const prisma = {
@@ -671,7 +671,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('deleteTransactionsByTransferGroupId includes transferGroupId on each deleted event', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const groupId = 'grp-1';
     const rows = [
       {
@@ -762,7 +762,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('deleteTransaction does not enqueue when the row is missing', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
 
     const prisma = {
       $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -863,7 +863,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('purgeLedgerForAccount restores CONFIRMED balance including EMAIL txs', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const finAccountUpdate = jest.fn();
     const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
     const emailTx = {
@@ -941,7 +941,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('purgeLedgerForAccount deletes both legs of a transfer', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const groupId = 'grp-purge';
     const debit = {
       id: 'debit-p',
@@ -999,7 +999,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('purgeLedgerForCard is a no-op when the card has no txs', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const deleteMany = jest.fn();
 
     const prisma = {
