@@ -65,7 +65,7 @@ La decisión registrada en #308 mantiene las diez fases como requisito del relea
 | FIN-2               | AI-8 [#211](https://github.com/jarvinc3/personal-os-back/issues/211)                                                                                | Cubierto           |
 | FIN-3               | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto           |
 | FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | Pendiente          |
-| PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | Pendiente          |
+| PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | En revisión (#378) |
 | PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Pendiente          |
 | PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | Pendiente          |
 | NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Pendiente          |
