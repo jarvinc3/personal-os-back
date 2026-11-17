@@ -143,14 +143,13 @@ export class NotificationIntentPipeline implements NotificationIntentSink {
   private async allowedChannels(
     intent: NotificationIntent,
   ): Promise<NotificationChannel[]> {
-    const moduleSlug = intent.data?.moduleSlug;
     const allowed: NotificationChannel[] = [];
     for (const channel of intent.requestedChannels) {
       const context: NotificationDispatchContext = {
         userId: intent.userId,
         channel,
         data: intent.data,
-        moduleSlug: typeof moduleSlug === 'string' ? moduleSlug : undefined,
+        sourceDomain: intent.sourceDomain,
         preferenceKey: intent.preferenceKey,
       };
       const decision = await this.notificationPolicy.evaluate(context);

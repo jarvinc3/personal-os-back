@@ -120,7 +120,7 @@ describe('NotificationPolicyService', () => {
     const decision = await service.evaluate({
       userId: 'user-1',
       channel: 'IN_APP',
-      moduleSlug: 'finance',
+      sourceDomain: 'finance',
       preferenceKey: 'budgetAlerts',
     });
 
@@ -203,7 +203,7 @@ describe('NotificationPolicyService', () => {
     const decision = await service.evaluate({
       userId: 'user-1',
       channel: 'IN_APP',
-      moduleSlug: 'finance',
+      sourceDomain: 'finance',
       preferenceKey: 'budgetAlerts',
     });
 
@@ -214,19 +214,42 @@ describe('NotificationPolicyService', () => {
     expect(notificationEnabled).not.toHaveBeenCalled();
   });
 
-  it('allows a module slug without a registered descriptor', async () => {
+  it('allows a domain without a registered descriptor', async () => {
     hasDescriptor.mockReturnValue(false);
 
     await expect(
       service.evaluate({
         userId: 'user-1',
         channel: 'IN_APP',
-        moduleSlug: 'unknown',
+        sourceDomain: 'unknown',
         preferenceKey: 'anything',
       }),
     ).resolves.toEqual({ allowed: true });
     expect(read).not.toHaveBeenCalled();
     expect(notificationEnabled).not.toHaveBeenCalled();
+  });
+
+  it('resolves a preference for another module through the same reader', async () => {
+    notificationEnabled.mockResolvedValue(false);
+
+    const decision = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      sourceDomain: 'agenda',
+      preferenceKey: 'eventReminders',
+    });
+
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.reason).toBe(
+        'module_notification_disabled:agenda.eventReminders',
+      );
+    }
+    expect(notificationEnabled).toHaveBeenCalledWith(
+      'user-1',
+      'agenda',
+      'eventReminders',
+    );
   });
 
   it('rejects notifications from a missing user', async () => {

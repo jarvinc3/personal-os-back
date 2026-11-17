@@ -30,6 +30,11 @@ contiene handlers, payloads ni textos de ese dominio.
 `NotificationIntentModule` (global) expone el sink para que los productores
 inyecten el token sin importar `@personal-os/notifications`.
 
+La policy resuelve el estado y la preferencia del módulo con el `sourceDomain`
+del intent y su `preferenceKey`, a través de `MODULE_SETTINGS_READER`. Los
+creates directos siguen leyendo `data.moduleSlug`/`data.notificationKey` como
+respaldo; Notifications no conoce claves ni defaults de ningún dominio.
+
 ## Quiet hours
 
 `BR-NTF-001`: quiet hours suprime PUSH y EMAIL; IN_APP sigue visible.
