@@ -104,10 +104,13 @@ const currentLeg = {
 function setup({
   candidates = [],
   groupMembers = [],
+  currentLegOverrides = {},
 }: {
   candidates?: Array<Record<string, unknown>>;
   groupMembers?: Array<Record<string, unknown>>;
+  currentLegOverrides?: Record<string, unknown>;
 } = {}) {
+  const current = { ...currentLeg, ...currentLegOverrides };
   const prisma = {
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(null),
@@ -127,14 +130,7 @@ function setup({
     finCard: { findMany: jest.fn().mockResolvedValue([]) },
     finCategory: { findMany: jest.fn().mockResolvedValue([]) },
     finTransaction: {
-      findFirst: jest.fn().mockResolvedValue({
-        id: 'transaction-1',
-        transferGroupId: 'group-1',
-        transactionDate: new Date('2026-11-02T12:00:00.000Z'),
-        aiMetadata: { movementClass: 'TRANSFER_OUT' },
-        account: { institutionId: 'bhd', type: 'SAVINGS' },
-        card: null,
-      }),
+      findFirst: jest.fn().mockResolvedValue(current),
       findMany: jest.fn(
         (args: {
           include?: unknown;
@@ -148,9 +144,7 @@ function setup({
           ) {
             return Promise.resolve(groupMembers);
           }
-          return Promise.resolve(
-            args.include ? [currentLeg, ...candidates] : [],
-          );
+          return Promise.resolve(args.include ? [current, ...candidates] : []);
         },
       ),
       update: jest.fn().mockResolvedValue({}),
@@ -216,6 +210,9 @@ describe('FinanceSignalConsumer transfer pairing', () => {
           institutionId: 'bhd',
         }),
       ],
+      currentLegOverrides: {
+        externalReference: 'M01-1111-2222-3333-4',
+      },
     });
 
     await consumer.consume(transferSignal());

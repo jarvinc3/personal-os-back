@@ -136,4 +136,64 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
       }),
     );
   });
+
+  it('records the source and destination rates on an ATM transfer', async () => {
+    const fromAmounts = {
+      amount: 100,
+      currency: 'DOP',
+      ledgerAmount: 100,
+      ledgerCurrency: 'DOP',
+      amountBaseCurrency: 100,
+      exchangeRate: 1,
+      exchangeRateDate: '2026-11-06',
+      baseExchangeRate: 1,
+      baseExchangeRateDate: '2026-11-06',
+    };
+    const toAmounts = {
+      ...fromAmounts,
+      exchangeRateDate: '2026-11-07',
+      baseExchangeRateDate: '2026-11-07',
+    };
+    const repo = {
+      findAccountById: jest
+        .fn()
+        .mockImplementation((id: string) =>
+          Promise.resolve({ id, currency: 'DOP' }),
+        ),
+      createTransfer: jest.fn().mockResolvedValue({ id: 'transfer-1' }),
+    };
+    const resolveAmounts = {
+      execute: jest.fn().mockResolvedValue(fromAmounts),
+      resolveTransferDestination: jest
+        .fn()
+        .mockResolvedValue({ amounts: toAmounts, estimated: false }),
+    };
+    const useCase = new ImportFinancialTransactionUseCase(
+      repo as never,
+      resolveAmounts as never,
+      { execute: jest.fn().mockResolvedValue('DOP') },
+      { wake: jest.fn() },
+      { resolve: jest.fn() } as never,
+    );
+
+    await useCase.executeAtmWithdrawal('user-1', {
+      ...movement,
+      cashAccountId: 'cash-1',
+      aiMetadata: { signalId: 'signal-1' },
+    });
+
+    expect(repo.createTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        command: expect.objectContaining({
+          aiMetadata: expect.objectContaining({
+            signalId: 'signal-1',
+            exchangeRateDate: '2026-11-06',
+            baseExchangeRateDate: '2026-11-06',
+            destinationExchangeRateDate: '2026-11-07',
+            destinationBaseExchangeRateDate: '2026-11-07',
+          }),
+        }),
+      }),
+    );
+  });
 });

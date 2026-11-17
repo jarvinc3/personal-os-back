@@ -26,6 +26,8 @@ export type ImportTransferCandidate = {
 const DEFAULT_MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 /** Two BHD notices for the same transfer arrive about two minutes apart. */
 export const DOUBLE_NOTICE_WINDOW_MS = 10 * 60 * 1000;
+/** Referencia de confirmación de BHD: entre productos (M01) u otros bancos (M02). */
+const BHD_CONFIRMATION_REFERENCE_PATTERN = /^M0[12]-/i;
 /** Dos correos con la misma referencia tienen más margen para emparejar. */
 export const REFERENCE_MATCH_WINDOW_MS = TRANSFER_REFERENCE_WINDOW_MS;
 const FEE_TOLERANCE = 50;
@@ -82,6 +84,34 @@ export function isUnpairedTransferCandidate(
   return groupSize(all, row.transferGroupId) <= 1;
 }
 
+function isBhdConfirmationReference(row: ImportTransferCandidate): boolean {
+  return BHD_CONFIRMATION_REFERENCE_PATTERN.test(row.externalReference ?? '');
+}
+
+/**
+ * El banco manda el aviso de recibido sin referencia y la confirmación entre
+ * productos con la referencia M01/M02. Solo ese par, en la misma cuenta, es el
+ * doble aviso; dos operaciones con referencia no se neutralizan.
+ */
+function isBhdDoubleNotice(
+  left: ImportTransferCandidate,
+  right: ImportTransferCandidate,
+): boolean {
+  if (
+    left.accountId == null ||
+    right.accountId == null ||
+    left.accountId !== right.accountId
+  ) {
+    return false;
+  }
+  const leftConfirmed = isBhdConfirmationReference(left);
+  const rightConfirmed = isBhdConfirmationReference(right);
+  return (
+    (leftConfirmed && !right.externalReference) ||
+    (rightConfirmed && !left.externalReference)
+  );
+}
+
 function amountsMatch(left: number, right: number): 'exact' | 'fee' | null {
   if (left === right) {
     return 'exact';
@@ -125,11 +155,7 @@ export function pickTransferMatch(
     .filter((other) => other.type === opposite)
     .filter((other) => other.currency === row.currency)
     .filter((other) => {
-      const sameAccountDoubleNotice =
-        row.accountId != null &&
-        other.accountId != null &&
-        row.accountId === other.accountId;
-      if (sameAccountDoubleNotice) {
+      if (isBhdDoubleNotice(row, other)) {
         const delta = Math.abs(
           other.transactionDate.getTime() - row.transactionDate.getTime(),
         );

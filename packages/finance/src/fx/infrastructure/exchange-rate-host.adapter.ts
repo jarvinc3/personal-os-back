@@ -40,7 +40,11 @@ const currencyListSchema = z.object({
   symbols: z.record(z.string(), z.string()).optional(),
 });
 
-type FxProviderFailureKind = 'auth' | 'transient' | 'no_rate' | 'shape';
+type FxProviderFailureKind =
+  'auth' | 'transient' | 'no_rate' | 'provider' | 'shape';
+
+/** Un feriado largo puede dejar varios días sin publicación. */
+const LAST_PUBLISHED_LOOKBACK_DAYS = 14;
 
 class FxProviderError extends Error {
   constructor(
@@ -168,14 +172,52 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     if (exact.code !== 'NO_EXACT_RATE') {
       return exact;
     }
-    const latest = await this.getLatestRateOnOrBefore(params);
-    if (!latest.ok) {
-      return latest;
+    return this.getLastPublishedRateOnOrBefore(params);
+  }
+
+  /**
+   * Busca la última publicación real hacia atrás. La caché sola no basta: en
+   * el primer uso, o con una caché incompleta, el proveedor puede tener una
+   * fecha más nueva que la fila guardada. Solo continúa ante una ausencia
+   * confirmada; un 401, cuota agotada o error de red detiene la búsqueda.
+   */
+  private async getLastPublishedRateOnOrBefore(params: {
+    from: string;
+    to: string;
+    date: string;
+  }): Promise<ExchangeRateResult> {
+    const requested = new Date(`${params.date}T00:00:00.000Z`);
+    for (
+      let daysBack = 1;
+      daysBack <= LAST_PUBLISHED_LOOKBACK_DAYS;
+      daysBack += 1
+    ) {
+      const previousDate = new Date(
+        requested.getTime() - daysBack * 24 * 60 * 60 * 1000,
+      )
+        .toISOString()
+        .slice(0, 10);
+      const previous = await this.getHistoricalRate({
+        from: params.from,
+        to: params.to,
+        date: previousDate,
+      });
+      if (previous.ok) {
+        return {
+          ...previous,
+          source: 'cache_last_published',
+          rateDate: previous.rateDate ?? previousDate,
+        };
+      }
+      if (previous.code !== 'NO_EXACT_RATE') {
+        return previous;
+      }
     }
     return {
-      ...latest,
-      source: 'cache_last_published',
-      rateDate: latest.rateDate,
+      ok: false,
+      code: 'NO_EXACT_RATE',
+      message: `No rate for ${params.from}->${params.to} on or before ${params.date}`,
+      retryable: false,
     };
   }
 
@@ -196,7 +238,11 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         ? (error.providerStatus ?? undefined)
         : undefined;
     const kind = error instanceof FxProviderError ? error.kind : 'transient';
-    this.logger.warn(`FX API failed for ${from}->${to} on ${date}: ${message}`);
+    if (kind !== 'no_rate') {
+      this.logger.warn(
+        `FX API failed for ${from}->${to} on ${date}: ${message}`,
+      );
+    }
 
     if (kind === 'auth') {
       return {
@@ -212,6 +258,15 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         ok: false,
         code: 'NO_EXACT_RATE',
         message: `No rate for ${from}->${to} on ${date}`,
+        retryable: false,
+        providerStatus,
+      };
+    }
+    if (kind === 'provider') {
+      return {
+        ok: false,
+        code: 'PROVIDER_ERROR',
+        message: `FX provider rejected the request (HTTP ${providerStatus ?? 'unknown'}) for ${from}->${to} on ${date}: ${message}`,
         retryable: false,
         providerStatus,
       };
@@ -327,7 +382,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
           ? 'auth'
           : response.status === 429 || response.status >= 500
             ? 'transient'
-            : 'no_rate';
+            : 'provider';
       throw new FxProviderError(
         `HTTP ${response.status}`,
         response.status,
@@ -346,11 +401,21 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       const auth = /access key|unauthori[sz]ed|invalid key|forbidden/i.test(
         providerMessage,
       );
-      throw new FxProviderError(
+      const transient =
+        /quota|rate limit|too many|limit exceeded|usage limit/i.test(
+          providerMessage,
+        );
+      const noData = /no data|not found|no result|no rate|not available/i.test(
         providerMessage,
-        null,
-        auth ? 'auth' : 'no_rate',
       );
+      const kind: FxProviderFailureKind = auth
+        ? 'auth'
+        : transient
+          ? 'transient'
+          : noData
+            ? 'no_rate'
+            : 'provider';
+      throw new FxProviderError(providerMessage, null, kind);
     }
 
     const quoteKey = `${from}${to}`;

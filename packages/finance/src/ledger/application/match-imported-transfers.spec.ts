@@ -52,12 +52,14 @@ describe('pickTransferMatch', () => {
       type: 'DEBIT',
       accountId: 'account-1',
       account: { institutionId: 'bhd' },
+      externalReference: 'M01-1111-2222-3333-4',
     });
     const incoming = candidate({
       id: 'c1',
       type: 'CREDIT',
       accountId: 'account-1',
       account: { institutionId: 'bhd' },
+      externalReference: null,
       transactionDate: new Date('2026-09-15T11:58:00.000Z'),
     });
 
@@ -66,18 +68,60 @@ describe('pickTransferMatch', () => {
     );
   });
 
-  it('does not pair same-account notices beyond ten minutes', () => {
+  it('does not pair two same-account operations that both have references', () => {
     const outgoing = candidate({
       id: 'd1',
       type: 'DEBIT',
       accountId: 'account-1',
       account: { institutionId: 'bhd' },
+      externalReference: 'M01-1111-2222-3333-4',
     });
     const incoming = candidate({
       id: 'c1',
       type: 'CREDIT',
       accountId: 'account-1',
       account: { institutionId: 'bhd' },
+      externalReference: 'M01-5555-6666-7777-8',
+      transactionDate: new Date('2026-09-15T11:58:00.000Z'),
+    });
+
+    expect(pickTransferMatch(outgoing, [outgoing, incoming]).match).toBeNull();
+  });
+
+  it('does not pair same-account notices without a BHD reference', () => {
+    const outgoing = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      externalReference: null,
+    });
+    const incoming = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      externalReference: null,
+      transactionDate: new Date('2026-09-15T11:58:00.000Z'),
+    });
+
+    expect(pickTransferMatch(outgoing, [outgoing, incoming]).match).toBeNull();
+  });
+
+  it('does not pair same-account notices beyond ten minutes', () => {
+    const outgoing = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      externalReference: 'M01-1111-2222-3333-4',
+    });
+    const incoming = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      accountId: 'account-1',
+      account: { institutionId: 'bhd' },
+      externalReference: null,
       transactionDate: new Date('2026-09-15T11:49:00.000Z'),
     });
 

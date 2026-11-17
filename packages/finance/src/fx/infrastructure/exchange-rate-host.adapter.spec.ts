@@ -4,15 +4,32 @@ const DATE = '2026-11-08';
 
 function setup({
   apiKey = 'test-key',
-  cachedExact = null as { rate: string } | null,
-  cachedLatest = null as { rate: string; rateDate: Date } | null,
+  cachedExact = null,
+  cachedLatest = null,
+  cachedByDate = {},
+}: {
+  apiKey?: string | null;
+  cachedExact?: { rate: string } | null;
+  cachedLatest?: { rate: string; rateDate: Date } | null;
+  cachedByDate?: Record<string, { rate: string }>;
 } = {}) {
   const config = {
     get: jest.fn().mockReturnValue(apiKey),
   };
   const prisma = {
     finExchangeRate: {
-      findUnique: jest.fn().mockResolvedValue(cachedExact),
+      findUnique: jest.fn(
+        (args: {
+          where: {
+            fromCurrency_toCurrency_rateDate: { rateDate: Date };
+          };
+        }) => {
+          const date = args.where.fromCurrency_toCurrency_rateDate.rateDate
+            .toISOString()
+            .slice(0, 10);
+          return Promise.resolve(cachedByDate[date] ?? cachedExact);
+        },
+      ),
       findFirst: jest.fn().mockResolvedValue(cachedLatest),
       upsert: jest.fn().mockResolvedValue({}),
     },
@@ -125,10 +142,7 @@ describe('ExchangeRateHostAdapter', () => {
 
   it('uses the last published rate for a day without a quote', async () => {
     const { adapter } = setup({
-      cachedLatest: {
-        rate: '60.4617',
-        rateDate: new Date('2026-11-06T00:00:00.000Z'),
-      },
+      cachedByDate: { '2026-11-06': { rate: '60.4617' } },
     });
     global.fetch = jest
       .fn()
@@ -154,6 +168,65 @@ describe('ExchangeRateHostAdapter', () => {
     });
   });
 
+  it('does not use a stale cache when a newer prior publication exists', async () => {
+    const { adapter } = setup({
+      cachedByDate: { '2026-11-05': { rate: '59.9' } },
+    });
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      if (url.includes('date=2026-11-06')) {
+        return Promise.resolve(
+          jsonResponse({ success: true, quotes: { USDDOP: 60.5 } }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ success: true, quotes: {} }));
+    });
+
+    await expect(
+      adapter.getLedgerRate({ from: 'USD', to: 'DOP', date: DATE }),
+    ).resolves.toMatchObject({
+      ok: true,
+      rate: 60.5,
+      source: 'cache_last_published',
+      rateDate: '2026-11-06',
+    });
+  });
+
+  it('reports a provider 400 as a provider error, not a missing rate', async () => {
+    const { adapter } = setup({
+      cachedByDate: { '2026-11-06': { rate: '60.4617' } },
+    });
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(jsonResponse({ error: 'bad request' }, 400));
+
+    await expect(
+      adapter.getLedgerRate({ from: 'USD', to: 'DOP', date: DATE }),
+    ).resolves.toMatchObject({
+      ok: false,
+      code: 'PROVIDER_ERROR',
+      providerStatus: 400,
+    });
+  });
+
+  it('reports a quota rejection as unavailable, not a missing rate', async () => {
+    const { adapter } = setup({
+      cachedByDate: { '2026-11-06': { rate: '60.4617' } },
+    });
+    global.fetch = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: false,
+        error: { info: 'Quota exceeded' },
+      }),
+    );
+
+    await expect(
+      adapter.getLedgerRate({ from: 'USD', to: 'DOP', date: DATE }),
+    ).resolves.toMatchObject({
+      ok: false,
+      code: 'PROVIDER_UNAVAILABLE',
+    });
+  });
+
   it('does not fall back when the provider is unavailable', async () => {
     const { adapter } = setup({
       cachedLatest: {
@@ -175,7 +248,7 @@ describe('ExchangeRateHostAdapter', () => {
   });
 
   it('reports a missing key separately', async () => {
-    const { adapter } = setup({ apiKey: null as never });
+    const { adapter } = setup({ apiKey: null });
 
     await expect(
       adapter.getHistoricalRate({ from: 'USD', to: 'DOP', date: DATE }),

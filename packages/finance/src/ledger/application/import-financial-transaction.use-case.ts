@@ -3,6 +3,7 @@ import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { withRateMetadata } from '../../fx/application/rate-metadata';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { MerchantsService } from '../../merchants/application/merchants.service';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -10,7 +11,6 @@ import {
   OPERATION_LEG_ROLE,
   type OperationLegRole,
 } from '../../shared/domain/transfer';
-import type { ResolvedAmounts } from '../../shared/domain/money';
 import {
   TRANSFER_STATUS,
   type FinTxStatus,
@@ -18,28 +18,6 @@ import {
 } from './commands/ledger.commands';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
-
-function withRateMetadata(
-  aiMetadata: unknown,
-  amounts: ResolvedAmounts,
-): unknown {
-  const baseMetadata =
-    aiMetadata && typeof aiMetadata === 'object' && !Array.isArray(aiMetadata)
-      ? aiMetadata
-      : {};
-  return {
-    ...baseMetadata,
-    ...(amounts.exchangeRateDate
-      ? { exchangeRateDate: amounts.exchangeRateDate }
-      : {}),
-    ...(amounts.baseExchangeRateDate
-      ? {
-          baseExchangeRate: amounts.baseExchangeRate,
-          baseExchangeRateDate: amounts.baseExchangeRateDate,
-        }
-      : {}),
-  };
-}
 
 function toTransferStatus(status: FinTxStatus): TransferStatus {
   if (
@@ -115,7 +93,7 @@ export class ImportFinancialTransactionUseCase {
 
     const created = await this.repo.createImportedTransaction(userId, {
       ...data,
-      aiMetadata: withRateMetadata(data.aiMetadata, amounts),
+      aiMetadata: withRateMetadata({ aiMetadata: data.aiMetadata, amounts }),
       merchantId: resolvedMerchant?.id ?? null,
       amounts,
     });
@@ -185,7 +163,14 @@ export class ImportFinancialTransactionUseCase {
         status: toTransferStatus(data.status),
         source: 'EMAIL',
         fromImportReference: data.importReference,
-        aiMetadata: data.aiMetadata,
+        aiMetadata: withRateMetadata({
+          aiMetadata: withRateMetadata({
+            aiMetadata: data.aiMetadata,
+            amounts: fromAmounts,
+          }),
+          amounts: toAmounts,
+          scope: 'destination',
+        }),
       },
       fromAmounts,
       toAmounts,
