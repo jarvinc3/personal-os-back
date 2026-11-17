@@ -1,3 +1,5 @@
+import type { ModuleSettingsRegistry } from '@personal-os/contracts';
+import { FINANCE_SETTINGS_DESCRIPTOR } from '@personal-os/finance';
 import type { UsersRepositoryPort } from '@personal-os/users';
 import { NotificationPolicyService } from './notification-policy.service';
 
@@ -6,7 +8,20 @@ describe('NotificationPolicyService', () => {
     findById: jest.fn(),
   } as unknown as UsersRepositoryPort;
 
-  const service = new NotificationPolicyService(usersRepository);
+  const settingsRegistry = {
+    has: (slug: string) => slug === FINANCE_SETTINGS_DESCRIPTOR.slug,
+    get: (slug: string) => {
+      if (slug !== FINANCE_SETTINGS_DESCRIPTOR.slug) {
+        throw new Error(`Settings descriptor not registered: ${slug}`);
+      }
+      return FINANCE_SETTINGS_DESCRIPTOR;
+    },
+  } as unknown as ModuleSettingsRegistry;
+
+  const service = new NotificationPolicyService(
+    usersRepository,
+    settingsRegistry,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();

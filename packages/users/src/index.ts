@@ -9,19 +9,6 @@ export {
   type AiTone,
   type ParsedUserPreferences,
 } from './domain/defaults/global-preferences-defaults';
-export {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  AI_MODULE_SETTINGS_DEFAULTS,
-  FINANCE_NOTIFICATION_KEYS,
-  isModuleSlug,
-  MODULE_SLUGS,
-  resolveCardDueDaysBefore,
-  resolveSubscriptionReminderDays,
-  validateCardDueDaysBefore,
-  validateSubscriptionReminderDays,
-  type FinanceNotificationKey,
-  type ModuleSlug,
-} from './domain/defaults/user-settings-defaults';
 export { parseUserPreferences } from './domain/parse-user-preferences';
 export {
   DATA_APP,
@@ -41,7 +28,9 @@ export { mergeWithDefaults } from './domain/settings-merge';
 export {
   USERS_REPOSITORY,
   type AuthDeletionClaim,
+  type ModuleConfigRow,
   type ModuleRecord,
+  type ModuleSettingsDefaults,
   type UpdateProfileData,
   type UserModuleConfigRow,
   type UserModuleRecord,

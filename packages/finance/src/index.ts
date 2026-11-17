@@ -5,6 +5,11 @@ export { FinanceModule } from './finance.module';
 export { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 export { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 export { FINANCE_SETTINGS_DESCRIPTOR } from './settings.descriptor';
+export {
+  FINANCE_NOTIFICATION_KEYS,
+  FINANCE_SETTINGS_DEFAULTS,
+  type FinanceNotificationKey,
+} from './settings/finance-settings';
 export * from './contracts';
 export { FinanceStatementsModule } from './statements/statements.module';
 export { STATEMENT_EXTRACTOR } from './statements/application/ports/statement-extractor.port';

@@ -4,13 +4,12 @@ import {
   type JsonObject,
 } from '@personal-os/contracts';
 import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
+  FINANCE_SETTINGS_DEFAULTS,
   validateCardDueDaysBefore,
   validateSubscriptionReminderDays,
-} from '@personal-os/users';
+} from './settings/finance-settings';
 
-const financeDefaults =
-  DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as JsonObject;
+const financeDefaults = FINANCE_SETTINGS_DEFAULTS as unknown as JsonObject;
 
 export const FINANCE_SETTINGS_DESCRIPTOR = createSettingsDescriptor({
   slug: 'finance',

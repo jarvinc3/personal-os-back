@@ -55,3 +55,69 @@ describe('UsersRepository.claimNextAuthDeletion', () => {
     await expect(repository.claimNextAuthDeletion(8)).resolves.toBeNull();
   });
 });
+
+describe('UsersRepository settings persistence', () => {
+  const userModule = { findMany: jest.fn(), updateMany: jest.fn() };
+  const module = { findMany: jest.fn() };
+  const user = { update: jest.fn() };
+  const tx = { userModule, module, user };
+  const prisma = {
+    userModule,
+    module,
+    user,
+    $transaction: jest.fn((run: (client: typeof tx) => Promise<unknown>) =>
+      run(tx),
+    ),
+  } as unknown as PrismaService;
+
+  const repository = new UsersRepository(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('reads the enabled configs of one module slug', async () => {
+    userModule.findMany.mockResolvedValue([
+      {
+        userId: 'user-1',
+        config: { reports: { weeklySummaryDay: 3 } },
+        user: { timezone: 'America/Santo_Domingo' },
+      },
+    ]);
+
+    await expect(
+      repository.findEnabledModuleConfigs('finance'),
+    ).resolves.toEqual([
+      {
+        userId: 'user-1',
+        timezone: 'America/Santo_Domingo',
+        config: { reports: { weeklySummaryDay: 3 } },
+      },
+    ]);
+    expect(userModule.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isEnabled: true, module: { slug: 'finance' } },
+      }),
+    );
+  });
+
+  it('resets settings to the defaults each module declares', async () => {
+    module.findMany.mockResolvedValue([{ id: 'mod-finance', slug: 'finance' }]);
+    userModule.updateMany.mockResolvedValue({ count: 1 });
+    user.update.mockResolvedValue({});
+
+    await repository.resetSettingsToDefaults('user-1', [
+      { slug: 'finance', defaults: { version: 2 } },
+    ]);
+
+    expect(module.findMany).toHaveBeenCalledWith({
+      where: { slug: { in: ['finance'] } },
+      select: { id: true, slug: true },
+    });
+    expect(userModule.updateMany).toHaveBeenCalledTimes(1);
+    expect(userModule.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', moduleId: 'mod-finance' },
+      data: { config: { version: 2 } },
+    });
+  });
+});

@@ -335,6 +335,38 @@ describe('Users (e2e)', () => {
     expect(prismaMock.userModule.upsert).not.toHaveBeenCalled();
   });
 
+  it('PATCH /api/users/me/modules/finance rejects an out-of-range reminder window', async () => {
+    const enabledAt = new Date('2026-01-01T00:00:00.000Z');
+    prismaMock.module.findUnique.mockResolvedValue({
+      id: 'mod-finance',
+      slug: 'finance',
+      name: 'Finanzas',
+      key: 'fin',
+      isActive: true,
+      sortOrder: 0,
+      description: null,
+    });
+    prismaMock.userModule.findUnique.mockResolvedValue({
+      id: 'um-finance',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: true,
+      config: { reminders: { cardDueDaysBefore: 3 } },
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/modules/finance')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ config: { reminders: { cardDueDaysBefore: 31 } } })
+      .expect(400);
+
+    expect(prismaMock.userModule.upsert).not.toHaveBeenCalled();
+  });
+
   it('PATCH /api/users/me/modules/finance toggles isEnabled without changing config', async () => {
     const enabledAt = new Date('2026-01-01T00:00:00.000Z');
     const existingConfig = { baseCurrency: 'DOP', version: 1 };

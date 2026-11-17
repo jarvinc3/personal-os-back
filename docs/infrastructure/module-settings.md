@@ -1,24 +1,38 @@
 # Module settings
 
-La plataforma expone `SettingsDescriptor` y `ModuleSettingsReader` desde
-`@personal-os/contracts`. Cada descriptor declara `slug`, versión, defaults,
-normalización, aplicación de parches y lectura genérica de preferencias de
-notificación. `createSettingsDescriptor` implementa el merge profundo neutral;
-el descriptor puede aportar su propia validación.
+La plataforma expone `SettingsDescriptor`, `ModuleSettingsRegistry` y
+`ModuleSettingsReader` desde `@personal-os/contracts`. Cada descriptor declara
+`slug`, versión, defaults, normalización, aplicación de parches y lectura
+genérica de preferencias de notificación. `createSettingsDescriptor` implementa
+el merge profundo neutral; el descriptor aporta la validación de sus campos.
+
+Cada módulo es dueño de sus defaults y reglas:
+
+- Finance publica `FINANCE_SETTINGS_DEFAULTS`, `FINANCE_NOTIFICATION_KEYS` y las
+  reglas de `reminders.cardDueDaysBefore` y `subscriptions.reminderDaysBefore`
+  desde `packages/finance/src/settings/`; su descriptor las valida.
+- Intelligence mantiene los defaults del módulo `ai` y valida el umbral de
+  revisión de correo.
+- Agenda, Projects y Health declaran sus defaults en
+  `apps/api/src/module-settings/descriptors/`, su composición dueña.
 
 `ModuleSettingsRegistry` registra descriptores sin interpretar sus campos,
-rechaza slugs duplicados y delega normalización y parches en el módulo dueño.
-`ModuleSettingsService` lee el registro `UserModule` y devuelve la configuración
-normalizada. `apps/api` compone los providers para Finance, Agenda, Projects y
-Health.
+rechaza slugs duplicados y delega normalización y parches en el módulo dueño;
+`has(slug)` responde si un módulo está registrado. `ModuleSettingsService` lee el
+registro `UserModule` y devuelve la configuración normalizada, y
+`notificationEnabled` consulta la preferencia con la semántica del descriptor.
+`apps/api` compone los providers en `ModuleSettingsModule.register([...])`.
 
-En PLATFORM-SETTINGS-0 los descriptores existentes son un puente de
-compatibilidad: reutilizan los defaults actuales de Users para conservar la
-forma y los valores persistidos. Finance publica su descriptor desde el paquete
-Finance; los descriptores estáticos de Agenda, Projects y Health viven en
-`apps/api/src/module-settings/descriptors/`. La semántica de defaults y
-validadores se mueve en PLATFORM-SETTINGS-1. Los consumers y el endpoint actual
-siguen con su implementación vigente hasta las fases de migración.
+Users conserva identidad, perfil, preferencias globales y persistencia genérica:
+valida el slug contra el registro, aplica el parche del descriptor y persiste el
+resultado; no contiene defaults, claves de notificación ni validadores de
+módulos. El reset de settings del vaciado pide al registro los defaults
+registrados. Notifications evalúa cada toggle con los defaults del descriptor
+correspondiente.
+
+El formato persistido y el contrato HTTP no cambian en PLATFORM-SETTINGS-1. Los
+consumers y el endpoint siguen con su implementación vigente hasta las fases de
+migración restantes.
 
 Un módulo de prueba puede crear y registrar un descriptor propio mediante el
 contrato genérico, sin agregar una rama por slug a Users ni editar sus defaults.

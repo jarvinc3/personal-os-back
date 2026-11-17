@@ -15,13 +15,6 @@ import { AppEvents } from '@personal-os/core';
 import { moduleDisabledMessage } from '@personal-os/core';
 import { SupabaseAdminService } from '@personal-os/auth';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
-import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  isModuleSlug,
-  validateCardDueDaysBefore,
-  validateSubscriptionReminderDays,
-  type ModuleSlug,
-} from '../domain/defaults/user-settings-defaults';
 import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.dto';
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
@@ -70,7 +63,7 @@ export class UsersService {
       preferences: user.preferences,
       lastSeenReleaseVersion: user.lastSeenReleaseVersion,
       userModules: user.userModules.map((row) => ({
-        slug: row.module.slug as ModuleSlug,
+        slug: row.module.slug,
         isEnabled: row.isEnabled,
         config: row.config,
         enabledAt: row.enabledAt.toISOString(),
@@ -86,27 +79,6 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
     return this.mapUser(user);
-  }
-
-  private assertFinanceConfig(config: Record<string, unknown>): void {
-    const financeConfig = config as {
-      subscriptions?: { reminderDaysBefore?: unknown };
-      reminders?: { cardDueDaysBefore?: unknown };
-    };
-    const reminderDays = financeConfig.subscriptions?.reminderDaysBefore;
-    if (reminderDays !== undefined) {
-      const reminderError = validateSubscriptionReminderDays(reminderDays);
-      if (reminderError) {
-        throw new BadRequestException(reminderError);
-      }
-    }
-    const cardDueDays = financeConfig.reminders?.cardDueDaysBefore;
-    if (cardDueDays !== undefined) {
-      const cardDueError = validateCardDueDaysBefore(cardDueDays);
-      if (cardDueError) {
-        throw new BadRequestException(cardDueError);
-      }
-    }
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -164,12 +136,8 @@ export class UsersService {
     slug: string,
     dto: UpdateModuleConfigDto,
   ) {
-    if (!isModuleSlug(slug)) {
+    if (!this.settingsRegistry.has(slug)) {
       throw new BadRequestException(`Módulo desconocido "${slug}"`);
-    }
-
-    if (slug === 'finance' && dto.config !== undefined) {
-      this.assertFinanceConfig(dto.config);
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {
@@ -181,10 +149,6 @@ export class UsersService {
       throw new NotFoundException(`Módulo "${slug}" no encontrado`);
     }
 
-    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<
-      string,
-      unknown
-    >;
     const existing = await this.usersRepository.findUserModule(
       userId,
       moduleRecord.id,
@@ -203,15 +167,11 @@ export class UsersService {
     }
 
     const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
-    const mergedConfig = dto.config
-      ? mergeWithDefaults(
-          mergeWithDefaults(dto.config, currentConfig),
-          defaults,
-        )
-      : mergeWithDefaults(currentConfig, defaults);
-    const normalizedConfig = this.settingsRegistry.normalize(
+    // Each descriptor merges its own defaults and validates its own fields.
+    const normalizedConfig = this.settingsRegistry.applyPatch(
       slug,
-      mergedConfig,
+      currentConfig,
+      dto.config ?? {},
     );
 
     const isEnabled = dto.isEnabled ?? existing?.isEnabled ?? true;
@@ -281,31 +241,8 @@ export class UsersService {
     }
   }
 
-  /** Users with finance on whose weekly summary is not turned off. */
-  async listWeeklySummaryRecipients(): Promise<
-    { userId: string; timezone: string; day: number }[]
-  > {
-    const rows = await this.usersRepository.findFinanceSummaryRecipients();
-    return rows.flatMap((row) => {
-      const config = mergeWithDefaults(
-        row.config,
-        DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
-          string,
-          unknown
-        >,
-      );
-      const notifications = (config.notifications ?? {}) as {
-        weeklySummary?: boolean;
-      };
-      if (notifications.weeklySummary === false) {
-        return [];
-      }
-      const reports = (config.reports ?? {}) as { weeklySummaryDay?: number };
-      const day =
-        typeof reports.weeklySummaryDay === 'number'
-          ? reports.weeklySummaryDay
-          : DEFAULT_MODULE_CONFIG_BY_SLUG.finance.reports.weeklySummaryDay;
-      return [{ userId: row.userId, timezone: row.timezone, day }];
-    });
+  /** Enabled module configs with the user's timezone; the module interprets them. */
+  async listEnabledModuleConfigs(slug: string) {
+    return this.usersRepository.findEnabledModuleConfigs(slug);
   }
 }

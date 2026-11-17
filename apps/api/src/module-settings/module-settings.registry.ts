@@ -35,6 +35,10 @@ export class ModuleSettingsRegistry implements ModuleSettingsRegistryContract {
     return descriptor;
   }
 
+  has(slug: string): boolean {
+    return this.descriptors.has(slug);
+  }
+
   list(): readonly SettingsDescriptor[] {
     return [...this.descriptors.values()];
   }

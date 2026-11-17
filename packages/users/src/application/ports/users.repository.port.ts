@@ -32,10 +32,16 @@ export type UserModuleRecord = {
   config: unknown;
 };
 
-export type FinanceSummaryRecipientRow = {
+export type ModuleConfigRow = {
   userId: string;
   timezone: string;
   config: unknown;
+};
+
+/** Defaults to persist for one module when settings are reset. */
+export type ModuleSettingsDefaults = {
+  slug: string;
+  defaults: Record<string, unknown>;
 };
 
 export type UpdateProfileData = {
@@ -67,7 +73,7 @@ export interface UsersRepositoryPort {
     userId: string,
     slug: string,
   ): Promise<UserModuleRecord | null>;
-  findFinanceSummaryRecipients(): Promise<FinanceSummaryRecipientRow[]>;
+  findEnabledModuleConfigs(slug: string): Promise<ModuleConfigRow[]>;
   updateProfile(
     id: string,
     data: UpdateProfileData,
@@ -80,7 +86,10 @@ export interface UsersRepositoryPort {
     isEnabled?: boolean,
   ): Promise<unknown>;
   deleteAccountWithAuthOutbox(userId: string): Promise<void>;
-  resetSettingsToDefaults(userId: string): Promise<void>;
+  resetSettingsToDefaults(
+    userId: string,
+    moduleDefaults: readonly ModuleSettingsDefaults[],
+  ): Promise<void>;
   markAuthOutboxCompleted(userId: string): Promise<unknown>;
   claimNextAuthDeletion(maxAttempts: number): Promise<AuthDeletionClaim | null>;
   completeAuthDeletion(id: string): Promise<unknown>;

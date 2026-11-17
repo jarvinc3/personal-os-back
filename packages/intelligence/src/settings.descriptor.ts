@@ -3,9 +3,15 @@ import {
   createSettingsDescriptor,
   type JsonObject,
 } from '@personal-os/contracts';
-import { DEFAULT_MODULE_CONFIG_BY_SLUG } from '@personal-os/users';
 
-const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG.ai as unknown as JsonObject;
+const defaults = {
+  version: 1,
+  fieldGuide: 'Configuración de clasificación y revisión de correo.',
+  email: {
+    reviewConfidenceThreshold: 0.7,
+    acceptVerifiedSenders: false,
+  },
+} as const;
 
 type AiModuleConfig = JsonObject & {
   version: number;
@@ -20,7 +26,7 @@ export const INTELLIGENCE_SETTINGS_DESCRIPTOR =
   createSettingsDescriptor<AiModuleConfig>({
     slug: 'ai',
     version: 1,
-    defaults: defaults as AiModuleConfig,
+    defaults,
     validate(config) {
       const email = config.email;
       if (!email || typeof email !== 'object' || Array.isArray(email)) {

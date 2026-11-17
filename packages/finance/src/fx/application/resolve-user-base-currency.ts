@@ -2,11 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
   mergeWithDefaults,
   USERS_REPOSITORY,
   type UsersRepositoryPort,
 } from '@personal-os/users';
+import { FINANCE_SETTINGS_DEFAULTS } from '../../settings/finance-settings';
 import {
   isIsoCurrency,
   normalizeCurrencyCode,
@@ -34,10 +34,7 @@ export class ResolveUserBaseCurrencyUseCase {
     );
     const mergedConfig = mergeWithDefaults(
       row?.config,
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
-        string,
-        unknown
-      >,
+      FINANCE_SETTINGS_DEFAULTS as unknown as Record<string, unknown>,
     );
     const baseCurrency =
       typeof mergedConfig.baseCurrency === 'string'
