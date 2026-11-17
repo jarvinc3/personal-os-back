@@ -5,9 +5,9 @@ import {
   transactionUpdatedCopy,
   transferRecordedCopy,
   weeklySummaryCopy,
-} from './notification-copy';
+} from './finance-notification-copy';
 
-describe('notification-copy', () => {
+describe('finance-notification-copy', () => {
   it('formats an amount with currency code, symbol and two decimals', () => {
     expect(formatNotificationAmount(1200, 'DOP')).toBe('DOP $1,200.00');
   });

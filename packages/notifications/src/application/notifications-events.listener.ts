@@ -5,8 +5,9 @@ import {
   DomainEventIdempotencyGuard,
   NotificationCreatedEvent,
 } from '@personal-os/core';
-import { FINANCE_NOTIFICATION_KEYS, FinanceEvents } from '@personal-os/finance';
 import {
+  FINANCE_NOTIFICATION_KEYS,
+  FinanceEvents,
   balanceDriftCopy,
   budgetThresholdCopy,
   cardPaymentDueCopy,
@@ -21,7 +22,7 @@ import {
   transferRecordedCopy,
   weeklySummaryCopy,
   type NotificationCopy,
-} from '../domain/notification-copy';
+} from '@personal-os/finance';
 import { NotificationsService } from './notifications.service';
 import { NotificationsGateway } from '../presentation/notifications.gateway';
 

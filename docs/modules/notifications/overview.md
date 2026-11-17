@@ -10,7 +10,7 @@ Orquestar notificaciones in-app, push y email; tokens push; gateway Socket.IO.
 - Registro/desactivación de push tokens (`platform`: ios | android | web)
 - Policy: channels, quiet hours (suprime PUSH/EMAIL, no IN_APP), keys por módulo en `data`
 - Processor cola `notifications`; EMAIL vía cola `email-sync` + Resend
-- Listener de eventos finance con idempotencia
+- Listener de eventos finance con idempotencia; el copy y las claves de preferencia vienen de Finance, que también publica su adaptador de intents
 - Gateway namespace `/notifications`
 
 ## Fuera de alcance
@@ -26,6 +26,9 @@ application/    service, policy, push-tokens, events listener, notifications pro
 infrastructure/ repository, push-sender, resend-email.adapter, email-sync.processor
 domain/         quiet-hours
 ```
+
+El copy de los avisos financieros vive en `@personal-os/finance`; este módulo lo
+importa mientras retira su interpretación de los eventos de Finance en NOTIF-2.
 
 **Barrel:** `NotificationsModule`, `NotificationsService`, `NotificationsGateway`, `PushTokensService`, `NotificationPolicyService`.
 

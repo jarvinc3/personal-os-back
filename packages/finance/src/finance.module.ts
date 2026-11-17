@@ -22,6 +22,7 @@ import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 import { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
+import { FinanceNotificationIntents } from './notifications/finance-notification-intents';
 /**
  * Finance composition root — domain capabilities and their AI read provider.
  */
@@ -52,6 +53,7 @@ import { FinanceEmailProductProposalCatalog } from './catalog/application/email-
     FinanceSignalConsumer,
     FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
+    FinanceNotificationIntents,
   ],
   exports: [
     FinanceFacade,
@@ -59,6 +61,7 @@ import { FinanceEmailProductProposalCatalog } from './catalog/application/email-
     FinanceSignalConsumer,
     FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
+    FinanceNotificationIntents,
   ],
 })
 export class FinanceModule {}
