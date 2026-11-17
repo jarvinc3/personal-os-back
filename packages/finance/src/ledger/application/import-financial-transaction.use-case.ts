@@ -3,6 +3,7 @@ import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { withRateMetadata } from '../../fx/application/rate-metadata';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { MerchantsService } from '../../merchants/application/merchants.service';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -92,6 +93,7 @@ export class ImportFinancialTransactionUseCase {
 
     const created = await this.repo.createImportedTransaction(userId, {
       ...data,
+      aiMetadata: withRateMetadata({ aiMetadata: data.aiMetadata, amounts }),
       merchantId: resolvedMerchant?.id ?? null,
       amounts,
     });
@@ -161,7 +163,14 @@ export class ImportFinancialTransactionUseCase {
         status: toTransferStatus(data.status),
         source: 'EMAIL',
         fromImportReference: data.importReference,
-        aiMetadata: data.aiMetadata,
+        aiMetadata: withRateMetadata({
+          aiMetadata: withRateMetadata({
+            aiMetadata: data.aiMetadata,
+            amounts: fromAmounts,
+          }),
+          amounts: toAmounts,
+          scope: 'destination',
+        }),
       },
       fromAmounts,
       toAmounts,
@@ -205,6 +214,7 @@ export class ImportFinancialTransactionUseCase {
       {
         accountId: cashAccountId,
         amounts,
+        aiMetadata: withRateMetadata({ aiMetadata: undefined, amounts }),
         description: data.description,
         notes: data.notes,
         status: data.status,

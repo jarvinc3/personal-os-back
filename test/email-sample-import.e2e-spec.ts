@@ -174,8 +174,21 @@ describe('Email sample import API (e2e)', () => {
     );
   });
 
-  it('rejects more than twenty ids before touching the service', async () => {
+  it('accepts up to fifty ids in dry run', async () => {
     const messageIds = Array.from({ length: 21 }, (_, index) => `m-${index}`);
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/email/sample-import')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ dryRun: true, selection: { messageIds } })
+      .expect(201);
+    expect(sampleImport.run).toHaveBeenCalledWith(
+      expect.objectContaining({ dryRun: true }),
+    );
+  });
+
+  it('rejects more than fifty ids before touching the service', async () => {
+    const messageIds = Array.from({ length: 51 }, (_, index) => `m-${index}`);
 
     await request(app.getHttpServer())
       .post('/api/intelligence/email/sample-import')

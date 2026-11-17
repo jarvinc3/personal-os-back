@@ -10,16 +10,17 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { SAMPLE_SELECTION_LIMIT } from '../email-sample-import.service';
+import { DRY_RUN_SELECTION_LIMIT } from '../email-sample-import.service';
 
 /**
  * Una sola forma de selección: ids explícitos o remitente con ventana. Nunca
- * las dos, y nunca más de 20 correos.
+ * las dos. El máximo del DTO es 50; el servicio baja a 20 al ejecutar sin
+ * `dryRun`.
  */
 export class EmailSampleImportSelectionDto {
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(SAMPLE_SELECTION_LIMIT)
+  @ArrayMaxSize(DRY_RUN_SELECTION_LIMIT)
   @IsString({ each: true })
   messageIds?: string[];
 

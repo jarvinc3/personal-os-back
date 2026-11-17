@@ -12,6 +12,7 @@ import { AiSignalConsumerRegistry } from '../signals/ai-signal-consumer.registry
 import { AiSignalsService } from '../signals/ai-signals.service';
 
 export const SAMPLE_SELECTION_LIMIT = 20;
+export const DRY_RUN_SELECTION_LIMIT = 50;
 const SIGNAL_SCHEMA_VERSION = 1;
 const FINANCE_DOMAIN = 'FINANCE';
 const NO_TRANSACTION_CANDIDATE = 'NO_TRANSACTION_CANDIDATE';
@@ -144,7 +145,12 @@ export class EmailSampleImportService {
     dryRun: boolean;
     selection: SampleImportSelection;
   }): Promise<SampleImportManifest> {
-    const resolved = await this.resolveSelection({ userId, selection });
+    const limit = dryRun ? DRY_RUN_SELECTION_LIMIT : SAMPLE_SELECTION_LIMIT;
+    const resolved = await this.resolveSelection({
+      userId,
+      selection,
+      limit,
+    });
     const items: SampleManifestItem[] = [];
     for (const selected of resolved.selected) {
       items.push(
@@ -159,7 +165,7 @@ export class EmailSampleImportService {
         mode: resolved.mode,
         requested: resolved.selected.length,
         included: items.filter((item) => item.status === 'INCLUDED').length,
-        cap: SAMPLE_SELECTION_LIMIT,
+        cap: limit,
         ...(resolved.mode === 'SENDER_WINDOW'
           ? {
               sender: selection.sender!.trim(),
@@ -217,9 +223,11 @@ export class EmailSampleImportService {
   private async resolveSelection({
     userId,
     selection,
+    limit,
   }: {
     userId: string;
     selection: SampleImportSelection;
+    limit: number;
   }): Promise<{
     mode: 'IDS' | 'SENDER_WINDOW';
     selected: SelectedMessage[];
@@ -240,21 +248,24 @@ export class EmailSampleImportService {
         selected: await this.selectByIds({
           userId,
           messageIds: selection.messageIds!,
+          limit,
         }),
       };
     }
     return {
       mode: 'SENDER_WINDOW',
-      selected: await this.selectBySender({ userId, selection }),
+      selected: await this.selectBySender({ userId, selection, limit }),
     };
   }
 
   private async selectByIds({
     userId,
     messageIds,
+    limit,
   }: {
     userId: string;
     messageIds: readonly string[];
+    limit: number;
   }): Promise<SelectedMessage[]> {
     const unique = [...new Set(messageIds.map((id) => id.trim()))].filter(
       (id) => id.length > 0,
@@ -262,9 +273,9 @@ export class EmailSampleImportService {
     if (!unique.length) {
       throw new BadRequestException('La lista de correos está vacía');
     }
-    if (unique.length > SAMPLE_SELECTION_LIMIT) {
+    if (unique.length > limit) {
       throw new BadRequestException(
-        `El máximo por corrida es ${SAMPLE_SELECTION_LIMIT} correos`,
+        `El máximo por corrida es ${limit} correos`,
       );
     }
     const rows = await this.prisma.aiEmailMessage.findMany({
@@ -281,9 +292,11 @@ export class EmailSampleImportService {
   private async selectBySender({
     userId,
     selection,
+    limit,
   }: {
     userId: string;
     selection: SampleImportSelection;
+    limit: number;
   }): Promise<SelectedMessage[]> {
     const sender = selection.sender?.trim();
     if (!sender) {
@@ -306,7 +319,7 @@ export class EmailSampleImportService {
       },
       select: MESSAGE_SELECT,
       orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
-      take: SAMPLE_SELECTION_LIMIT,
+      take: limit,
     });
     return rows.map((row) => ({ messageId: row.id, row }));
   }

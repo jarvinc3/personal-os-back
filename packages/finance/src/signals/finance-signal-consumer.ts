@@ -1307,6 +1307,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           in: [
             REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
             REVERSAL_REVIEW_REASON.REFERENCE_NOT_FOUND,
+            REVERSAL_REVIEW_REASON.COMMERCE_MISSING,
           ],
         },
       },
@@ -1857,6 +1858,7 @@ function toTransferPairingCandidate(
   return {
     id: row.id,
     type: row.type,
+    accountId: row.accountId,
     externalReference: row.externalReference,
     amount: row.amountBaseCurrency,
     currency: baseCurrency,

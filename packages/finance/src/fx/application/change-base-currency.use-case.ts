@@ -20,6 +20,7 @@ import {
   type MoneyLike,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
+import { exchangeRateFailureException } from './exchange-rate-failure';
 
 const FINANCE_MODULE_SLUG = 'finance';
 
@@ -248,15 +249,18 @@ export class ChangeBaseCurrencyUseCase {
     date: Date,
   ): Promise<number> {
     const day = date.toISOString().slice(0, 10);
-    const rateResult = await this.rates.getHistoricalRate({
+    const rateResult = await this.rates.getLedgerRate({
       from,
       to,
       date: day,
     });
     if (!rateResult.ok) {
-      throw new BadRequestException(
-        `Exchange rate unavailable for ${from}->${to} on ${day}: ${rateResult.message}`,
-      );
+      throw exchangeRateFailureException({
+        from,
+        to,
+        date: day,
+        failure: rateResult,
+      });
     }
     return rateResult.rate;
   }

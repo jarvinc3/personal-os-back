@@ -2,6 +2,7 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { withRateMetadata } from '../../fx/application/rate-metadata';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
@@ -109,7 +110,14 @@ export class ImportCardPaymentUseCase {
         source: 'EMAIL',
         externalReference: payment.externalReference,
         importReference: payment.importReference,
-        aiMetadata: payment.aiMetadata,
+        aiMetadata: withRateMetadata({
+          aiMetadata: withRateMetadata({
+            aiMetadata: payment.aiMetadata,
+            amounts: fromAmounts,
+          }),
+          amounts: toAmounts,
+          scope: 'destination',
+        }),
       },
       fromAmounts,
       toAmounts,

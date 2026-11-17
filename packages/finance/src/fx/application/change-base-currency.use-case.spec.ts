@@ -1,4 +1,7 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AppEvents } from '@personal-os/core';
 import { Prisma } from '@personal-os/database';
 import { ChangeBaseCurrencyUseCase } from './change-base-currency.use-case';
@@ -66,21 +69,21 @@ function buildPrisma(): MockPrisma {
 
 describe('ChangeBaseCurrencyUseCase', () => {
   let prisma: MockPrisma;
-  let getHistoricalRate: jest.Mock;
+  let getLedgerRate: jest.Mock;
   let emit: jest.Mock;
 
   const config = { get: jest.fn().mockReturnValue('DOP') };
   const createUseCase = () =>
     new ChangeBaseCurrencyUseCase(
       prisma as never,
-      { getHistoricalRate } as never,
+      { getLedgerRate } as never,
       config as never,
       { emit } as never,
     );
 
   beforeEach(() => {
     prisma = buildPrisma();
-    getHistoricalRate = jest.fn();
+    getLedgerRate = jest.fn();
     emit = jest.fn();
   });
 
@@ -94,7 +97,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
       rebasedBudgets: 0,
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(getHistoricalRate).not.toHaveBeenCalled();
+    expect(getLedgerRate).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid currency code before any query', async () => {
@@ -105,7 +108,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
   });
 
   it('aborts with 400 and writes nothing when a rate is missing', async () => {
-    getHistoricalRate.mockResolvedValue({
+    getLedgerRate.mockResolvedValue({
       ok: false,
       code: 'RATE_UNAVAILABLE',
       message: 'missing',
@@ -119,8 +122,24 @@ describe('ChangeBaseCurrencyUseCase', () => {
     expect(prisma.finTransaction.update).not.toHaveBeenCalled();
   });
 
+  it('aborts with 503 when the provider is unauthorized', async () => {
+    getLedgerRate.mockResolvedValue({
+      ok: false,
+      code: 'PROVIDER_UNAUTHORIZED',
+      message: 'FX provider unauthorized (HTTP 401)',
+      retryable: false,
+      providerStatus: 401,
+    });
+
+    await expect(
+      createUseCase().execute('user-1', 'USD'),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.finTransaction.update).not.toHaveBeenCalled();
+  });
+
   it('rebases transactions, budgets and config in one transaction', async () => {
-    getHistoricalRate.mockResolvedValue({
+    getLedgerRate.mockResolvedValue({
       ok: true,
       rate: 0.5,
       source: 'cache',
