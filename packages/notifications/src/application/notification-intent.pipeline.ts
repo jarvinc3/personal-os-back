@@ -21,7 +21,7 @@ const ROW_CONSUMER = 'notifications:intent-row';
 const DELIVERED_CONSUMER = 'notifications:intent-delivered';
 const RECEIPT_PREFIX = 'notification-intent';
 
-type ChannelResult = { notification: Notification; created: boolean };
+type ClaimedChannel = { notification: Notification; created: boolean };
 
 /**
  * Generic delivery pipeline: policy per channel, durable rows with their
@@ -47,11 +47,9 @@ export class NotificationIntentPipeline implements NotificationIntentSink {
     }
 
     const receiptKey = this.receiptKey(intent);
-    const channelResults: ChannelResult[] = [];
+    const channelResults: ClaimedChannel[] = [];
     for (const channel of channels) {
-      channelResults.push(
-        await this.handleChannel(intent, channel, receiptKey),
-      );
+      channelResults.push(await this.claimChannel(intent, channel, receiptKey));
     }
 
     for (const channelResult of channelResults) {
@@ -66,11 +64,11 @@ export class NotificationIntentPipeline implements NotificationIntentSink {
     };
   }
 
-  private async handleChannel(
+  private async claimChannel(
     intent: NotificationIntent,
     channel: NotificationChannel,
     receiptKey: string,
-  ): Promise<ChannelResult> {
+  ): Promise<ClaimedChannel> {
     const notification = await this.idempotency.runOnce(
       receiptKey,
       `${CLAIM_CONSUMER}:${channel}`,
