@@ -128,9 +128,8 @@ export class NotificationPolicyService {
       return { allowed: true };
     }
 
-    const slug = moduleSlug;
     const entry = userModules.find(
-      (row) => row.module.slug === slug && row.isEnabled,
+      (row) => row.module.slug === moduleSlug && row.isEnabled,
     );
 
     if (!entry) {
@@ -151,7 +150,7 @@ export class NotificationPolicyService {
     if (enabled === false) {
       return {
         allowed: false,
-        reason: `module_notification_disabled:${slug}.${notificationKey}`,
+        reason: `module_notification_disabled:${moduleSlug}.${notificationKey}`,
       };
     }
 

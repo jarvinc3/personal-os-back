@@ -12,6 +12,7 @@ import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { mergeWithDefaults, UsersService } from '@personal-os/users';
+import type { ModuleConfigRow } from '@personal-os/users';
 import {
   FINANCE_NOTIFICATION_KEYS,
   FINANCE_SETTINGS_DEFAULTS,
@@ -82,11 +83,11 @@ export class WeeklySummaryScheduler {
   }
 
   /** Finance decides who receives its summary and on which weekday. */
-  private resolveRecipient(moduleConfig: {
+  private resolveRecipient(moduleConfig: ModuleConfigRow): {
     userId: string;
     timezone: string;
-    config: unknown;
-  }): { userId: string; timezone: string; day: number } | null {
+    day: number;
+  } | null {
     const config = mergeWithDefaults(
       moduleConfig.config,
       FINANCE_SETTINGS_DEFAULTS as unknown as Record<string, unknown>,
