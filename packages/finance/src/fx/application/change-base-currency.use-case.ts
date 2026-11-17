@@ -3,7 +3,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -23,6 +22,7 @@ import {
   type MoneyLike,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
+import { exchangeRateFailureException } from './exchange-rate-failure';
 
 const FINANCE_MODULE_SLUG = 'finance';
 
@@ -260,19 +260,12 @@ export class ChangeBaseCurrencyUseCase {
       date: day,
     });
     if (!rateResult.ok) {
-      if (
-        rateResult.code === 'PROVIDER_UNAUTHORIZED' ||
-        rateResult.code === 'PROVIDER_UNAVAILABLE' ||
-        rateResult.code === 'API_KEY_MISSING' ||
-        rateResult.code === 'PROVIDER_ERROR'
-      ) {
-        throw new ServiceUnavailableException(
-          `Exchange rate provider unavailable for ${from}->${to} on ${day}: ${rateResult.message}`,
-        );
-      }
-      throw new BadRequestException(
-        `Exchange rate unavailable for ${from}->${to} on ${day}: ${rateResult.message}`,
-      );
+      throw exchangeRateFailureException({
+        from,
+        to,
+        date: day,
+        failure: rateResult,
+      });
     }
     return rateResult.rate;
   }

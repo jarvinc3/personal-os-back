@@ -69,21 +69,21 @@ function buildPrisma(): MockPrisma {
 
 describe('ChangeBaseCurrencyUseCase', () => {
   let prisma: MockPrisma;
-  let getHistoricalRate: jest.Mock;
+  let getLedgerRate: jest.Mock;
   let emit: jest.Mock;
 
   const config = { get: jest.fn().mockReturnValue('DOP') };
   const createUseCase = () =>
     new ChangeBaseCurrencyUseCase(
       prisma as never,
-      { getHistoricalRate, getLedgerRate: getHistoricalRate } as never,
+      { getLedgerRate } as never,
       config as never,
       { emit } as never,
     );
 
   beforeEach(() => {
     prisma = buildPrisma();
-    getHistoricalRate = jest.fn();
+    getLedgerRate = jest.fn();
     emit = jest.fn();
   });
 
@@ -97,7 +97,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
       rebasedBudgets: 0,
     });
     expect(prisma.$transaction).not.toHaveBeenCalled();
-    expect(getHistoricalRate).not.toHaveBeenCalled();
+    expect(getLedgerRate).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid currency code before any query', async () => {
@@ -108,7 +108,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
   });
 
   it('aborts with 400 and writes nothing when a rate is missing', async () => {
-    getHistoricalRate.mockResolvedValue({
+    getLedgerRate.mockResolvedValue({
       ok: false,
       code: 'RATE_UNAVAILABLE',
       message: 'missing',
@@ -123,7 +123,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
   });
 
   it('aborts with 503 when the provider is unauthorized', async () => {
-    getHistoricalRate.mockResolvedValue({
+    getLedgerRate.mockResolvedValue({
       ok: false,
       code: 'PROVIDER_UNAUTHORIZED',
       message: 'FX provider unauthorized (HTTP 401)',
@@ -139,7 +139,7 @@ describe('ChangeBaseCurrencyUseCase', () => {
   });
 
   it('rebases transactions, budgets and config in one transaction', async () => {
-    getHistoricalRate.mockResolvedValue({
+    getLedgerRate.mockResolvedValue({
       ok: true,
       rate: 0.5,
       source: 'cache',

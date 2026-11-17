@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
@@ -15,6 +10,7 @@ import {
   type ResolvedAmounts,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
+import { exchangeRateFailureException } from './exchange-rate-failure';
 
 export type TransferDestinationInput = {
   sourceAmount: number;
@@ -199,18 +195,11 @@ export class ResolveAmountsUseCase {
     if (rateResult.ok) {
       return { rate: rateResult.rate, rateDate: rateResult.rateDate ?? date };
     }
-    if (
-      rateResult.code === 'PROVIDER_UNAUTHORIZED' ||
-      rateResult.code === 'PROVIDER_UNAVAILABLE' ||
-      rateResult.code === 'API_KEY_MISSING' ||
-      rateResult.code === 'PROVIDER_ERROR'
-    ) {
-      throw new ServiceUnavailableException(
-        `Exchange rate provider unavailable for ${from}->${to} on ${date}: ${rateResult.message}`,
-      );
-    }
-    throw new BadRequestException(
-      `Exchange rate unavailable for ${from}->${to} on ${date}: ${rateResult.message}`,
-    );
+    throw exchangeRateFailureException({
+      from,
+      to,
+      date,
+      failure: rateResult,
+    });
   }
 }
