@@ -1,5 +1,6 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
+import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { mapLedgerTransaction } from './ledger-mappers';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
@@ -9,7 +10,8 @@ export class ConfirmTransactionUseCase {
   constructor(
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   async execute(userId: string, id: string) {
@@ -27,7 +29,7 @@ export class ConfirmTransactionUseCase {
       if (!refreshed) {
         throw new NotFoundException('Transacción no encontrada');
       }
-      void this.outboxDispatcher.processBatch();
+      void this.relay.wake();
       return mapLedgerTransaction(refreshed);
     }
 
@@ -35,7 +37,7 @@ export class ConfirmTransactionUseCase {
     if (!updated) {
       throw new NotFoundException('Transacción no encontrada');
     }
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return mapLedgerTransaction(updated.transaction);
   }
 }

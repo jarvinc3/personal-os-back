@@ -1,5 +1,5 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { BudgetThresholdService } from './budget-threshold.service';
 
 describe('BudgetThresholdService', () => {
@@ -12,7 +12,7 @@ describe('BudgetThresholdService', () => {
 
   it('enqueues threshold event with same tx client when alert is new', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
 
     const findUnique = jest.fn().mockResolvedValue(null);
     const create = jest.fn().mockResolvedValue({ id: 'alert-1' });
@@ -54,7 +54,7 @@ describe('BudgetThresholdService', () => {
 
   it('skips enqueue when alert already exists', async () => {
     const enqueue = jest.fn();
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const tx = {
       finBudgetAlert: {
         findUnique: jest.fn().mockResolvedValue({ id: 'existing' }),
@@ -71,7 +71,7 @@ describe('BudgetThresholdService', () => {
 
   it('skips enqueue when create races and alert row already exists', async () => {
     const enqueue = jest.fn();
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const findUnique = jest
       .fn()
       .mockResolvedValueOnce(null)
@@ -93,7 +93,7 @@ describe('BudgetThresholdService', () => {
 
   it('skips when percentage is below alert threshold', async () => {
     const enqueue = jest.fn();
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const findUnique = jest.fn();
     const create = jest.fn();
     const tx = {
@@ -124,7 +124,7 @@ describe('BudgetThresholdService', () => {
 
   it('skips when amountLimit is zero or negative', async () => {
     const enqueue = jest.fn();
-    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const events = { enqueue } as unknown as DomainEventPublisher;
     const findUnique = jest.fn();
     const create = jest.fn();
     const tx = {

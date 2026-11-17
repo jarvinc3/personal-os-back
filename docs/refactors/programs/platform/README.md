@@ -2,7 +2,7 @@
 
 ## Diagnóstico
 
-Core concentra hoy contratos semánticos de eventos de varios dominios; Finance contiene un relay de outbox genérico. Users concentra defaults y validadores de settings de módulos. Estos límites hacen que agregar eventos o settings de un dominio requiera editar infraestructura compartida.
+Core concentra hoy contratos semánticos de eventos de varios dominios y ya aloja la infraestructura genérica de outbox (`OutboxRelay`, `PrismaDomainEventOutbox` y `DomainEventsModule`). Users concentra defaults y validadores de settings de módulos. Ese segundo límite hace que agregar settings de un dominio requiera editar infraestructura compartida; el de eventos quedó resuelto en PLATFORM-EVENTS-1.
 
 ## Objetivo
 

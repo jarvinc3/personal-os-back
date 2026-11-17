@@ -1,3 +1,5 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
+import { DOMAIN_EVENT_PUBLISHER } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import {
   BadRequestException,
@@ -5,9 +7,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import { roundMoney } from '../../shared/domain/money';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import {
   computeExpectedBalances,
   hasDrift,
@@ -95,7 +95,7 @@ export class BalanceIntegrityService {
   constructor(
     private readonly repo: IntegrityRepository,
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
+    private readonly events: DomainEventPublisher,
   ) {}
 
   async check(

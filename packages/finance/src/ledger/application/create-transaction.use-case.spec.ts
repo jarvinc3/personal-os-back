@@ -1,5 +1,5 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { BadRequestException } from '@nestjs/common';
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
@@ -27,10 +27,10 @@ describe('CreateTransactionUseCase', () => {
     execute: resolveExecute,
   } as unknown as ResolveAmountsUseCase;
 
-  const processBatch = jest.fn();
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const wake = jest.fn();
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
 
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
   const baseCurrency = {
@@ -46,7 +46,7 @@ describe('CreateTransactionUseCase', () => {
     repo,
     resolveAmounts,
     baseCurrency,
-    outboxDispatcher,
+    relay,
     ownership as never,
   );
 
@@ -94,7 +94,7 @@ describe('CreateTransactionUseCase', () => {
     expect(resolveExecute).toHaveBeenCalled();
     expect(createTransaction.mock.calls[0]?.[0]).toBe('user-1');
     expect(createTransaction.mock.calls[0]?.[3]).toBe('AI');
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('defaults the transaction currency and base to the user base currency', async () => {

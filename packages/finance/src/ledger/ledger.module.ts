@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LogosModule } from '@personal-os/logos';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
 import { FinanceMerchantsModule } from '../merchants/merchants.module';
@@ -42,7 +42,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
 @Module({
   imports: [
     FinanceFxModule,
-    FinanceEventsModule,
+    DomainEventsModule,
     FinancePlanningThresholdModule,
     FinanceMerchantsModule,
     FinanceSubscriptionsModule,

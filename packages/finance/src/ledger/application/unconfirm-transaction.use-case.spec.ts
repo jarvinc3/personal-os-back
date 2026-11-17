@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { UnconfirmTransactionUseCase } from './unconfirm-transaction.use-case';
 import type {
   LedgerRepositoryPort,
@@ -44,11 +44,11 @@ describe('UnconfirmTransactionUseCase', () => {
     unconfirmTransaction,
   } as unknown as LedgerRepositoryPort;
 
-  const outboxDispatcher = {
-    processBatch: jest.fn(),
-  } as unknown as FinanceOutboxDispatcher;
+  const relay = {
+    wake: jest.fn(),
+  } as unknown as DomainEventRelay;
 
-  const useCase = new UnconfirmTransactionUseCase(repo, outboxDispatcher);
+  const useCase = new UnconfirmTransactionUseCase(repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();

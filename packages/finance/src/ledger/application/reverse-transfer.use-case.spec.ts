@@ -1,4 +1,3 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ReverseTransferUseCase } from './reverse-transfer.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -33,7 +32,7 @@ describe('ReverseTransferUseCase', () => {
   const findTransactionById = jest.fn();
   const findTransactionsByTransferGroupId = jest.fn();
   const reverseTransactionsByTransferGroupId = jest.fn();
-  const processBatch = jest.fn();
+  const wake = jest.fn();
 
   const repo = {
     findTransactionById,
@@ -41,8 +40,8 @@ describe('ReverseTransferUseCase', () => {
     reverseTransactionsByTransferGroupId,
   } as unknown as LedgerRepositoryPort;
   const useCase = new ReverseTransferUseCase(repo, {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher);
+    wake,
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -60,7 +59,7 @@ describe('ReverseTransferUseCase', () => {
       'user-1',
       'grp-1',
     );
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('rejects a pending transfer', async () => {

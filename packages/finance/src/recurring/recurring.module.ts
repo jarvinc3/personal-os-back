@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinanceMerchantsModule } from '../merchants/merchants.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
@@ -14,7 +14,7 @@ import { RecurringController } from './presentation/recurring.controller';
     FinanceOwnershipModule,
     FinanceMerchantsModule,
     FinanceFxModule,
-    FinanceEventsModule,
+    DomainEventsModule,
   ],
   controllers: [RecurringController],
   providers: [

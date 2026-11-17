@@ -1,10 +1,11 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
+import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -29,7 +30,8 @@ export class CreateCardPaymentUseCase {
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   async execute(userId: string, command: CreateCardPaymentCommand) {
@@ -89,7 +91,7 @@ export class CreateCardPaymentUseCase {
       throw new NotFoundException('Pago de tarjeta inválido');
     }
 
-    void this.outboxDispatcher.processBatch();
+    void this.relay.wake();
     return {
       transferGroupId: created.transferGroupId,
       debit: mapLedgerTransaction(created.debit),

@@ -1,5 +1,5 @@
+import type { DomainEventRelay } from '@personal-os/contracts';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
@@ -26,14 +26,14 @@ function build() {
   const baseCurrency = {
     execute: jest.fn().mockResolvedValue('DOP'),
   } as unknown as ResolveUserBaseCurrencyUseCase;
-  const outboxDispatcher = {
-    processBatch: jest.fn(),
-  } as unknown as FinanceOutboxDispatcher;
+  const relay = {
+    wake: jest.fn(),
+  } as unknown as DomainEventRelay;
   const useCase = new AdjustBalanceUseCase(
     repo,
     resolveAmounts,
     baseCurrency,
-    outboxDispatcher,
+    relay,
   );
   return {
     useCase,

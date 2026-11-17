@@ -1,10 +1,10 @@
+import type { DomainEventPublisher } from '@personal-os/contracts';
+import { DOMAIN_EVENT_PUBLISHER } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class BudgetThresholdService implements BudgetThresholdPort {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
+    private readonly events: DomainEventPublisher,
   ) {}
 
   async processThresholds(

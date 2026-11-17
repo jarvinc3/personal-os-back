@@ -1,10 +1,16 @@
+import type {
+  DomainEventRelay,
+  DomainEventOutboxReader,
+  DomainEventPublisher,
+} from '@personal-os/contracts';
+import {
+  DOMAIN_EVENT_RELAY,
+  DOMAIN_EVENT_OUTBOX_READER,
+  DOMAIN_EVENT_PUBLISHER,
+} from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import { resolveCardDueDaysBefore, UsersService } from '@personal-os/users';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
-import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { isoDay, localDayStart } from '../../shared/domain/local-day';
 import {
   buildCardStatementViews,
@@ -48,9 +54,11 @@ export class CardPaymentRemindersService {
     private readonly repo: CardStatementsRepository,
     private readonly users: UsersService,
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
-    private readonly outbox: PrismaOutboxRepository,
-    private readonly dispatcher: FinanceOutboxDispatcher,
+    private readonly events: DomainEventPublisher,
+    @Inject(DOMAIN_EVENT_OUTBOX_READER)
+    private readonly outbox: DomainEventOutboxReader,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   async evaluate(userId: string, now = new Date()): Promise<void> {
@@ -68,7 +76,7 @@ export class CardPaymentRemindersService {
     for (const statement of dueStatements) {
       await this.remindStatement(userId, statement, today);
     }
-    void this.dispatcher.processBatch();
+    void this.relay.wake();
   }
 
   private async remindStatement(

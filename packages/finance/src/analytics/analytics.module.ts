@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FinanceBalanceSheetModule } from '../balance-sheet/balance-sheet.module';
 import { FinanceCatalogModule } from '../catalog/catalog.module';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningModule } from '../planning/planning.module';
 import { AnalyticsService } from './application/analytics.service';
@@ -14,7 +14,7 @@ import { AnalyticsController } from './presentation/analytics.controller';
   imports: [
     FinanceBalanceSheetModule,
     FinanceCatalogModule,
-    FinanceEventsModule,
+    DomainEventsModule,
     FinanceFxModule,
 
     FinancePlanningModule,

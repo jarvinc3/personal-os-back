@@ -1,4 +1,4 @@
-import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import type { DomainEventRelay } from '@personal-os/contracts';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { UpdateTransferUseCase } from './update-transfer.use-case';
@@ -71,10 +71,10 @@ describe('UpdateTransferUseCase', () => {
     execute,
     resolveTransferDestination,
   } as unknown as ResolveAmountsUseCase;
-  const processBatch = jest.fn();
-  const outboxDispatcher = {
-    processBatch,
-  } as unknown as FinanceOutboxDispatcher;
+  const wake = jest.fn();
+  const relay = {
+    wake,
+  } as unknown as DomainEventRelay;
   const baseCurrency = {
     execute: jest.fn().mockResolvedValue('DOP'),
   } as unknown as ResolveUserBaseCurrencyUseCase;
@@ -83,7 +83,7 @@ describe('UpdateTransferUseCase', () => {
     repo,
     resolveAmounts,
     baseCurrency,
-    outboxDispatcher,
+    relay,
   );
 
   beforeEach(() => {
@@ -108,7 +108,7 @@ describe('UpdateTransferUseCase', () => {
     });
 
     expect(updateTransfer).toHaveBeenCalledTimes(1);
-    expect(processBatch).toHaveBeenCalled();
+    expect(wake).toHaveBeenCalled();
   });
 
   it('refuses to edit a completed transfer', async () => {

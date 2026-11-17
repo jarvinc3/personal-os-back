@@ -1,9 +1,15 @@
+import type {
+  DomainEventRelay,
+  DomainEventOutboxReader,
+  DomainEventPublisher,
+} from '@personal-os/contracts';
+import {
+  DOMAIN_EVENT_RELAY,
+  DOMAIN_EVENT_OUTBOX_READER,
+  DOMAIN_EVENT_PUBLISHER,
+} from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
-import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import {
   daysUntil,
   isChargeMissed,
@@ -29,9 +35,11 @@ function isoDate(date: Date): string {
 export class RecurringAlertsService {
   constructor(
     @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
-    private readonly outbox: PrismaOutboxRepository,
-    private readonly dispatcher: FinanceOutboxDispatcher,
+    private readonly events: DomainEventPublisher,
+    @Inject(DOMAIN_EVENT_OUTBOX_READER)
+    private readonly outbox: DomainEventOutboxReader,
+    @Inject(DOMAIN_EVENT_RELAY)
+    private readonly relay: DomainEventRelay,
   ) {}
 
   async evaluate(
@@ -58,7 +66,7 @@ export class RecurringAlertsService {
       await this.evaluatePattern(userId, pattern, now);
     }
 
-    void this.dispatcher.processBatch();
+    void this.relay.wake();
   }
 
   private async evaluatePattern(

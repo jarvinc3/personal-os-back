@@ -2,9 +2,8 @@ import 'reflect-metadata';
 import { randomUUID } from 'crypto';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import type { DomainEventPublisher } from '@personal-os/contracts';
 import { getPrismaClientClass } from '@personal-os/database';
-// eslint-disable-next-line no-restricted-imports -- El test ejercita el repositorio real contra la base.
-import type { DomainEventPublisherPort } from '../../packages/finance/src/events/application/ports/domain-event-publisher.port';
 // eslint-disable-next-line no-restricted-imports -- El test ejercita el repositorio real contra la base.
 import { PrismaLedgerImportRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-import.repository';
 // eslint-disable-next-line no-restricted-imports -- El test verifica el error del tope atómico.
@@ -30,7 +29,7 @@ const PrismaClient = getPrismaClientClass();
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const events = {
   enqueue: jest.fn().mockResolvedValue({}),
-} as unknown as DomainEventPublisherPort;
+} as unknown as DomainEventPublisher;
 const repo = new PrismaLedgerImportRepository(prisma as never, events);
 const userId = randomUUID();
 let accountId: string;

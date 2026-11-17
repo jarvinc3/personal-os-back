@@ -27,10 +27,7 @@ const pool = new Pool({ connectionString });
 const PrismaClient = getPrismaClientClass();
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const events = { enqueue: () => Promise.resolve() };
-const repo = new PrismaLedgerImportRepository(
-  prisma as PrismaService,
-  events as never,
-);
+const repo = new PrismaLedgerImportRepository(prisma as PrismaService, events);
 
 const createdUserIds = new Set<string>();
 

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { LogosModule } from '@personal-os/logos';
-import { FinanceEventsModule } from '../events/events.module';
+import { DomainEventsModule } from '@personal-os/core';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { SUBSCRIPTION_MATCHER } from '../shared/application/tokens';
@@ -15,7 +15,7 @@ import { SubscriptionsController } from './presentation/subscriptions.controller
     LogosModule,
     FinanceOwnershipModule,
     FinanceFxModule,
-    FinanceEventsModule,
+    DomainEventsModule,
   ],
   controllers: [SubscriptionsController],
   providers: [
