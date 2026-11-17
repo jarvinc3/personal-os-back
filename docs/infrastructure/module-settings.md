@@ -33,8 +33,8 @@ registrados.
 Los consumidores consultan el lector, no defaults de otros módulos:
 
 - La policy de Notifications resuelve el módulo habilitado y el toggle con
-  `hasDescriptor`, `read` y `notificationEnabled`; no importa defaults ni claves de un
-  dominio.
+  `hasDescriptor`, `read` y `notificationEnabled` a partir del `sourceDomain`
+  y el `preferenceKey` del intent; no importa defaults ni claves de un dominio.
 - El guard `EnabledModuleGuard` usa `hasDescriptor` y `read` para decidir si la ruta sigue
   habilitada.
 - Intelligence ya lee su propia configuración con el lector.

@@ -15,14 +15,18 @@ export type NotificationDispatchContext = {
   userId: string;
   channel: NotificationChannel;
   data?: Record<string, unknown>;
-  /** Module that owns the preference; falls back to `data.moduleSlug`. */
-  moduleSlug?: string;
+  /** Domain that produced the notice; the registry resolves its descriptor. */
+  sourceDomain?: string;
   /** Preference toggle; falls back to `data.notificationKey`. */
   preferenceKey?: string;
 };
 
 export type PolicyEvaluationResult =
   { allowed: true } | { allowed: false; reason: string };
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
 
 @Injectable()
 export class NotificationPolicyService {
@@ -115,32 +119,34 @@ export class NotificationPolicyService {
   private async evaluateModuleToggle(
     context: NotificationDispatchContext,
   ): Promise<PolicyEvaluationResult> {
-    const moduleSlug = context.moduleSlug ?? context.data?.moduleSlug;
+    // Direct creates carry the module keys in `data`; intents pass the domain.
+    const domain =
+      context.sourceDomain ?? optionalString(context.data?.moduleSlug);
     const notificationKey =
-      context.preferenceKey ?? context.data?.notificationKey;
+      context.preferenceKey ?? optionalString(context.data?.notificationKey);
 
-    if (typeof moduleSlug !== 'string' || typeof notificationKey !== 'string') {
+    if (!domain || !notificationKey) {
       return { allowed: true };
     }
 
-    if (!this.settings.hasDescriptor(moduleSlug)) {
+    if (!this.settings.hasDescriptor(domain)) {
       return { allowed: true };
     }
 
-    const module = await this.settings.read(context.userId, moduleSlug);
+    const module = await this.settings.read(context.userId, domain);
     if (!module.enabled) {
       return { allowed: false, reason: 'module_disabled_or_missing' };
     }
 
     const enabled = await this.settings.notificationEnabled(
       context.userId,
-      moduleSlug,
+      domain,
       notificationKey,
     );
     if (!enabled) {
       return {
         allowed: false,
-        reason: `module_notification_disabled:${moduleSlug}.${notificationKey}`,
+        reason: `module_notification_disabled:${domain}.${notificationKey}`,
       };
     }
 

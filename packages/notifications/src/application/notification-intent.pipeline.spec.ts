@@ -168,14 +168,14 @@ describe('NotificationIntentPipeline', () => {
     );
   });
 
-  it('passes the neutral preference and module to the policy', async () => {
+  it('passes the neutral preference and domain to the policy', async () => {
     await pipeline.submit(intent());
 
     expect(evaluate).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-1',
         channel: 'IN_APP',
-        moduleSlug: 'agenda',
+        sourceDomain: 'agenda',
         preferenceKey: 'eventReminders',
       }),
     );
