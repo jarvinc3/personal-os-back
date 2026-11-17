@@ -66,7 +66,7 @@ La decisión registrada en #308 mantiene las diez fases como requisito del relea
 | FIN-3               | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto           |
 | FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | Pendiente          |
 | PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | En revisión (#378) |
-| PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Pendiente          |
+| PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | En revisión (#381) |
 | PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | Pendiente          |
 | NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Pendiente          |
 | NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | Pendiente          |
@@ -235,7 +235,7 @@ Un refactor no se considera terminado solo porque se movieron archivos.
 
 ## Decisiones del owner sobre trabajo en curso
 
-- **web #216 / #217 (settings):** solo web por ahora. No se agregan claves nuevas a `user-settings-defaults.ts` ni métodos a `UsersService`. Cualquier backend de "Vaciar datos" es un endpoint por módulo dentro de cada módulo. PLATFORM-SETTINGS-0 se mantiene en Wave A.
+- **web #216 / #217 (settings):** solo web por ahora. Las claves nuevas de un módulo se agregan a su descriptor, no a Users, y no se añaden métodos específicos a `UsersService`. Cualquier backend de "Vaciar datos" es un endpoint por módulo dentro de cada módulo. PLATFORM-SETTINGS-0 se mantiene en Wave A.
 - **back #161 (moneda extranjera):** se hace ahora solo la conversión de ledger/FX (dominio Finance que se conserva). La parte de importación por email no se adapta; FIN-3 debe guardar monto original y tasa.
 - **AI-12:** fuera de 0.100.0; release `0.101.0`.
 
