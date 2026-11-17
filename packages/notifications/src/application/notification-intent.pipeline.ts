@@ -16,12 +16,18 @@ import {
 } from './notification-policy.service';
 import { NotificationsService } from './notifications.service';
 
-const INTENT_CONSUMER = 'notifications:intent';
-const DEDUPLICATION_PREFIX = 'notification-intent';
+const CLAIM_CONSUMER = 'notifications:intent';
+const ROW_CONSUMER = 'notifications:intent-row';
+const DELIVERED_CONSUMER = 'notifications:intent-delivered';
+const RECEIPT_PREFIX = 'notification-intent';
+
+type ChannelResult = { notification: Notification; created: boolean };
 
 /**
- * Generic delivery pipeline: policy per channel, durable rows with the intent
- * receipt in one transaction, and delivery only after that commit.
+ * Generic delivery pipeline: policy per channel, durable rows with their
+ * receipt in one transaction, and delivery only after that commit. A failed
+ * delivery keeps its channel retriable because the row pointer and the
+ * delivered receipt are recorded separately.
  */
 @Injectable()
 export class NotificationIntentPipeline implements NotificationIntentSink {
@@ -40,22 +46,100 @@ export class NotificationIntentPipeline implements NotificationIntentSink {
       return { accepted: false, notificationIds: [] };
     }
 
-    const created = await this.idempotency.runOnce(
-      this.receiptKey(intent),
-      INTENT_CONSUMER,
-      (tx) => this.persist(intent, channels, tx),
-    );
-    if (!created) {
-      return { accepted: false, notificationIds: [] };
+    const receiptKey = this.receiptKey(intent);
+    const channelResults: ChannelResult[] = [];
+    for (const channel of channels) {
+      channelResults.push(
+        await this.handleChannel(intent, channel, receiptKey),
+      );
     }
 
-    for (const notification of created) {
-      await this.notifications.deliverPersisted(notification);
+    for (const channelResult of channelResults) {
+      await this.deliverIfPending(channelResult.notification);
+    }
+
+    return {
+      accepted: channelResults.some((channelResult) => channelResult.created),
+      notificationIds: channelResults.map(
+        (channelResult) => channelResult.notification.id,
+      ),
+    };
+  }
+
+  private async handleChannel(
+    intent: NotificationIntent,
+    channel: NotificationChannel,
+    receiptKey: string,
+  ): Promise<ChannelResult> {
+    const notification = await this.idempotency.runOnce(
+      receiptKey,
+      `${CLAIM_CONSUMER}:${channel}`,
+      async (tx) => {
+        const row = await this.persistChannel(intent, channel, tx);
+        await this.idempotency.claim(
+          tx,
+          row.id,
+          this.rowConsumer(receiptKey, channel),
+        );
+        return row;
+      },
+    );
+    if (notification) {
+      return { notification, created: true };
     }
     return {
-      accepted: true,
-      notificationIds: created.map((notification) => notification.id),
+      notification: await this.persistedNotification(receiptKey, channel),
+      created: false,
     };
+  }
+
+  private async persistedNotification(
+    receiptKey: string,
+    channel: NotificationChannel,
+  ): Promise<Notification> {
+    const notificationId = await this.idempotency.findReceiptEventId(
+      this.rowConsumer(receiptKey, channel),
+    );
+    if (!notificationId) {
+      throw new Error(
+        `Intent ${receiptKey} has no persisted notification for channel ${channel}`,
+      );
+    }
+    const notification = await this.notificationsRepo.findById(notificationId);
+    if (!notification) {
+      throw new Error(
+        `Persisted intent notification ${notificationId} not found`,
+      );
+    }
+    return notification;
+  }
+
+  /** A channel already delivered by another attempt is not sent twice. */
+  private async deliverIfPending(notification: Notification): Promise<void> {
+    const consumer = `${DELIVERED_CONSUMER}:${notification.channel}`;
+    if (await this.idempotency.wasProcessed(notification.id, consumer)) {
+      return;
+    }
+    await this.notifications.deliverPersisted(notification);
+    await this.idempotency.tryClaim(notification.id, consumer);
+  }
+
+  private persistChannel(
+    intent: NotificationIntent,
+    channel: NotificationChannel,
+    tx: Prisma.TransactionClient,
+  ): Promise<Notification> {
+    return this.notificationsRepo.createNotification(
+      {
+        userId: intent.userId,
+        type: intent.type,
+        channel,
+        title: intent.title,
+        body: intent.body,
+        data: intent.data,
+      },
+      tx,
+    );
   }
 
   private async allowedChannels(
@@ -81,32 +165,15 @@ export class NotificationIntentPipeline implements NotificationIntentSink {
     return allowed;
   }
 
-  private async persist(
-    intent: NotificationIntent,
-    channels: readonly NotificationChannel[],
-    tx: Prisma.TransactionClient,
-  ): Promise<Notification[]> {
-    const rows: Notification[] = [];
-    for (const channel of channels) {
-      rows.push(
-        await this.notificationsRepo.createNotification(
-          {
-            userId: intent.userId,
-            type: intent.type,
-            channel,
-            title: intent.title,
-            body: intent.body,
-            data: intent.data,
-          },
-          tx,
-        ),
-      );
-    }
-    return rows;
+  /** Receipts are per user and domain, so equal keys do not collide. */
+  private receiptKey(intent: NotificationIntent): string {
+    return `${RECEIPT_PREFIX}:${intent.userId}:${intent.sourceDomain}:${intent.deduplicationKey}`;
   }
 
-  /** The receipt is per user, so the same key can repeat across users. */
-  private receiptKey(intent: NotificationIntent): string {
-    return `${DEDUPLICATION_PREFIX}:${intent.userId}:${intent.deduplicationKey}`;
+  private rowConsumer(
+    receiptKey: string,
+    channel: NotificationChannel,
+  ): string {
+    return `${ROW_CONSUMER}:${receiptKey}:${channel}`;
   }
 }

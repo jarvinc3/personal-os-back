@@ -15,19 +15,37 @@ export class DomainEventIdempotencyGuard {
     effect: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T | undefined> {
     return this.prisma.$transaction(async (tx) => {
-      if (eventId) {
-        // ON CONFLICT waits for an in-flight transaction: if it rolls back,
-        // this insert succeeds; if it commits, the duplicate is skipped.
-        const receipt = await tx.processedDomainEvent.createMany({
-          data: { eventId, consumer },
-          skipDuplicates: true,
-        });
-        if (receipt.count === 0) {
-          return undefined;
-        }
+      if (eventId && !(await this.claim(tx, eventId, consumer))) {
+        return undefined;
       }
       return effect(tx);
     });
+  }
+
+  /**
+   * Receipt write inside an already open transaction. `ON CONFLICT` waits for
+   * an in-flight transaction: if it rolls back, this insert succeeds; if it
+   * commits, the duplicate is skipped.
+   */
+  async claim(
+    tx: Prisma.TransactionClient,
+    eventId: string,
+    consumer: string,
+  ): Promise<boolean> {
+    const receipt = await tx.processedDomainEvent.createMany({
+      data: { eventId, consumer },
+      skipDuplicates: true,
+    });
+    return receipt.count > 0;
+  }
+
+  /** Event id a lookup consumer recorded, or null when there is no receipt. */
+  async findReceiptEventId(consumer: string): Promise<string | null> {
+    const receipt = await this.prisma.processedDomainEvent.findFirst({
+      where: { consumer },
+      select: { eventId: true },
+    });
+    return receipt?.eventId ?? null;
   }
 
   async wasProcessed(eventId: string, consumer: string): Promise<boolean> {

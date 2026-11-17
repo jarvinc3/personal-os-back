@@ -86,7 +86,7 @@ describe('NotificationsService', () => {
         channel: 'EMAIL',
         title: 'Hello',
       }),
-      expect.any(Object),
+      expect.objectContaining({ jobId: 'n1' }),
     );
   });
 
@@ -119,7 +119,7 @@ describe('NotificationsService', () => {
     expect(queueAdd).toHaveBeenCalledWith(
       'dispatch-notification',
       expect.objectContaining({ channel: 'PUSH' }),
-      expect.any(Object),
+      expect.objectContaining({ jobId: 'n1' }),
     );
   });
 

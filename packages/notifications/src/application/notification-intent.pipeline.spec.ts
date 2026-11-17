@@ -1,6 +1,10 @@
 import type { NotificationIntent } from '@personal-os/contracts';
 import type { DomainEventIdempotencyGuard } from '@personal-os/core';
-import type { Notification, Prisma } from '@personal-os/database';
+import type {
+  Notification,
+  NotificationChannel,
+  Prisma,
+} from '@personal-os/database';
 import type { NotificationsRepository } from '../infrastructure/notifications.repository';
 import { NotificationIntentPipeline } from './notification-intent.pipeline';
 import type { NotificationPolicyService } from './notification-policy.service';
@@ -25,10 +29,28 @@ function intent(
   };
 }
 
+function notification(channel: NotificationChannel): Notification {
+  return {
+    id: `n-${channel}`,
+    userId: 'user-1',
+    type: 'event.reminder',
+    channel,
+    title: 'Reunión próxima',
+    body: 'Comienza en 15 minutos',
+    data: {},
+    isRead: false,
+    scheduledAt: null,
+    sentAt: null,
+    createdAt: new Date(),
+  };
+}
+
 describe('NotificationIntentPipeline', () => {
   const createNotification = jest.fn();
+  const findById = jest.fn();
   const notificationsRepo = {
     createNotification,
+    findById,
   } as unknown as NotificationsRepository;
 
   const evaluate = jest.fn().mockResolvedValue({ allowed: true });
@@ -46,12 +68,22 @@ describe('NotificationIntentPipeline', () => {
   const tx = {};
   const runOnce = jest.fn(
     (
-      _eventId: string,
+      _receiptKey: string,
       _consumer: string,
       effect: (client: Prisma.TransactionClient) => Promise<unknown>,
     ) => effect(tx as Prisma.TransactionClient),
   );
-  const idempotency = { runOnce } as unknown as DomainEventIdempotencyGuard;
+  const claim = jest.fn().mockResolvedValue(true);
+  const findReceiptEventId = jest.fn();
+  const wasProcessed = jest.fn().mockResolvedValue(false);
+  const tryClaim = jest.fn().mockResolvedValue(true);
+  const idempotency = {
+    runOnce,
+    claim,
+    findReceiptEventId,
+    wasProcessed,
+    tryClaim,
+  } as unknown as DomainEventIdempotencyGuard;
 
   const pipeline = new NotificationIntentPipeline(
     notificationsRepo,
@@ -60,46 +92,39 @@ describe('NotificationIntentPipeline', () => {
     idempotency,
   );
 
+  const receiptKey =
+    'notification-intent:user-1:agenda:agenda:meeting-1:reminder';
+
   beforeEach(() => {
     jest.clearAllMocks();
     evaluate.mockResolvedValue({ allowed: true });
     runOnce.mockImplementation(
       (
-        _eventId: string,
+        _receiptKey: string,
         _consumer: string,
         effect: (client: Prisma.TransactionClient) => Promise<unknown>,
       ) => effect(tx as Prisma.TransactionClient),
     );
+    findReceiptEventId.mockResolvedValue(null);
+    wasProcessed.mockResolvedValue(false);
+    tryClaim.mockResolvedValue(true);
     createNotification.mockImplementation(
-      (input: { channel: string } & Record<string, unknown>) =>
-        Promise.resolve({
-          id: `n-${input.channel}`,
-          userId: 'user-1',
-          type: 'event.reminder',
-          channel: input.channel,
-          title: 'Reunión próxima',
-          body: 'Comienza en 15 minutos',
-          data: {},
-          createdAt: new Date(),
-        }),
+      (input: { channel: NotificationChannel }) =>
+        Promise.resolve(notification(input.channel)),
+    );
+    findById.mockImplementation((id: string) =>
+      Promise.resolve(
+        notification(id.replace('n-', '') as NotificationChannel),
+      ),
     );
   });
 
-  it('persists the allowed channels in one transaction and delivers after that', async () => {
+  it('persists and delivers each allowed channel in order', async () => {
     const order: string[] = [];
     createNotification.mockImplementation(
-      (input: { channel: string } & Record<string, unknown>) => {
+      (input: { channel: NotificationChannel }) => {
         order.push(`persist:${input.channel}`);
-        return Promise.resolve({
-          id: `n-${input.channel}`,
-          userId: 'user-1',
-          type: 'event.reminder',
-          channel: input.channel,
-          title: 'Reunión próxima',
-          body: 'Comienza en 15 minutos',
-          data: {},
-          createdAt: new Date(),
-        });
+        return Promise.resolve(notification(input.channel));
       },
     );
     deliverPersisted.mockImplementation((row: Notification) => {
@@ -119,19 +144,27 @@ describe('NotificationIntentPipeline', () => {
       'deliver:IN_APP',
       'deliver:PUSH',
     ]);
-    expect(createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ channel: 'IN_APP', userId: 'user-1' }),
-      tx,
-    );
   });
 
-  it('keys the receipt by user and deduplication key', async () => {
+  it('claims each channel and points to the persisted row in the same transaction', async () => {
     await pipeline.submit(intent());
 
-    expect(runOnce).toHaveBeenCalledWith(
-      'notification-intent:user-1:agenda:meeting-1:reminder',
-      'notifications:intent',
+    expect(runOnce).toHaveBeenNthCalledWith(
+      1,
+      receiptKey,
+      'notifications:intent:IN_APP',
       expect.any(Function),
+    );
+    expect(runOnce).toHaveBeenNthCalledWith(
+      2,
+      receiptKey,
+      'notifications:intent:PUSH',
+      expect.any(Function),
+    );
+    expect(claim).toHaveBeenCalledWith(
+      tx,
+      'n-IN_APP',
+      `notifications:intent-row:${receiptKey}:IN_APP`,
     );
   });
 
@@ -189,30 +222,59 @@ describe('NotificationIntentPipeline', () => {
     expect(deliverPersisted).not.toHaveBeenCalled();
   });
 
-  it('does not create or deliver again when the intent was already processed', async () => {
-    runOnce.mockResolvedValueOnce(undefined);
-
-    await expect(pipeline.submit(intent())).resolves.toEqual({
-      accepted: false,
-      notificationIds: [],
-    });
-    expect(createNotification).not.toHaveBeenCalled();
-    expect(deliverPersisted).not.toHaveBeenCalled();
-  });
-
-  it('propagates a channel failure and keeps the persisted rows for the retry', async () => {
+  it('retries the channel delivery after an enqueue failure without duplicating rows', async () => {
     deliverPersisted.mockRejectedValueOnce(new Error('queue unavailable'));
 
     await expect(pipeline.submit(intent())).rejects.toThrow(
       'queue unavailable',
     );
     expect(createNotification).toHaveBeenCalledTimes(2);
+    expect(tryClaim).not.toHaveBeenCalled();
 
-    runOnce.mockResolvedValueOnce(undefined);
+    runOnce.mockResolvedValue(undefined);
+    findReceiptEventId
+      .mockResolvedValueOnce('n-IN_APP')
+      .mockResolvedValueOnce('n-PUSH');
+
+    const retry = await pipeline.submit(intent());
+
+    expect(createNotification).toHaveBeenCalledTimes(2);
+    expect(deliverPersisted).toHaveBeenCalledTimes(3);
+    expect(tryClaim).toHaveBeenCalledWith(
+      'n-IN_APP',
+      'notifications:intent-delivered:IN_APP',
+    );
+    expect(tryClaim).toHaveBeenCalledWith(
+      'n-PUSH',
+      'notifications:intent-delivered:PUSH',
+    );
+    expect(retry).toEqual({
+      accepted: false,
+      notificationIds: ['n-IN_APP', 'n-PUSH'],
+    });
+  });
+
+  it('does not deliver again a channel already marked as delivered', async () => {
+    runOnce.mockResolvedValue(undefined);
+    findReceiptEventId
+      .mockResolvedValueOnce('n-IN_APP')
+      .mockResolvedValueOnce('n-PUSH');
+    wasProcessed.mockResolvedValue(true);
+
     await expect(pipeline.submit(intent())).resolves.toEqual({
       accepted: false,
-      notificationIds: [],
+      notificationIds: ['n-IN_APP', 'n-PUSH'],
     });
-    expect(createNotification).toHaveBeenCalledTimes(2);
+    expect(deliverPersisted).not.toHaveBeenCalled();
+    expect(tryClaim).not.toHaveBeenCalled();
+  });
+
+  it('fails loudly when a claim has no persisted row pointer', async () => {
+    runOnce.mockResolvedValue(undefined);
+    findReceiptEventId.mockResolvedValue(null);
+
+    await expect(pipeline.submit(intent())).rejects.toThrow(
+      'has no persisted notification for channel IN_APP',
+    );
   });
 });

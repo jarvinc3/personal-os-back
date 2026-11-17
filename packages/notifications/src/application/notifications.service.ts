@@ -130,6 +130,9 @@ export class NotificationsService {
         data: (created.data ?? {}) as Record<string, unknown>,
       },
       {
+        // One job per persisted row, so a repeated delivery is a no-op while
+        // the queue keeps the job.
+        jobId: created.id,
         attempts: 3,
         backoff: { type: 'exponential', delay: 1000 },
         removeOnComplete: 100,

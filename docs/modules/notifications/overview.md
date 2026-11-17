@@ -38,11 +38,16 @@ Imports `DomainEventsModule` de Core solo por `DomainEventIdempotencyGuard`. Pay
 
 `NotificationIntentPipeline` (token `NOTIFICATION_INTENT_SINK`) procesa un intent
 validado: evalúa la policy por cada canal solicitado, escribe una fila por canal
-aceptado y el recibo del intent en la misma transacción, y entrega después del
-commit. La clave del recibo es
-`notification-intent:<userId>:<deduplicationKey>` en `processed_domain_events`
-(consumidor `notifications:intent`), así que el mismo intent no crea ni entrega
-dos veces aunque se repita.
+aceptado con su recibo (`processed_domain_events`, consumidores
+`notifications:intent:<canal>` y `notifications:intent-row:<recibo>:<canal>`) y
+entrega después del commit.
+
+La entrega es retriable. Antes de enviar, el pipeline comprueba el recibo
+`notifications:intent-delivered:<canal>` de la fila; si falta, entrega y lo
+escribe después. Un fallo de encolado deja el canal pendiente: el reintento del
+mismo intent encuentra el recibo y el puntero de la fila, no crea otra fila y
+vuelve a encolar. El job de PUSH/EMAIL usa `jobId` igual al id de la notificación,
+así que reencolar la misma fila no duplica el job mientras la cola lo conserva.
 
 La entrega es la vigente: WebSocket para IN_APP, cola `notifications` para PUSH
 y EMAIL con sus reintentos. El listener de eventos de Finance sigue
