@@ -157,4 +157,32 @@ describe('Finance boundary contracts', () => {
       /TransactionCreatedEvent|TransactionUpdatedEvent|BudgetThresholdReachedEvent|FinanceTransferCreatedEvent/,
     );
   });
+
+  it('keeps Finance and Notifications independent', () => {
+    for (const file of sourceFiles(
+      join(repositoryRoot, 'packages/finance/src'),
+    )) {
+      expect(readFileSync(file, 'utf8')).not.toMatch(
+        /from\s+['"][^'"]*(?:@personal-os\/notifications|packages\/notifications)[^'"]*['"]/,
+      );
+    }
+
+    for (const file of sourceFiles(
+      join(repositoryRoot, 'packages/notifications/src'),
+    )) {
+      expect(readFileSync(file, 'utf8')).not.toMatch(
+        /from\s+['"][^'"]*(?:@personal-os\/finance|packages\/finance)[^'"]*['"]/,
+      );
+    }
+
+    const notificationsPackage = JSON.parse(
+      readFileSync(
+        join(repositoryRoot, 'packages/notifications/package.json'),
+        'utf8',
+      ),
+    ) as { dependencies?: Record<string, string> };
+    expect(
+      Object.keys(notificationsPackage.dependencies ?? {}).join(' '),
+    ).not.toContain('@personal-os/finance');
+  });
 });

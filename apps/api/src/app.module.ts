@@ -33,7 +33,10 @@ import {
   FinanceEmailProductProposalCatalog,
   FinanceModule,
 } from '@personal-os/finance';
-import { NotificationsModule } from '@personal-os/notifications';
+import {
+  NotificationIntentModule,
+  NotificationsModule,
+} from '@personal-os/notifications';
 import { UsersModule } from '@personal-os/users';
 import { randomUUID } from 'crypto';
 import { ClsModule } from 'nestjs-cls';
@@ -212,6 +215,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
       HEALTH_SETTINGS_DESCRIPTOR,
     ]),
     NotificationsModule,
+    NotificationIntentModule,
     AiModule,
     AuthModule,
   ],

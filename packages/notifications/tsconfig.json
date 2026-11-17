@@ -22,9 +22,6 @@
       "path": "../database"
     },
     {
-      "path": "../finance"
-    },
-    {
       "path": "../users"
     }
   ]

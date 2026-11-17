@@ -30,9 +30,10 @@ No es event sourcing: el outbox es durabilidad de entrega.
   PostgreSQL en una transacción. `tryClaim` queda limitado a consumidores sin
   efecto o a marcar un encolado externo ya confirmado; no se llama antes del
   trabajo. Los errores de almacenamiento se propagan.
-- Los listeners de eventos financieros usan `suppressErrors: false`: una
-  excepción llega al relay y activa backoff, en lugar de confirmar una entrega
-  fallida. Cada consumidor mantiene su recibo independiente.
+- El listener de Finance traduce sus eventos del outbox a intents y los entrega
+  al sink (`NOTIFICATION_INTENT_SINK`) con `suppressErrors: false`: una excepción
+  llega al relay y activa backoff. `NotificationIntentModule` expone el sink en la
+  app sin que Finance importe Notifications.
 - Notifications guarda IN_APP en la misma transacción del recibo. Publica el
   aviso WebSocket después del commit; si falla el aviso, la notificación sigue
   disponible por listado/unread. El socket no es un transporte durable.
