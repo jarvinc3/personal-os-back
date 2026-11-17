@@ -412,6 +412,29 @@ export class AiEmailSyncResponseDto {
   syncStarted!: boolean;
 }
 
+export class SyncBhdResponseDto {
+  @ApiProperty()
+  connected!: boolean;
+
+  @ApiProperty()
+  query!: string;
+
+  @ApiProperty()
+  found!: number;
+
+  @ApiProperty()
+  imported!: number;
+
+  @ApiProperty()
+  skipped!: number;
+
+  @ApiProperty({ nullable: true, type: String })
+  nextPageToken!: string | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  estimatedTotal!: number | null;
+}
+
 export class AiEmailResetResponseDto {
   @ApiProperty()
   connected!: boolean;

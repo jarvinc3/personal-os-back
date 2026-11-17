@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   Injectable,
@@ -18,6 +19,7 @@ import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 import { AiEmailClassificationService } from './ai-email-classification.service';
 
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
+const SCOPED_BHD_SENDER = 'bhd.com.do';
 const RECOVERY_WINDOW_MS = 7 * 86400_000;
 const RAW_RETENTION_DEV_DAYS = 30;
 const RAW_RETENTION_PROD_DAYS = 7;
@@ -28,6 +30,23 @@ const GMAIL_SYNC_IN_PROGRESS = 'GMAIL_SYNC_IN_PROGRESS';
 const SYNC_STALLED_ERROR_CODE = 'sync_stalled';
 const CLASSIFICATION_FAILED_ERROR_CODE = 'classification_failed';
 const SYNC_WATCHDOG_INTERVAL_MS = 60_000;
+
+type ScopedBhdSyncScope = {
+  dateFrom: Date;
+  dateTo: Date;
+  maxMessages: number;
+  pageToken?: string;
+};
+
+type ScopedBhdSyncResult = {
+  connected: true;
+  query: string;
+  found: number;
+  imported: number;
+  skipped: number;
+  nextPageToken: string | null;
+  estimatedTotal: number | null;
+};
 
 type GmailSyncProgress = {
   status:
@@ -177,6 +196,74 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
 
   async isSyncingForUser(userId: string) {
     return (await this.getSyncSnapshotForUser(userId)).syncInProgress;
+  }
+
+  /**
+   * Sync acotada del piloto: solo BHD y con un tope por página. No cambia el
+   * cursor del bootstrap ni el estado de la sync normal.
+   */
+  async syncScopedBhdForUser(
+    userId: string,
+    scope: ScopedBhdSyncScope,
+  ): Promise<ScopedBhdSyncResult> {
+    if (scope.dateFrom > scope.dateTo) {
+      throw new BadRequestException('dateFrom no puede ser posterior a dateTo');
+    }
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { id: true, userId: true, isActive: true },
+    });
+    if (!connection?.isActive) {
+      throw new ConflictException({
+        code: GMAIL_NOT_CONNECTED,
+        message: 'No hay una cuenta de Gmail conectada.',
+      });
+    }
+    if (this.activeSyncConnections.has(connection.id)) {
+      throw new ConflictException({
+        code: GMAIL_SYNC_IN_PROGRESS,
+        message: 'Ya hay una sincronización en curso. Espera a que termine.',
+      });
+    }
+    this.activeSyncConnections.add(connection.id);
+    try {
+      const accessToken = await this.source.getAccessToken(connection.id);
+      const query = `from:${SCOPED_BHD_SENDER} after:${gmailQueryDate(scope.dateFrom)} before:${gmailQueryDate(scope.dateTo)}`;
+      const params = new URLSearchParams({
+        q: query,
+        maxResults: String(scope.maxMessages),
+      });
+      if (scope.pageToken) {
+        params.set('pageToken', scope.pageToken);
+      }
+      const page = await this.source.gmailApiRequest<GmailMessageList>(
+        accessToken,
+        `/users/me/messages?${params}`,
+        (state) =>
+          this.updateSyncProgress(connection.id, connection.userId, {
+            ...state,
+            retryAt: state.retryAt,
+          }),
+      );
+      const refs = page.messages ?? [];
+      const imported = await this.importMessageBatch(
+        connection.id,
+        connection.userId,
+        accessToken,
+        refs,
+      );
+      return {
+        connected: true,
+        query,
+        found: refs.length,
+        imported,
+        skipped: refs.length - imported,
+        nextPageToken: page.nextPageToken ?? null,
+        estimatedTotal: page.resultSizeEstimate ?? null,
+      };
+    } finally {
+      this.activeSyncConnections.delete(connection.id);
+    }
   }
 
   async getProgressForUser(userId: string) {
@@ -1311,4 +1398,8 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const providerCode = (response as Record<string, unknown>).providerCode;
     return typeof providerCode === 'string' ? providerCode : undefined;
   }
+}
+
+function gmailQueryDate(date: Date): string {
+  return date.toISOString().slice(0, 10).replaceAll('-', '/');
 }
