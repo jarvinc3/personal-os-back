@@ -35,9 +35,9 @@ export class OutboxRelay implements DomainEventRelay {
     }
   }
 
-  /** Wake after commit; the cron covers a failed or skipped wake. */
-  async wake(): Promise<number> {
-    return this.processBatch();
+  /** Delivers now after a commit; the cron covers a failed or skipped wake. */
+  async wake(): Promise<void> {
+    await this.processBatch();
   }
 
   /** Exposed for tests and the cron handler. */

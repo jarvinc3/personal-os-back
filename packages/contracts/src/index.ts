@@ -212,7 +212,7 @@ export interface DomainEventPublisher {
 }
 /** Delivers pending outbox rows now; the periodic relay covers failures. */
 export interface DomainEventRelay {
-  wake(): Promise<number>;
+  wake(): Promise<void>;
 }
 export interface DomainEventOutboxReader {
   hasEvent(eventId: string): Promise<boolean>;
