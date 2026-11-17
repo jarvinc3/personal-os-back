@@ -11,14 +11,17 @@ import {
   getPrismaClientClass,
   type PrismaService,
 } from '@personal-os/database';
+import { NOTIFICATION_INTENT_SINK } from '@personal-os/contracts';
 import { DomainEventIdempotencyGuard, OutboxRelay } from '@personal-os/core';
-import { FinanceEvents } from '@personal-os/finance';
 import {
-  NotificationsGateway,
-  NotificationsService,
-} from '@personal-os/notifications';
-// eslint-disable-next-line no-restricted-imports -- Verify the real Nest event decorator and consumer transaction together.
-import { NotificationsEventsListener } from '../../packages/notifications/src/application/notifications-events.listener';
+  FinanceEvents,
+  FinanceNotificationIntents,
+} from '@personal-os/finance';
+import { NotificationIntentPipeline } from '@personal-os/notifications';
+// eslint-disable-next-line no-restricted-imports -- Integration exercises the real Finance listener for its own events.
+import { FinanceNotificationsListener } from '../../packages/finance/src/notifications/finance-notifications.listener';
+// eslint-disable-next-line no-restricted-imports -- Integration persists through the real repository against PostgreSQL.
+import { NotificationsRepository } from '../../packages/notifications/src/infrastructure/notifications.repository';
 
 // Fail instead of silently skipping: CI must supply a dedicated local database.
 const connectionString = process.env.TEST_DATABASE_URL;
@@ -225,20 +228,23 @@ describe('Outbox recovery with PostgreSQL', () => {
     expect(await prisma.processedDomainEvent.count()).toBe(1);
   });
 
-  it('propagates a Nest listener failure and retries its notification atomically', async () => {
-    const create = jest
-      .fn()
-      .mockImplementation((_userId, dto, tx) =>
-        tx.notification.create({ data: { ...dto, userId: 'test-user' } }),
-      );
-    const publishInApp = jest.fn();
+  it('persists an intent atomically and retries its delivery without duplicating the row', async () => {
+    const deliverPersisted = jest.fn();
+    const pipeline = new NotificationIntentPipeline(
+      new NotificationsRepository(prisma as PrismaService),
+      {
+        evaluate: () => Promise.resolve({ allowed: true }),
+        logSkipped: jest.fn(),
+      } as never,
+      { deliverPersisted } as never,
+      guard,
+    );
     const module = await Test.createTestingModule({
       imports: [EventEmitterModule.forRoot()],
       providers: [
-        NotificationsEventsListener,
-        { provide: DomainEventIdempotencyGuard, useValue: guard },
-        { provide: NotificationsService, useValue: { create, publishInApp } },
-        { provide: NotificationsGateway, useValue: { emitToUser: jest.fn() } },
+        FinanceNotificationsListener,
+        FinanceNotificationIntents,
+        { provide: NOTIFICATION_INTENT_SINK, useValue: pipeline },
       ],
     }).compile();
     const app = module.createNestApplication();
@@ -246,22 +252,37 @@ describe('Outbox recovery with PostgreSQL', () => {
     try {
       const emitter = app.get(EventEmitter2);
       const event = {
-        userId: 'test-user',
         eventId: 'budget-event',
+        userId: 'test-user',
+        aggregateType: 'FinBudget',
+        aggregateId: 'budget-1',
+        occurredAt: '2026-11-03T00:00:00.000Z',
         budgetId: 'budget',
         percentageUsed: 90,
       };
-      create.mockRejectedValueOnce(new Error('notification write failed'));
+      deliverPersisted.mockRejectedValueOnce(
+        new Error('notification delivery failed'),
+      );
       await expect(
         emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event),
-      ).rejects.toThrow('notification write failed');
-      expect(await prisma.processedDomainEvent.count()).toBe(0);
-      expect(await prisma.notification.count()).toBe(0);
+      ).rejects.toThrow('notification delivery failed');
+      expect(await prisma.notification.count()).toBe(1);
+      expect(
+        await prisma.processedDomainEvent.count({
+          where: { consumer: { startsWith: 'notifications:intent-delivered' } },
+        }),
+      ).toBe(0);
+
+      deliverPersisted.mockResolvedValue(undefined);
       await emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event);
       await emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event);
       expect(await prisma.notification.count()).toBe(1);
-      expect(await prisma.processedDomainEvent.count()).toBe(1);
-      expect(publishInApp).toHaveBeenCalledTimes(1);
+      expect(deliverPersisted).toHaveBeenCalledTimes(2);
+      expect(
+        await prisma.processedDomainEvent.count({
+          where: { consumer: { startsWith: 'notifications:intent-delivered' } },
+        }),
+      ).toBe(1);
     } finally {
       await app.close();
     }

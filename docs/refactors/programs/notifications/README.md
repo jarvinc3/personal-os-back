@@ -2,7 +2,7 @@
 
 ## Diagnóstico
 
-La estructura interna de Notifications es adecuada. El acoplamiento está en la entrada: `NotificationsEventsListener` interpreta eventos, estados, preferencias y copy de Finance. Si se mantiene, cada dominio nuevo ampliará ese switch central.
+La entrada ya es neutral después de NOTIF-2: `NotificationsEventsListener` solo atiende eventos de plataforma y los dominios productores, como Finance, traducen sus propios eventos y envían intents al sink. No queda interpretación de eventos, estados ni copy de Finance en este paquete.
 
 ## Objetivo
 
@@ -16,5 +16,5 @@ El [índice de fases](phases/README.md) reúne objetivos, issues, PRs relacionad
 
 - Se mantienen persistencia, estado de lectura, policy, canales, push tokens, reintentos, WebSocket, email, horas de silencio e idempotencia.
 - `AiSignal`, `DomainEvent` y `NotificationIntent` son contratos distintos.
-- Los eventos de importación por email y su copy se retiran con FIN-1; no quedan huérfanos hasta NOTIF-2.
+- Ningún dominio importa Notifications para producir un aviso: usan el token de `@personal-os/contracts` y la app compone el sink.
 - Se conservan BullMQ, WebSocket, FCM y Resend. No se reemplazan por simetría arquitectónica ni se genera el copy con un LLM por defecto.
