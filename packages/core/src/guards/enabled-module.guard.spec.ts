@@ -3,10 +3,11 @@ import { EnabledModuleGuard } from './enabled-module.guard';
 
 describe('EnabledModuleGuard', () => {
   const getAllAndOverride = jest.fn();
-  const findFirst = jest.fn();
+  const has = jest.fn();
+  const read = jest.fn();
   const guard = new EnabledModuleGuard(
     { getAllAndOverride } as never,
-    { userModule: { findFirst } } as never,
+    { has, read } as never,
   );
 
   const context = (user?: { sub?: string }) =>
@@ -20,13 +21,14 @@ describe('EnabledModuleGuard', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    has.mockReturnValue(true);
   });
 
   it('skips @Public() routes without looking up modules', async () => {
     getAllAndOverride.mockReturnValueOnce(true);
 
     await expect(guard.canActivate(context())).resolves.toBe(true);
-    expect(findFirst).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
   });
 
   it('skips routes without @RequiresEnabledModule', async () => {
@@ -37,7 +39,7 @@ describe('EnabledModuleGuard', () => {
     await expect(guard.canActivate(context({ sub: 'user-1' }))).resolves.toBe(
       true,
     );
-    expect(findFirst).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
   });
 
   it('denies when JWT user is missing after auth', async () => {
@@ -46,33 +48,38 @@ describe('EnabledModuleGuard', () => {
       .mockReturnValueOnce('finance');
 
     await expect(guard.canActivate(context())).resolves.toBe(false);
-    expect(findFirst).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
   });
 
-  it('throws 403 when the module row is missing or disabled', async () => {
+  it('throws 403 when no descriptor owns the module slug', async () => {
     getAllAndOverride
       .mockReturnValueOnce(undefined)
-      .mockReturnValueOnce('finance');
-    findFirst.mockResolvedValue(null);
+      .mockReturnValueOnce('retired');
+    has.mockReturnValue(false);
 
     await expect(guard.canActivate(context({ sub: 'user-1' }))).rejects.toThrow(
       ForbiddenException,
     );
-    expect(findFirst).toHaveBeenCalledWith({
-      where: {
-        userId: 'user-1',
-        isEnabled: true,
-        module: { slug: 'finance' },
-      },
-      select: { id: true },
-    });
+    expect(read).not.toHaveBeenCalled();
   });
 
-  it('allows when an enabled UserModule row exists', async () => {
+  it('throws 403 when the module is missing or disabled', async () => {
     getAllAndOverride
       .mockReturnValueOnce(undefined)
       .mockReturnValueOnce('finance');
-    findFirst.mockResolvedValue({ id: 'um-1' });
+    read.mockResolvedValue({ enabled: false, version: 2, config: {} });
+
+    await expect(guard.canActivate(context({ sub: 'user-1' }))).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(read).toHaveBeenCalledWith('user-1', 'finance');
+  });
+
+  it('allows when the module is enabled for the user', async () => {
+    getAllAndOverride
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce('finance');
+    read.mockResolvedValue({ enabled: true, version: 2, config: {} });
 
     await expect(guard.canActivate(context({ sub: 'user-1' }))).resolves.toBe(
       true,

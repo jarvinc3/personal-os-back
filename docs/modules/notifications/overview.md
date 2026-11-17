@@ -8,7 +8,7 @@ Orquestar notificaciones in-app, push y email; tokens push; gateway Socket.IO.
 
 - CRUD lista/unread/read para el usuario autenticado
 - Registro/desactivación de push tokens (`platform`: ios | android | web)
-- Policy: channels, quiet hours (suprime PUSH/EMAIL, no IN_APP), keys por módulo en `data`
+- Policy: channels, quiet hours (suprime PUSH/EMAIL, no IN_APP) y preferencia del módulo mediante `MODULE_SETTINGS_READER`
 - Processor cola `notifications`; EMAIL vía cola `email-sync` + Resend
 - Listener de eventos finance con idempotencia; el copy y las claves de preferencia vienen de Finance, que también publica su adaptador de intents
 - Gateway namespace `/notifications`

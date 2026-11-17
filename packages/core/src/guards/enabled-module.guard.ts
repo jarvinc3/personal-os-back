@@ -2,10 +2,14 @@ import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
+  Inject,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '@personal-os/database';
+import {
+  MODULE_SETTINGS_READER,
+  type ModuleSettingsReader,
+} from '@personal-os/contracts';
 import { ENABLED_MODULE_KEY, IS_PUBLIC_KEY } from '../decorators';
 import { moduleDisabledMessage } from '../exceptions/module-disabled';
 
@@ -13,7 +17,8 @@ import { moduleDisabledMessage } from '../exceptions/module-disabled';
 export class EnabledModuleGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly prisma: PrismaService,
+    @Inject(MODULE_SETTINGS_READER)
+    private readonly settings: ModuleSettingsReader,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -41,11 +46,12 @@ export class EnabledModuleGuard implements CanActivate {
       return false;
     }
 
-    const enabled = await this.prisma.userModule.findFirst({
-      where: { userId, isEnabled: true, module: { slug } },
-      select: { id: true },
-    });
-    if (!enabled) {
+    if (!this.settings.has(slug)) {
+      throw new ForbiddenException(moduleDisabledMessage(slug));
+    }
+
+    const module = await this.settings.read(userId, slug);
+    if (!module.enabled) {
       throw new ForbiddenException(moduleDisabledMessage(slug));
     }
     return true;
