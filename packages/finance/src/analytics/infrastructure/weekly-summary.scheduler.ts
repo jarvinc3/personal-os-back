@@ -11,13 +11,19 @@ import {
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { UsersService } from '@personal-os/users';
+import { mergeWithDefaults, UsersService } from '@personal-os/users';
+import type { ModuleConfigRow } from '@personal-os/users';
+import {
+  FINANCE_NOTIFICATION_KEYS,
+  FINANCE_SETTINGS_DEFAULTS,
+} from '../../settings/finance-settings';
 import {
   WeeklySummaryService,
   previousWeekStartIso,
 } from '../application/weekly-summary.service';
 
 const SEND_HOUR = 8;
+const FINANCE_MODULE_SLUG = 'finance';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
 const CONSUMER_AGGREGATE = 'User';
 
@@ -61,14 +67,48 @@ export class WeeklySummaryScheduler {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleCron(now: Date = new Date()): Promise<void> {
-    const recipients = await this.users.listWeeklySummaryRecipients();
-    for (const recipient of recipients) {
+    const moduleConfigs =
+      await this.users.listEnabledModuleConfigs(FINANCE_MODULE_SLUG);
+    for (const moduleConfig of moduleConfigs) {
+      const recipient = this.resolveRecipient(moduleConfig);
+      if (!recipient) {
+        continue;
+      }
       const local = localDayAndHour(recipient.timezone, now);
       if (local.day !== recipient.day || local.hour !== SEND_HOUR) {
         continue;
       }
       await this.emitSummary(recipient.userId, local.dateIso);
     }
+  }
+
+  /** Finance decides who receives its summary and on which weekday. */
+  private resolveRecipient(moduleConfig: ModuleConfigRow): {
+    userId: string;
+    timezone: string;
+    day: number;
+  } | null {
+    const config = mergeWithDefaults(
+      moduleConfig.config,
+      FINANCE_SETTINGS_DEFAULTS as unknown as Record<string, unknown>,
+    );
+    const notifications = (config.notifications ?? {}) as Record<
+      string,
+      boolean
+    >;
+    if (notifications[FINANCE_NOTIFICATION_KEYS.weeklySummary] === false) {
+      return null;
+    }
+    const reports = (config.reports ?? {}) as { weeklySummaryDay?: unknown };
+    const day =
+      typeof reports.weeklySummaryDay === 'number'
+        ? reports.weeklySummaryDay
+        : FINANCE_SETTINGS_DEFAULTS.reports.weeklySummaryDay;
+    return {
+      userId: moduleConfig.userId,
+      timezone: moduleConfig.timezone,
+      day,
+    };
   }
 
   private async emitSummary(userId: string, dateIso: string): Promise<void> {

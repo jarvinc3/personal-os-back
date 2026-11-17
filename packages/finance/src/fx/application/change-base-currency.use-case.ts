@@ -9,10 +9,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Env } from '@personal-os/config';
 import { AppEvents } from '@personal-os/core';
 import { Prisma, PrismaService } from '@personal-os/database';
-import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  mergeWithDefaults,
-} from '@personal-os/users';
+import { mergeWithDefaults } from '@personal-os/users';
+import { FINANCE_SETTINGS_DEFAULTS } from '../../settings/finance-settings';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
   convertDecimal,
@@ -100,10 +98,7 @@ export class ChangeBaseCurrencyUseCase {
 
     const currentConfig = mergeWithDefaults(
       userModule?.config,
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
-        string,
-        unknown
-      >,
+      FINANCE_SETTINGS_DEFAULTS as unknown as Record<string, unknown>,
     );
     const previousBaseCurrency = this.resolvePreviousBaseCurrency(
       currentConfig.baseCurrency,

@@ -1,5 +1,5 @@
 import type { DomainEventIdempotencyGuard } from '@personal-os/core';
-import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
+import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/finance';
 import type { NotificationsGateway } from '../presentation/notifications.gateway';
 import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsService } from './notifications.service';

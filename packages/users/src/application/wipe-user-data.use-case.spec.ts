@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
+import type { ModuleSettingsRegistry } from '@personal-os/contracts';
 import { AppEvents } from '@personal-os/core';
 import { DATA_APP, type DataBranchDescriptor } from '../domain/data-branches';
 import type { UserDataWipeDomainsPort } from './ports/user-data-wipe-domains.port';
@@ -69,16 +70,24 @@ function build() {
 
   const emit = jest.fn();
   const eventEmitter = { emit } as unknown as EventEmitter2;
+  const moduleDefaults = [
+    { slug: 'finance', defaults: { version: 2, notifications: {} } },
+  ];
+  const settingsRegistry = {
+    list: () => moduleDefaults,
+  } as unknown as ModuleSettingsRegistry;
   const useCase = new WipeUserDataUseCase(
     usersRepository,
     domains,
     eventEmitter,
+    settingsRegistry,
   );
 
   return {
     useCase,
     findById,
     resetSettingsToDefaults,
+    moduleDefaults,
     dataBranches,
     countDataBranches,
     wipeDataBranches,
@@ -176,7 +185,10 @@ describe('WipeUserDataUseCase', () => {
     expect(harness.resetSettingsToDefaults).not.toHaveBeenCalled();
 
     await harness.useCase.execute('user-1', ['settings.defaults']);
-    expect(harness.resetSettingsToDefaults).toHaveBeenCalledWith('user-1');
+    expect(harness.resetSettingsToDefaults).toHaveBeenCalledWith(
+      'user-1',
+      harness.moduleDefaults,
+    );
   });
 
   it('rejects a branch that does not exist', async () => {

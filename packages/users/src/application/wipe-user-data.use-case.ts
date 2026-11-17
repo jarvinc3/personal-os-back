@@ -8,6 +8,10 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'crypto';
+import {
+  MODULE_SETTINGS_REGISTRY,
+  type ModuleSettingsRegistry,
+} from '@personal-os/contracts';
 import { AppEvents } from '@personal-os/core';
 import {
   DATA_APP,
@@ -59,6 +63,8 @@ export class WipeUserDataUseCase {
     @Inject(USER_DATA_WIPE_DOMAINS)
     private readonly domains: UserDataWipeDomainsPort,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(MODULE_SETTINGS_REGISTRY)
+    private readonly settingsRegistry: ModuleSettingsRegistry,
   ) {}
 
   /** Every branch of every app, with what the user would delete today. */
@@ -219,8 +225,17 @@ export class WipeUserDataUseCase {
         )
       : {};
     if (settingsRequested) {
-      await this.usersRepository.resetSettingsToDefaults(userId);
+      await this.resetModuleSettings(userId);
     }
     return counts;
+  }
+
+  /** Settings go back to the defaults each registered module declares. */
+  private async resetModuleSettings(userId: string): Promise<void> {
+    const moduleDefaults = this.settingsRegistry.list().map((descriptor) => ({
+      slug: descriptor.slug,
+      defaults: descriptor.defaults,
+    }));
+    await this.usersRepository.resetSettingsToDefaults(userId, moduleDefaults);
   }
 }

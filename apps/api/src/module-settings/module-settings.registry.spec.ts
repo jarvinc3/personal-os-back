@@ -24,6 +24,8 @@ describe('ModuleSettingsRegistry', () => {
       ),
     ).toMatchObject({ view: 'calendar' });
     expect(registry.list()).toHaveLength(1);
+    expect(registry.has('test-module')).toBe(true);
+    expect(registry.has('missing')).toBe(false);
   });
 
   it('rejects duplicate slugs and unregistered modules', () => {

@@ -8,11 +8,8 @@ import {
 import { clampPageLimit, decodeCursor, toCursorPage } from '@personal-os/core';
 import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
-import {
-  resolveSubscriptionReminderDays,
-  USERS_REPOSITORY,
-  type UsersRepositoryPort,
-} from '@personal-os/users';
+import { USERS_REPOSITORY, type UsersRepositoryPort } from '@personal-os/users';
+import { resolveSubscriptionReminderDays } from '../../settings/finance-settings';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { normalizeMerchant } from '../../merchants/domain/normalize-merchant';

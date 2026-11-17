@@ -165,6 +165,7 @@ export interface SettingsDescriptor<T extends JsonObject = JsonObject> {
 }
 export interface ModuleSettingsRegistry {
   register(descriptor: SettingsDescriptor): void;
+  has(slug: string): boolean;
   get(slug: string): SettingsDescriptor;
   list(): readonly SettingsDescriptor[];
   normalize(slug: string, stored: unknown): JsonObject;

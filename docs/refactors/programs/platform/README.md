@@ -2,7 +2,7 @@
 
 ## Diagnóstico
 
-Core concentra hoy contratos semánticos de eventos de varios dominios y ya aloja la infraestructura genérica de outbox (`OutboxRelay`, `PrismaDomainEventOutbox` y `DomainEventsModule`). Users concentra defaults y validadores de settings de módulos. Ese segundo límite hace que agregar settings de un dominio requiera editar infraestructura compartida; el de eventos quedó resuelto en PLATFORM-EVENTS-1.
+Core concentra hoy contratos semánticos de eventos de varios dominios y ya aloja la infraestructura genérica de outbox (`OutboxRelay`, `PrismaDomainEventOutbox` y `DomainEventsModule`). Users conserva identidad y preferencias globales después de PLATFORM-SETTINGS-1; los defaults y validadores de cada módulo viven en su descriptor. El límite de eventos quedó resuelto en PLATFORM-EVENTS-1 y el de settings en PLATFORM-SETTINGS-1; queda migrar los consumidores a los providers genéricos en PLATFORM-SETTINGS-2.
 
 ## Objetivo
 

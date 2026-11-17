@@ -1,14 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthDeletionOutboxStatus, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import type { UsersRepositoryPort } from '../application/ports/users.repository.port';
+import type {
+  ModuleSettingsDefaults,
+  UsersRepositoryPort,
+} from '../application/ports/users.repository.port';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
-import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  isModuleSlug,
-} from '../domain/defaults/user-settings-defaults';
-
-const FINANCE_MODULE_SLUG = 'finance';
 
 const userWithModulesInclude = {
   userModules: {
@@ -67,9 +64,9 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
-  async findFinanceSummaryRecipients() {
+  async findEnabledModuleConfigs(slug: string) {
     const rows = await this.prisma.userModule.findMany({
-      where: { isEnabled: true, module: { slug: FINANCE_MODULE_SLUG } },
+      where: { isEnabled: true, module: { slug } },
       select: {
         userId: true,
         config: true,
@@ -142,7 +139,13 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
-  async resetSettingsToDefaults(userId: string): Promise<void> {
+  async resetSettingsToDefaults(
+    userId: string,
+    moduleDefaults: readonly ModuleSettingsDefaults[],
+  ): Promise<void> {
+    const defaultsBySlug = new Map(
+      moduleDefaults.map((module) => [module.slug, module.defaults]),
+    );
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: userId },
@@ -151,17 +154,17 @@ export class UsersRepository implements UsersRepositoryPort {
         },
       });
       const modules = await tx.module.findMany({
+        where: { slug: { in: [...defaultsBySlug.keys()] } },
         select: { id: true, slug: true },
       });
       for (const module of modules) {
-        if (!isModuleSlug(module.slug)) {
+        const config = defaultsBySlug.get(module.slug);
+        if (!config) {
           continue;
         }
         await tx.userModule.updateMany({
           where: { userId, moduleId: module.id },
-          data: {
-            config: DEFAULT_MODULE_CONFIG_BY_SLUG[module.slug],
-          },
+          data: { config: config as Prisma.InputJsonValue },
         });
       }
     });

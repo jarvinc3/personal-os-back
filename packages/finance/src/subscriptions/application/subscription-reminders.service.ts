@@ -10,10 +10,8 @@ import {
 } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  resolveSubscriptionReminderDays,
-  UsersService,
-} from '@personal-os/users';
+import { UsersService } from '@personal-os/users';
+import { resolveSubscriptionReminderDays } from '../../settings/finance-settings';
 import { scalarNumber } from '../../shared/domain/money';
 import { daysUntil } from '../domain/billing';
 import { SubscriptionsRepository } from '../infrastructure/subscriptions.repository';

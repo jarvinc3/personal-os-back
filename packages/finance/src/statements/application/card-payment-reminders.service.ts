@@ -10,7 +10,8 @@ import {
 } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { resolveCardDueDaysBefore, UsersService } from '@personal-os/users';
+import { UsersService } from '@personal-os/users';
+import { resolveCardDueDaysBefore } from '../../settings/finance-settings';
 import { isoDay, localDayStart } from '../../shared/domain/local-day';
 import {
   buildCardStatementViews,

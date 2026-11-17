@@ -1,25 +1,22 @@
 import {
   CARD_DUE_DAYS_BEFORE_MAX,
   CARD_DUE_DAYS_BEFORE_MIN,
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
+  FINANCE_SETTINGS_DEFAULTS,
   resolveCardDueDaysBefore,
+  resolveSubscriptionReminderDays,
   SUBSCRIPTION_REMINDER_DAYS_MAX,
   SUBSCRIPTION_REMINDER_DAYS_MIN,
   validateCardDueDaysBefore,
   validateSubscriptionReminderDays,
-} from './user-settings-defaults';
+} from './finance-settings';
 
-describe('finance module defaults', () => {
+describe('finance settings defaults', () => {
   it('warns about upcoming charges 5 days ahead by default', () => {
-    expect(
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.subscriptions.reminderDaysBefore,
-    ).toBe(5);
+    expect(FINANCE_SETTINGS_DEFAULTS.subscriptions.reminderDaysBefore).toBe(5);
   });
 
   it('warns about card payments 3 days ahead by default', () => {
-    expect(
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.reminders.cardDueDaysBefore,
-    ).toBe(3);
+    expect(FINANCE_SETTINGS_DEFAULTS.reminders.cardDueDaysBefore).toBe(3);
   });
 });
 
@@ -52,6 +49,21 @@ describe('validateCardDueDaysBefore', () => {
     );
     expect(validateCardDueDaysBefore(3.5)).not.toBeNull();
     expect(validateCardDueDaysBefore('3')).not.toBeNull();
+  });
+});
+
+describe('resolveSubscriptionReminderDays', () => {
+  it('reads the configured value', () => {
+    expect(
+      resolveSubscriptionReminderDays({
+        subscriptions: { reminderDaysBefore: 10 },
+      }),
+    ).toBe(10);
+  });
+
+  it('falls back to the default when the config is partial', () => {
+    expect(resolveSubscriptionReminderDays({ subscriptions: {} })).toBe(5);
+    expect(resolveSubscriptionReminderDays(undefined)).toBe(5);
   });
 });
 

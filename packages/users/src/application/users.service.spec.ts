@@ -5,9 +5,19 @@ import { AppEvents } from '@personal-os/core';
 import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
+const REGISTERED_SLUGS = ['finance', 'agenda', 'projects', 'health', 'ai'];
+
 const passThroughSettingsRegistry = {
+  has: (slug: string) => REGISTERED_SLUGS.includes(slug),
   normalize: jest.fn(
     (_slug: string, config: Record<string, unknown>) => config,
+  ),
+  applyPatch: jest.fn(
+    (
+      _slug: string,
+      current: Record<string, unknown>,
+      patch: Record<string, unknown>,
+    ) => ({ ...current, ...patch }),
   ),
 } as never;
 
@@ -198,19 +208,27 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
 
   it('validates AI module settings through the registered descriptor before saving', async () => {
     const registry = {
-      normalize: jest.fn((slug: string, config: Record<string, unknown>) => {
-        const reviewConfidenceThreshold = (
-          config.email as { reviewConfidenceThreshold?: number } | undefined
-        )?.reviewConfidenceThreshold;
-        if (
-          slug === 'ai' &&
-          typeof reviewConfidenceThreshold === 'number' &&
-          reviewConfidenceThreshold > 1
-        ) {
-          throw new BadRequestException('invalid confidence threshold');
-        }
-        return config;
-      }),
+      has: () => true,
+      applyPatch: jest.fn(
+        (
+          slug: string,
+          current: Record<string, unknown>,
+          patch: Record<string, unknown>,
+        ) => {
+          const config = { ...current, ...patch };
+          const reviewConfidenceThreshold = (
+            config.email as { reviewConfidenceThreshold?: number } | undefined
+          )?.reviewConfidenceThreshold;
+          if (
+            slug === 'ai' &&
+            typeof reviewConfidenceThreshold === 'number' &&
+            reviewConfidenceThreshold > 1
+          ) {
+            throw new BadRequestException('invalid confidence threshold');
+          }
+          return config;
+        },
+      ),
     };
     const configuredService = new UsersService(
       usersRepository,
@@ -230,11 +248,12 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
         config: { email: { reviewConfidenceThreshold: 1.2 } },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(registry.normalize).toHaveBeenCalledWith(
+    expect(registry.applyPatch).toHaveBeenCalledWith(
       'ai',
-      expect.objectContaining({
-        email: expect.objectContaining({ reviewConfidenceThreshold: 1.2 }),
-      }),
+      {},
+      {
+        email: { reviewConfidenceThreshold: 1.2 },
+      },
     );
     expect(upsertUserModule).not.toHaveBeenCalled();
   });
@@ -249,59 +268,6 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
           undefined as never,
         ),
     ).toThrow('MODULE_SETTINGS_REGISTRY');
-  });
-});
-
-describe('UsersService.listWeeklySummaryRecipients', () => {
-  const findFinanceSummaryRecipients = jest.fn();
-  const usersRepository = {
-    findFinanceSummaryRecipients,
-  } as unknown as UsersRepositoryPort;
-  const service = new UsersService(
-    usersRepository,
-    { emit: jest.fn() } as unknown as EventEmitter2,
-    {} as unknown as SupabaseAdminService,
-    passThroughSettingsRegistry,
-  );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('defaults to Monday when the report day is not configured', async () => {
-    findFinanceSummaryRecipients.mockResolvedValue([
-      { userId: 'user-1', timezone: 'America/Santo_Domingo', config: {} },
-    ]);
-
-    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
-      { userId: 'user-1', timezone: 'America/Santo_Domingo', day: 1 },
-    ]);
-  });
-
-  it('skips users who turned the weekly summary off', async () => {
-    findFinanceSummaryRecipients.mockResolvedValue([
-      {
-        userId: 'user-1',
-        timezone: 'UTC',
-        config: { notifications: { weeklySummary: false } },
-      },
-    ]);
-
-    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([]);
-  });
-
-  it('uses the configured report day', async () => {
-    findFinanceSummaryRecipients.mockResolvedValue([
-      {
-        userId: 'user-1',
-        timezone: 'UTC',
-        config: { reports: { weeklySummaryDay: 5 } },
-      },
-    ]);
-
-    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
-      { userId: 'user-1', timezone: 'UTC', day: 5 },
-    ]);
   });
 });
 

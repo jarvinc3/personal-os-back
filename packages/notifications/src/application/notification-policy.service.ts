@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  MODULE_SETTINGS_REGISTRY,
+  type ModuleSettingsRegistry,
+} from '@personal-os/contracts';
 import type { NotificationChannel } from '@personal-os/database';
 import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  isModuleSlug,
   mergeWithDefaults,
   parseUserPreferences,
   USERS_REPOSITORY,
@@ -26,6 +28,8 @@ export class NotificationPolicyService {
   constructor(
     @Inject(USERS_REPOSITORY)
     private readonly usersRepository: UsersRepositoryPort,
+    @Inject(MODULE_SETTINGS_REGISTRY)
+    private readonly settingsRegistry: ModuleSettingsRegistry,
   ) {}
 
   async evaluate(
@@ -120,20 +124,19 @@ export class NotificationPolicyService {
       return { allowed: true };
     }
 
-    if (!isModuleSlug(moduleSlug)) {
+    if (!this.settingsRegistry.has(moduleSlug)) {
       return { allowed: true };
     }
 
-    const slug = moduleSlug;
     const entry = userModules.find(
-      (row) => row.module.slug === slug && row.isEnabled,
+      (row) => row.module.slug === moduleSlug && row.isEnabled,
     );
 
     if (!entry) {
       return { allowed: false, reason: 'module_disabled_or_missing' };
     }
 
-    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<
+    const defaults = this.settingsRegistry.get(moduleSlug).defaults as Record<
       string,
       unknown
     >;
@@ -147,7 +150,7 @@ export class NotificationPolicyService {
     if (enabled === false) {
       return {
         allowed: false,
-        reason: `module_notification_disabled:${slug}.${notificationKey}`,
+        reason: `module_notification_disabled:${moduleSlug}.${notificationKey}`,
       };
     }
 
