@@ -69,7 +69,7 @@ La decisión registrada en #308 mantiene las diez fases como requisito del relea
 | PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Cerrado (#381)     |
 | PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | En revisión (#388) |
 | NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Cerrado (#387)     |
-| NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | Pendiente          |
+| NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | En revisión (#392) |
 | NOTIF-3             | [#324](https://github.com/jarvinc3/personal-os-back/issues/324)                                                                                     | Pendiente          |
 
 Los hallazgos de la QA de AI-4 forman parte de AI-5: #238 y #239 corrigen la proyección y la revocación, y #246 cubre la promoción manual de ADMIN.
