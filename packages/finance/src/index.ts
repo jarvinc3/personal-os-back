@@ -10,6 +10,24 @@ export {
   FINANCE_SETTINGS_DEFAULTS,
   type FinanceNotificationKey,
 } from './settings/finance-settings';
+export { FinanceNotificationIntents } from './notifications/finance-notification-intents';
+export {
+  balanceDriftCopy,
+  budgetThresholdCopy,
+  cardPaymentDueCopy,
+  cardStatementReminderCopy,
+  formatNotificationAmount,
+  recurringMissedCopy,
+  recurringPriceChangedCopy,
+  recurringUpcomingCopy,
+  subscriptionRenewalDueCopy,
+  transactionRecordedCopy,
+  transactionUpdatedCopy,
+  transferRecordedCopy,
+  weeklySummaryCopy,
+  type NotificationCopy,
+  type TransactionNotificationFields,
+} from './notifications/finance-notification-copy';
 export * from './contracts';
 export { FinanceStatementsModule } from './statements/statements.module';
 export { STATEMENT_EXTRACTOR } from './statements/application/ports/statement-extractor.port';
