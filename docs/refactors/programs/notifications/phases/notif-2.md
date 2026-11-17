@@ -17,6 +17,7 @@ Retirar de `NotificationsEventsListener` los payloads, claves y decisiones espec
 - `NotificationIntentModule` expone el sink de forma global para que los productores inyecten el token de contracts.
 - Una prueba de arquitectura falla si Finance importa Notifications o al revés.
 - La integración con PostgreSQL cubre la persistencia atómica del intent y el reintento de entrega sin duplicar la fila.
+- Durante la transición, el listener consulta los recibos del listener anterior (`notifications`, `notifications:<tipo>`), incluido el `transferGroupId` de una transferencia, para no duplicar un evento reentregado tras el despliegue.
 - Textos, preferencias, deduplicación y canales no cambian.
 
 ## Gate

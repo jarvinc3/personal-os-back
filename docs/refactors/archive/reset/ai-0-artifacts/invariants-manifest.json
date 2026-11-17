@@ -166,9 +166,7 @@
       "table_name": "ai_actions",
       "name": "ai_actions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(session_id IN ( SELECT s.id\n   FROM ai_agent_sessions s\n  WHERE (s.user_id = (( SELECT auth.uid() AS uid))::text)))",
       "with_check": "(session_id IN ( SELECT s.id\n   FROM ai_agent_sessions s\n  WHERE (s.user_id = (( SELECT auth.uid() AS uid))::text)))"
@@ -177,9 +175,7 @@
       "table_name": "fin_accounts",
       "name": "fin_accounts_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -188,9 +184,7 @@
       "table_name": "fin_budget_alerts",
       "name": "fin_budget_alerts_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))",
       "with_check": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))"
@@ -199,9 +193,7 @@
       "table_name": "fin_budgets",
       "name": "fin_budgets_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -210,9 +202,7 @@
       "table_name": "fin_card_balances",
       "name": "fin_card_balances_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))",
       "with_check": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))"
@@ -221,9 +211,7 @@
       "table_name": "fin_cards",
       "name": "fin_cards_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -232,9 +220,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_delete_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "DELETE",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
       "with_check": null
@@ -243,9 +229,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_insert_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "INSERT",
       "qual": null,
       "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
@@ -254,9 +238,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_select_own_or_system",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) OR (is_system = true))",
       "with_check": null
@@ -265,9 +247,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_update_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "UPDATE",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
       "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
@@ -276,9 +256,7 @@
       "table_name": "fin_exchange_rates",
       "name": "fin_exchange_rates_select_public",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "true",
       "with_check": null
@@ -287,9 +265,7 @@
       "table_name": "fin_institutions",
       "name": "fin_institutions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -298,9 +274,7 @@
       "table_name": "fin_loans",
       "name": "fin_loans_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -309,9 +283,7 @@
       "table_name": "fin_receivables",
       "name": "fin_receivables_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -320,9 +292,7 @@
       "table_name": "fin_recurring_patterns",
       "name": "fin_recurring_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -331,9 +301,7 @@
       "table_name": "fin_savings_goals",
       "name": "fin_savings_goals_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -342,9 +310,7 @@
       "table_name": "fin_transactions",
       "name": "fin_transactions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -353,9 +319,7 @@
       "table_name": "modules",
       "name": "modules_select_public",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "true",
       "with_check": null
@@ -364,9 +328,7 @@
       "table_name": "notifications",
       "name": "notifications_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -375,9 +337,7 @@
       "table_name": "push_tokens",
       "name": "push_tokens_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -386,9 +346,7 @@
       "table_name": "user_modules",
       "name": "user_modules_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -397,9 +355,7 @@
       "table_name": "users",
       "name": "users_select_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": null
@@ -408,9 +364,7 @@
       "table_name": "users",
       "name": "users_update_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "UPDATE",
       "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(id = (( SELECT auth.uid() AS uid))::text)"
@@ -421,9 +375,7 @@
       "table_name": "ai_actions",
       "name": "ai_actions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (SELECT auth.uid())::text)",
       "with_check": "(user_id = (SELECT auth.uid())::text)"
@@ -432,9 +384,7 @@
       "table_name": "fin_accounts",
       "name": "fin_accounts_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -443,9 +393,7 @@
       "table_name": "fin_budget_alerts",
       "name": "fin_budget_alerts_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))",
       "with_check": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))"
@@ -454,9 +402,7 @@
       "table_name": "fin_budgets",
       "name": "fin_budgets_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -465,9 +411,7 @@
       "table_name": "fin_card_balances",
       "name": "fin_card_balances_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))",
       "with_check": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))"
@@ -476,9 +420,7 @@
       "table_name": "fin_cards",
       "name": "fin_cards_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -487,9 +429,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_delete_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "DELETE",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
       "with_check": null
@@ -498,9 +438,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_insert_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "INSERT",
       "qual": null,
       "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
@@ -509,9 +447,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_select_own_or_system",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) OR (is_system = true))",
       "with_check": null
@@ -520,9 +456,7 @@
       "table_name": "fin_categories",
       "name": "fin_categories_update_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "UPDATE",
       "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
       "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
@@ -531,9 +465,7 @@
       "table_name": "fin_exchange_rates",
       "name": "fin_exchange_rates_select_public",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "true",
       "with_check": null
@@ -542,9 +474,7 @@
       "table_name": "fin_institutions",
       "name": "fin_institutions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -553,9 +483,7 @@
       "table_name": "fin_loans",
       "name": "fin_loans_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -564,9 +492,7 @@
       "table_name": "fin_receivables",
       "name": "fin_receivables_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -575,9 +501,7 @@
       "table_name": "fin_recurring_patterns",
       "name": "fin_recurring_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -586,9 +510,7 @@
       "table_name": "fin_savings_goals",
       "name": "fin_savings_goals_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -597,9 +519,7 @@
       "table_name": "fin_transactions",
       "name": "fin_transactions_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -608,9 +528,7 @@
       "table_name": "modules",
       "name": "modules_select_public",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "true",
       "with_check": null
@@ -619,9 +537,7 @@
       "table_name": "notifications",
       "name": "notifications_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -630,9 +546,7 @@
       "table_name": "push_tokens",
       "name": "push_tokens_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -641,9 +555,7 @@
       "table_name": "user_modules",
       "name": "user_modules_all_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "ALL",
       "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
@@ -652,9 +564,7 @@
       "table_name": "users",
       "name": "users_select_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "SELECT",
       "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": null
@@ -663,9 +573,7 @@
       "table_name": "users",
       "name": "users_update_own",
       "permissive": "PERMISSIVE",
-      "roles": [
-        "authenticated"
-      ],
+      "roles": ["authenticated"],
       "cmd": "UPDATE",
       "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
       "with_check": "(id = (( SELECT auth.uid() AS uid))::text)"

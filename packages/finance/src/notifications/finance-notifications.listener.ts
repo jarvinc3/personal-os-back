@@ -1,7 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import type { NotificationIntentSink } from '@personal-os/contracts';
+import type {
+  NotificationIntent,
+  NotificationIntentSink,
+} from '@personal-os/contracts';
 import { NOTIFICATION_INTENT_SINK } from '@personal-os/contracts';
+import { DomainEventIdempotencyGuard } from '@personal-os/core';
 import type {
   FinanceDomainEvent,
   FinanceEventName,
@@ -9,6 +13,27 @@ import type {
 } from '../contracts';
 import { FINANCE_EVENT_VERSION, FinanceEvents } from '../contracts';
 import { FinanceNotificationIntents } from './finance-notification-intents';
+
+/**
+ * Receipts written by the pre-intent listener. A replay of an event it already
+ * processed must not create a second notice; this map can be removed once the
+ * old receipts are outside the lease window.
+ */
+const LEGACY_CONSUMERS: Readonly<Record<string, string>> = {
+  'transaction.created': 'notifications',
+  'transaction.updated': 'notifications:updated',
+  'transaction.transfer': 'notifications:transfer',
+  'budget.threshold_reached': 'notifications:budget',
+  'card.statement_reminder': 'notifications:card-statement',
+  'card.payment_due': 'notifications:card-payment-due',
+  'finance.weekly_summary': 'notifications:weekly-summary',
+  'recurring.price_changed': 'notifications:recurring-price',
+  'subscription.renewal_due': 'notifications:subscription-renewal',
+  'recurring.missed': 'notifications:recurring.missed',
+  'recurring.upcoming': 'notifications:recurring.upcoming',
+  'finance.balance_drift': 'notifications:balance-drift',
+};
+const TRANSFER_NOTIFICATION = 'transaction.transfer';
 
 /** Envelope the outbox relay emits: the row identity plus its JSON payload. */
 type EmittedFinanceEvent = {
@@ -30,6 +55,7 @@ export class FinanceNotificationsListener {
     private readonly intents: FinanceNotificationIntents,
     @Inject(NOTIFICATION_INTENT_SINK)
     private readonly sink: NotificationIntentSink,
+    private readonly idempotency: DomainEventIdempotencyGuard,
   ) {}
 
   @OnEvent(FinanceEvents.TRANSACTION_CONFIRMED, { suppressErrors: false })
@@ -93,8 +119,35 @@ export class FinanceNotificationsListener {
   ): Promise<void> {
     const event = this.domainEvent(eventName, emitted);
     for (const intent of this.intents.toIntents(event)) {
-      await this.sink.submit(intent);
+      if (!(await this.alreadyNotified(event, intent))) {
+        await this.sink.submit(intent);
+      }
     }
+  }
+
+  private async alreadyNotified(
+    event: FinanceDomainEvent,
+    intent: NotificationIntent,
+  ): Promise<boolean> {
+    const consumer = LEGACY_CONSUMERS[intent.type];
+    if (!consumer) {
+      return false;
+    }
+    const identity =
+      intent.type === TRANSFER_NOTIFICATION
+        ? this.transferGroupId(event)
+        : event.eventId;
+    if (!identity) {
+      return false;
+    }
+    return this.idempotency.wasProcessed(identity, consumer);
+  }
+
+  private transferGroupId(event: FinanceDomainEvent): string | null {
+    const payload = event.payload as { transferGroupId?: unknown };
+    return typeof payload.transferGroupId === 'string'
+      ? payload.transferGroupId
+      : null;
   }
 
   private domainEvent(

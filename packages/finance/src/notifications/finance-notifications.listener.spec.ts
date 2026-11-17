@@ -2,6 +2,7 @@ import type {
   NotificationIntent,
   NotificationIntentSink,
 } from '@personal-os/contracts';
+import type { DomainEventIdempotencyGuard } from '@personal-os/core';
 import { FINANCE_EVENT_VERSION, FinanceEvents } from '../contracts';
 import { FinanceNotificationIntents } from './finance-notification-intents';
 import { FinanceNotificationsListener } from './finance-notifications.listener';
@@ -25,14 +26,20 @@ describe('FinanceNotificationsListener', () => {
     notificationIds: ['n-1'],
   });
   const sink = { submit } as unknown as NotificationIntentSink;
+  const wasProcessed = jest.fn().mockResolvedValue(false);
+  const idempotency = {
+    wasProcessed,
+  } as unknown as DomainEventIdempotencyGuard;
   const listener = new FinanceNotificationsListener(
     new FinanceNotificationIntents(),
     sink,
+    idempotency,
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
     submit.mockResolvedValue({ accepted: true, notificationIds: ['n-1'] });
+    wasProcessed.mockResolvedValue(false);
   });
 
   it('turns a confirmed transaction into one Finance intent', async () => {
@@ -68,6 +75,7 @@ describe('FinanceNotificationsListener', () => {
     const producerListener = new FinanceNotificationsListener(
       { toIntents } as never,
       sink,
+      idempotency,
     );
 
     await producerListener.onTransactionUpdated(emitted());
@@ -105,6 +113,7 @@ describe('FinanceNotificationsListener', () => {
     const producerListener = new FinanceNotificationsListener(
       { toIntents: jest.fn().mockReturnValue([first, second]) } as never,
       sink,
+      idempotency,
     );
 
     await producerListener.onCardPaymentDue(emitted());
@@ -123,6 +132,42 @@ describe('FinanceNotificationsListener', () => {
       }),
     );
 
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('skips a fact the previous listener already recorded', async () => {
+    wasProcessed.mockResolvedValue(true);
+
+    await listener.onTransactionConfirmed(
+      emitted({
+        transactionId: 'tx-1',
+        amount: 100,
+        status: 'CONFIRMED',
+        type: 'DEBIT',
+      }),
+    );
+
+    expect(wasProcessed).toHaveBeenCalledWith('evt-1', 'notifications');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('uses the transfer group as the previous listener identity', async () => {
+    wasProcessed.mockResolvedValue(true);
+
+    await listener.onTransactionConfirmed(
+      emitted({
+        transactionId: 'tx-1',
+        amount: 100,
+        status: 'CONFIRMED',
+        transferGroupId: 'group-1',
+        legRole: 'SOURCE',
+      }),
+    );
+
+    expect(wasProcessed).toHaveBeenCalledWith(
+      'group-1',
+      'notifications:transfer',
+    );
     expect(submit).not.toHaveBeenCalled();
   });
 

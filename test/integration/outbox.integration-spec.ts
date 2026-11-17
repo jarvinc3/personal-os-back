@@ -245,6 +245,7 @@ describe('Outbox recovery with PostgreSQL', () => {
         FinanceNotificationsListener,
         FinanceNotificationIntents,
         { provide: NOTIFICATION_INTENT_SINK, useValue: pipeline },
+        { provide: DomainEventIdempotencyGuard, useValue: guard },
       ],
     }).compile();
     const app = module.createNestApplication();

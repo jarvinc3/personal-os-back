@@ -54,3 +54,8 @@ detalle. Un movimiento que solo existe como efecto de una acción ya confirmada
 en pantalla viaja con `announce: false` y no genera aviso; un movimiento
 importado que queda `PENDING` avisa al confirmarse, y los demás avisos conservan
 su texto y su preferencia.
+
+Durante la transición, el listener consulta los recibos del listener anterior
+(`notifications`, `notifications:<tipo>`) con el `eventId` del evento, o con el
+`transferGroupId` en una transferencia, para no duplicar un evento reentregado
+tras el despliegue.

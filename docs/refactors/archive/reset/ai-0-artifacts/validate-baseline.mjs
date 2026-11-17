@@ -139,14 +139,20 @@ try {
   });
   await test('Keep uuid-ossp in the verified Supabase extensions schema', async () => {
     assert.equal(
-      await scalar("SELECT n.nspname AS value FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='uuid-ossp'"),
+      await scalar(
+        "SELECT n.nspname AS value FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='uuid-ossp'",
+      ),
       'extensions',
     );
   });
   await test('Automatically enable RLS on future public tables', async () => {
-    await pool.query('CREATE TABLE public.ai0_rls_probe (id integer PRIMARY KEY)');
+    await pool.query(
+      'CREATE TABLE public.ai0_rls_probe (id integer PRIMARY KEY)',
+    );
     assert.equal(
-      await scalar("SELECT relrowsecurity AS value FROM pg_class WHERE oid='public.ai0_rls_probe'::regclass"),
+      await scalar(
+        "SELECT relrowsecurity AS value FROM pg_class WHERE oid='public.ai0_rls_probe'::regclass",
+      ),
       true,
     );
     await pool.query('DROP TABLE public.ai0_rls_probe');
