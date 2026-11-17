@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '@personal-os/auth';
-import { NOTIFICATION_INTENT_CONSUMER } from '@personal-os/contracts';
+import {
+  NOTIFICATION_INTENT_CONSUMER,
+  NOTIFICATION_INTENT_SINK,
+} from '@personal-os/contracts';
 import { DomainEventsModule } from '@personal-os/core';
+import { NotificationIntentPipeline } from './application/notification-intent.pipeline';
 import { NotificationIntentReceiver } from './application/notification-intent.receiver';
 import { NotificationPolicyService } from './application/notification-policy.service';
 import { NotificationsEventsListener } from './application/notifications-events.listener';
@@ -28,6 +32,11 @@ import { NotificationsGateway } from './presentation/notifications.gateway';
       provide: NOTIFICATION_INTENT_CONSUMER,
       useExisting: NotificationIntentReceiver,
     },
+    NotificationIntentPipeline,
+    {
+      provide: NOTIFICATION_INTENT_SINK,
+      useExisting: NotificationIntentPipeline,
+    },
     NotificationsService,
     NotificationsEventsListener,
     NotificationsGateway,
@@ -49,6 +58,8 @@ import { NotificationsGateway } from './presentation/notifications.gateway';
     NotificationPolicyService,
     NotificationIntentReceiver,
     NOTIFICATION_INTENT_CONSUMER,
+    NOTIFICATION_INTENT_SINK,
+    NotificationIntentPipeline,
   ],
 })
 export class NotificationsModule {}

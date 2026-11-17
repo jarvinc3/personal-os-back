@@ -3,13 +3,14 @@ import { DomainEventIdempotencyGuard } from './domain-event-idempotency.guard';
 describe('DomainEventIdempotencyGuard', () => {
   const createMany = jest.fn();
   const findUnique = jest.fn();
+  const findFirst = jest.fn();
   const tx = { processedDomainEvent: { createMany } };
   const transaction = jest.fn(
     (effect: (client: typeof tx) => Promise<unknown>) => effect(tx),
   );
   const guard = new DomainEventIdempotencyGuard({
     $transaction: transaction,
-    processedDomainEvent: { findUnique },
+    processedDomainEvent: { findUnique, findFirst },
   } as never);
 
   beforeEach(() => {
@@ -71,5 +72,28 @@ describe('DomainEventIdempotencyGuard', () => {
       .mockResolvedValueOnce({ id: 'receipt' });
     await expect(guard.wasProcessed('e1', 'silent')).resolves.toBe(false);
     await expect(guard.wasProcessed('e1', 'silent')).resolves.toBe(true);
+  });
+
+  it('writes a receipt inside the caller transaction', async () => {
+    createMany.mockResolvedValueOnce({ count: 0 });
+    await expect(guard.claim(tx as never, 'row-1', 'lookup')).resolves.toBe(
+      false,
+    );
+    expect(createMany).toHaveBeenLastCalledWith({
+      data: { eventId: 'row-1', consumer: 'lookup' },
+      skipDuplicates: true,
+    });
+  });
+
+  it('finds the event id a lookup consumer recorded', async () => {
+    findFirst
+      .mockResolvedValueOnce({ eventId: 'row-1' })
+      .mockResolvedValueOnce(null);
+    await expect(guard.findReceiptEventId('lookup')).resolves.toBe('row-1');
+    await expect(guard.findReceiptEventId('missing')).resolves.toBeNull();
+    expect(findFirst).toHaveBeenLastCalledWith({
+      where: { consumer: 'missing' },
+      select: { eventId: true },
+    });
   });
 });

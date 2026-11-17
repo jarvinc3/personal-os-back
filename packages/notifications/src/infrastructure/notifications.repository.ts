@@ -31,6 +31,10 @@ export class NotificationsRepository {
     });
   }
 
+  findById(id: string) {
+    return this.prisma.notification.findUnique({ where: { id } });
+  }
+
   findByUser(userId: string, query: ListNotificationsQueryDto) {
     const limit = clampPageLimit(query.limit);
     const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;

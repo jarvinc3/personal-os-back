@@ -1,4 +1,5 @@
 export { NotificationPolicyService } from './application/notification-policy.service';
+export { NotificationIntentPipeline } from './application/notification-intent.pipeline';
 export {
   NotificationIntentReceiver,
   validateNotificationIntent,

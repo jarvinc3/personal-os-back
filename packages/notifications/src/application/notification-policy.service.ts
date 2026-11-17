@@ -16,6 +16,10 @@ export type NotificationDispatchContext = {
   userId: string;
   channel: NotificationChannel;
   data?: Record<string, unknown>;
+  /** Module that owns the preference; falls back to `data.moduleSlug`. */
+  moduleSlug?: string;
+  /** Preference toggle; falls back to `data.notificationKey`. */
+  preferenceKey?: string;
 };
 
 export type PolicyEvaluationResult =
@@ -45,10 +49,7 @@ export class NotificationPolicyService {
       locale: user.locale,
     });
 
-    const moduleCheck = this.evaluateModuleToggle(
-      context.data,
-      user.userModules,
-    );
+    const moduleCheck = this.evaluateModuleToggle(context, user.userModules);
     if (!moduleCheck.allowed) {
       return moduleCheck;
     }
@@ -112,13 +113,14 @@ export class NotificationPolicyService {
   }
 
   private evaluateModuleToggle(
-    data: Record<string, unknown> | undefined,
+    context: NotificationDispatchContext,
     userModules: NonNullable<
       Awaited<ReturnType<UsersRepositoryPort['findById']>>
     >['userModules'],
   ): PolicyEvaluationResult {
-    const moduleSlug = data?.moduleSlug;
-    const notificationKey = data?.notificationKey;
+    const moduleSlug = context.moduleSlug ?? context.data?.moduleSlug;
+    const notificationKey =
+      context.preferenceKey ?? context.data?.notificationKey;
 
     if (typeof moduleSlug !== 'string' || typeof notificationKey !== 'string') {
       return { allowed: true };
