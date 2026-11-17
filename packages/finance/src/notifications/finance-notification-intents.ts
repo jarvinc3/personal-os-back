@@ -112,7 +112,7 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
         userId,
         type: 'transaction.created',
         copy: transactionRecordedCopy(this.transactionFields(payload)),
-        data: this.transactionData(payload),
+        data: this.transactionNotificationData(payload),
         preferenceKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
       }),
     ];
@@ -133,7 +133,7 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
         userId,
         type: 'transaction.transfer',
         copy: transferRecordedCopy(this.transactionFields(payload)),
-        data: this.transactionData(payload),
+        data: this.transactionNotificationData(payload),
         preferenceKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
         identity: payload.transferGroupId,
       }),
@@ -150,7 +150,7 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
         userId,
         type: 'transaction.updated',
         copy: transactionUpdatedCopy(this.transactionFields(event.payload)),
-        data: this.transactionData(event.payload),
+        data: this.transactionNotificationData(event.payload),
         preferenceKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
       }),
     ];
@@ -312,7 +312,7 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
             payload.currency,
           ),
         }),
-        data: this.recurringData(payload.patternId),
+        data: this.recurringNotificationData(payload.patternId),
         preferenceKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
       }),
     ];
@@ -336,13 +336,13 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
           ),
           daysUntil: payload.daysUntil,
         }),
-        data: this.recurringData(payload.patternId),
+        data: this.recurringNotificationData(payload.patternId),
         preferenceKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
       }),
     ];
   }
 
-  private recurringData(patternId: string): JsonObject {
+  private recurringNotificationData(patternId: string): JsonObject {
     return {
       moduleSlug: FINANCE_MODULE_SLUG,
       notificationKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
@@ -425,7 +425,7 @@ export class FinanceNotificationIntents implements FinanceNotificationAdapter {
     };
   }
 
-  private transactionData(payload: TransactionPayload): JsonObject {
+  private transactionNotificationData(payload: TransactionPayload): JsonObject {
     return {
       moduleSlug: FINANCE_MODULE_SLUG,
       notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
