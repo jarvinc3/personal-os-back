@@ -196,4 +196,57 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
       }),
     );
   });
+
+  it('records the rate metadata on the ATM counterpart completed from an expense', async () => {
+    const amounts = {
+      amount: 59.99,
+      currency: 'USD',
+      ledgerAmount: 3627.09,
+      ledgerCurrency: 'DOP',
+      amountBaseCurrency: 3627.09,
+      exchangeRate: 60.4617,
+      exchangeRateDate: '2026-11-06',
+      baseExchangeRate: 60.4617,
+      baseExchangeRateDate: '2026-11-06',
+    };
+    const repo = {
+      findAccountById: jest
+        .fn()
+        .mockResolvedValue({ id: 'cash-1', currency: 'DOP' }),
+      addImportedTransferCounterpart: jest
+        .fn()
+        .mockResolvedValue({ id: 'counterpart-1' }),
+    };
+    const resolveAmounts = {
+      execute: jest.fn().mockResolvedValue(amounts),
+    };
+    const useCase = new ImportFinancialTransactionUseCase(
+      repo as never,
+      resolveAmounts as never,
+      { execute: jest.fn().mockResolvedValue('DOP') },
+      { wake: jest.fn() },
+      { resolve: jest.fn() } as never,
+    );
+
+    await useCase.completeAtmFromExpense('user-1', 'expense-1', 'cash-1', {
+      amount: 59.99,
+      currency: 'USD',
+      transactionDate: new Date('2026-11-08T12:00:00.000Z'),
+      description: 'Retiro en cajero',
+      notes: null,
+      status: 'CONFIRMED',
+    });
+
+    expect(repo.addImportedTransferCounterpart).toHaveBeenCalledWith(
+      'user-1',
+      'expense-1',
+      expect.objectContaining({
+        aiMetadata: expect.objectContaining({
+          exchangeRateDate: '2026-11-06',
+          baseExchangeRate: 60.4617,
+          baseExchangeRateDate: '2026-11-06',
+        }),
+      }),
+    );
+  });
 });

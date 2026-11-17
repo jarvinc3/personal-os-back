@@ -214,6 +214,7 @@ export class ImportFinancialTransactionUseCase {
       {
         accountId: cashAccountId,
         amounts,
+        aiMetadata: withRateMetadata({ aiMetadata: undefined, amounts }),
         description: data.description,
         notes: data.notes,
         status: data.status,
