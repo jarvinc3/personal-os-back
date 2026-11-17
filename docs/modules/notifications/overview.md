@@ -33,3 +33,18 @@ importa mientras retira su interpretación de los eventos de Finance en NOTIF-2.
 **Barrel:** `NotificationsModule`, `NotificationsService`, `NotificationsGateway`, `PushTokensService`, `NotificationPolicyService`.
 
 Imports `DomainEventsModule` de Core solo por `DomainEventIdempotencyGuard`. Payload llega por EventEmitter2.
+
+## Pipeline de intents
+
+`NotificationIntentPipeline` (token `NOTIFICATION_INTENT_SINK`) procesa un intent
+validado: evalúa la policy por cada canal solicitado, escribe una fila por canal
+aceptado y el recibo del intent en la misma transacción, y entrega después del
+commit. La clave del recibo es
+`notification-intent:<userId>:<deduplicationKey>` en `processed_domain_events`
+(consumidor `notifications:intent`), así que el mismo intent no crea ni entrega
+dos veces aunque se repita.
+
+La entrega es la vigente: WebSocket para IN_APP, cola `notifications` para PUSH
+y EMAIL con sus reintentos. El listener de eventos de Finance sigue
+interpretando sus eventos hasta NOTIF-2; NOTIF-3 moverá la lectura de
+preferencias a los providers genéricos.

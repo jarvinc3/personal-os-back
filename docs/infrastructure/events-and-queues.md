@@ -36,6 +36,11 @@ No es event sourcing: el outbox es durabilidad de entrega.
 - Notifications guarda IN_APP en la misma transacción del recibo. Publica el
   aviso WebSocket después del commit; si falla el aviso, la notificación sigue
   disponible por listado/unread. El socket no es un transporte durable.
+- El pipeline de intents escribe una fila por canal aceptado y el recibo del
+  intent (`processed_domain_events`, consumidor `notifications:intent`) en una
+  transacción; la policy filtra preferencia y horas de silencio por canal antes
+  de persistir. La entrega ocurre después del commit y PUSH/EMAIL conservan los
+  reintentos de la cola `notifications`.
 - IA encola con job ID estable por usuario/consumidor/evento y guarda el recibo
   después de Redis. Esos jobs no se eliminan automáticamente: cubren una caída
   entre encolado y recibo. Solo se limpian tras verificar su recibo confirmado;

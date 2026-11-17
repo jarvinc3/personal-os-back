@@ -127,6 +127,48 @@ describe('NotificationPolicyService', () => {
     expect(result.allowed).toBe(false);
   });
 
+  it('reads the module toggle from the dispatch context', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      preferences: {
+        notifications: {
+          channels: { push: true, email: false, inApp: true },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
+        },
+      },
+      userModules: [
+        {
+          isEnabled: true,
+          module: { slug: 'finance' },
+          config: {
+            notifications: { budgetAlerts: false },
+          },
+        },
+      ],
+    });
+
+    const decision = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      moduleSlug: 'finance',
+      preferenceKey: 'budgetAlerts',
+    });
+
+    expect(decision.allowed).toBe(false);
+    if (!decision.allowed) {
+      expect(decision.reason).toBe(
+        'module_notification_disabled:finance.budgetAlerts',
+      );
+    }
+  });
+
   it('blocks finance transaction notifications when transactionDetected is false', async () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',

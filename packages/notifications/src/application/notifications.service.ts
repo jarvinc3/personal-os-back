@@ -78,7 +78,16 @@ export class NotificationsService {
       return created;
     }
 
-    if (dto.channel === 'IN_APP') {
+    await this.deliverPersisted(created);
+    return created;
+  }
+
+  /**
+   * Delivers an already persisted row: socket for IN_APP, queue for PUSH and
+   * EMAIL. The caller owns deduplication, so a retry does not duplicate rows.
+   */
+  async deliverPersisted(created: Notification): Promise<void> {
+    if (created.channel === 'IN_APP') {
       this.notificationsGateway.emitToUser(created.userId, 'notification.new', {
         id: created.id,
         type: created.type,
@@ -103,27 +112,30 @@ export class NotificationsService {
       this.logger.warn(
         `EMAIL notification ${created.id} not enqueued: EMAIL_DELIVERY_ENABLED=false`,
       );
-    } else if (this.notificationsQueue) {
-      await this.notificationsQueue.add(
-        'dispatch-notification',
-        {
-          notificationId: created.id,
-          userId: created.userId,
-          channel: created.channel,
-          title: created.title,
-          body: created.body,
-          data: (created.data ?? {}) as Record<string, unknown>,
-        },
-        {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 1000 },
-          removeOnComplete: 100,
-          removeOnFail: 300,
-        },
-      );
+      return;
     }
 
-    return created;
+    if (!this.notificationsQueue) {
+      return;
+    }
+
+    await this.notificationsQueue.add(
+      'dispatch-notification',
+      {
+        notificationId: created.id,
+        userId: created.userId,
+        channel: created.channel,
+        title: created.title,
+        body: created.body,
+        data: (created.data ?? {}) as Record<string, unknown>,
+      },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: 100,
+        removeOnFail: 300,
+      },
+    );
   }
 
   publishInApp(created: Notification): void {
