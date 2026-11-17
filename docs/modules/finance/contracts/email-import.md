@@ -410,6 +410,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 - Comercio ausente: se registra como "Comercio desconocido" y se marca para completar; no bloquea el registro.
 - Referencia compartida: dos patas de la misma operación no son duplicado ni conflicto; la ventana es de 7 días.
 - Referencia bancaria: no es obligatoria ni única; un match es candidato y un conflicto de atributos va a revisión. La contraparte legítima (tipo opuesto y cuenta distinta) no es duplicado ni conflicto. El fallback y la conciliación manual cubren su ausencia.
+- Revisión por falta de destino: al volver a calcular el plan (aprobar una propuesta o repetir `sample-import`), un import previo en revisión por falta de cuenta o tarjeta vuelve a resolver el destino contra el libro actual. Si el destino ya existe, el movimiento se importa una sola vez; si sigue ausente, el import permanece en revisión. Un import aplicado o en revisión por otro motivo no cambia.
 
 ### 8.2 Pendiente concretar
 
@@ -453,6 +454,7 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no
 | El reverso parcial mantiene el monto original y su tope   | Fila `CREDIT` vinculada; el original sigue `CONFIRMED`; suma y límite decimal exactos dentro de la transacción; el gasto y el presupuesto se ajustan por lo devuelto.                                                                                 | `IMPLEMENTADO` (PR #345)       |
 | El correo sin comercio se registra y se marca             | Se guarda `Comercio desconocido` con `aiMetadata.merchantMissing`; el texto de relleno no se resuelve como comercio (`unknown-merchant.ts`).                                                                                                          | `IMPLEMENTADO` (PR #345)       |
 | La pata de tarjeta no repite `importReference`            | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo está implementada en el PR #335.                                                                                                                           | `IMPLEMENTADO` (PR #335)       |
+| Un import en revisión por falta de destino se recalcula   | `buildImportPlan` vuelve a resolver la cuenta o la tarjeta de un `fin_signal_import` en `REVIEW_REQUIRED` con un motivo de destino; conserva los imports aplicados y las revisiones por otros motivos (`finance-signal-consumer.ts`).                 | `IMPLEMENTADO` (#376)          |
 
 La tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente. La ventana de emparejamiento es de 3 días, y de 7 cuando las dos patas comparten referencia, por decisión del owner. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 

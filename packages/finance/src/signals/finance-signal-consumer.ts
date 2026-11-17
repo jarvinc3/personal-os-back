@@ -29,6 +29,7 @@ import {
 import {
   classifyTransferImport,
   resolveTransferAccount,
+  TRANSFER_REVIEW_REASON,
   transferLegIdentity,
   type IncomingTransferLeg,
   type TransferAccountCandidate,
@@ -142,6 +143,20 @@ type ImportStatus =
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
 const PENDING_REVERSAL_RETRY_LIMIT = 20;
+/**
+ * Motivos que dependen de encontrar la cuenta o la tarjeta del movimiento. Un
+ * producto creado después puede resolverlos, así que se vuelven a calcular.
+ */
+const RETRYABLE_TARGET_REVIEW_REASONS: ReadonlySet<string> = new Set([
+  'NO_LEDGER_TARGET',
+  'AMBIGUOUS_LEDGER_TARGET',
+  TRANSFER_REVIEW_REASON.ACCOUNT_NOT_FOUND,
+  TRANSFER_REVIEW_REASON.ACCOUNT_AMBIGUOUS,
+  'CARD_PAYMENT_CARD_NOT_FOUND',
+  'CARD_PAYMENT_CARD_AMBIGUOUS',
+  'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+  'CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS',
+]);
 type ImportReviewEvidence = Record<string, string | string[] | number | null>;
 type ConsumeResult = Awaited<ReturnType<FinanceSignalConsumerPort['consume']>>;
 
@@ -398,7 +413,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         userId_signalId: { userId: signal.userId, signalId: signal.signalId },
       },
     });
-    if (prior) {
+    if (prior && !isRetryableTargetReview(prior)) {
       return this.returnPlan(
         this.fromStored(
           prior.status,
@@ -1855,6 +1870,19 @@ function toTransferPairingCandidate(
     account: row.account,
     card: row.card,
   };
+}
+
+function isRetryableTargetReview(prior: {
+  status: string;
+  reviewReason: string | null;
+}): boolean {
+  if (prior.status !== 'REVIEW_REQUIRED') {
+    return false;
+  }
+  return (
+    prior.reviewReason !== null &&
+    RETRYABLE_TARGET_REVIEW_REASONS.has(prior.reviewReason)
+  );
 }
 
 function toReversalOriginal(row: LedgerTransactionRow): ReversalOriginal {
