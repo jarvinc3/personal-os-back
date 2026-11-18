@@ -16,6 +16,9 @@ export type CardPaymentOperation = {
   amount: number;
   currency: string;
   transactionDate: Date;
+  /** La pata de origen nace con `source EMAIL`; un pago manual no la imita. */
+  imported: boolean;
+  description: string | null;
 };
 
 export type IncomingCardPayment = {

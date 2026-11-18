@@ -10,6 +10,7 @@ import type {
   CardPaymentImportDecision,
   IncomingCardPayment,
 } from '../reconcile-card-payment-import';
+import type { PossibleManualCardPaymentDuplicate } from '../find-manual-card-payment-duplicate';
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -40,6 +41,12 @@ export type ImportedCardPaymentOutcome =
         | 'CARD_PAYMENT_RECONCILIATION_AMBIGUOUS';
       candidateTransactionIds: string[];
     }
+  | { kind: 'not_written' };
+
+/** Resultado de un pago manual: escribe, o pide confirmación del candidato. */
+export type ManualCardPaymentOutcome =
+  | { kind: 'created'; payment: CreateTransferResult }
+  | PossibleManualCardPaymentDuplicate
   | { kind: 'not_written' };
 
 /** Transaction with optional account/card labels (list/get shape). */
@@ -325,13 +332,17 @@ export interface LedgerRepositoryPort {
     estimated: boolean;
   }): Promise<CreateTransferResult | null>;
 
-  /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
+  /**
+   * Un pago de tarjeta son dos patas `CARD_PAYMENT`. Decide y escribe en la
+   * misma transacción: parecido a un pago importado y sin
+   * `duplicateAcknowledged`, no escribe y devuelve el candidato.
+   */
   createCardPayment(input: {
     userId: string;
     command: CreateCardPaymentCommand;
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
-  }): Promise<CreateTransferResult | null>;
+  }): Promise<ManualCardPaymentOutcome>;
 
   /**
    * Igual que `createCardPayment`, pero decide dentro de la misma transacción

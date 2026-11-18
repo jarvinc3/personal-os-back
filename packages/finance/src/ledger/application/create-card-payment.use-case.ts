@@ -2,6 +2,7 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -16,7 +17,11 @@ import {
   CARD_NOT_CREDIT_MESSAGE,
   CARD_NOT_FOUND,
   CARD_NOT_FOUND_MESSAGE,
+  CARD_PAYMENT_POSSIBLE_DUPLICATE,
+  CARD_PAYMENT_POSSIBLE_DUPLICATE_MESSAGE,
 } from '../../shared/domain/card-payment';
+import { decimalToString } from '../../shared/domain/mappers';
+import type { PossibleManualCardPaymentDuplicate } from './find-manual-card-payment-duplicate';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type { CreateCardPaymentCommand } from './commands/ledger.commands';
 import { mapLedgerTransaction } from './ledger-mappers';
@@ -81,16 +86,20 @@ export class CreateCardPaymentUseCase {
       transactionDate,
     });
 
-    const created = await this.repo.createCardPayment({
+    const outcome = await this.repo.createCardPayment({
       userId,
       command,
       fromAmounts,
       toAmounts,
     });
-    if (!created) {
+    if (outcome.kind === 'not_written') {
       throw new NotFoundException('Pago de tarjeta inválido');
     }
+    if (outcome.kind === 'possible_duplicate') {
+      throw new ConflictException(possibleDuplicateError(outcome));
+    }
 
+    const created = outcome.payment;
     void this.relay.wake();
     return {
       transferGroupId: created.transferGroupId,
@@ -98,4 +107,18 @@ export class CreateCardPaymentUseCase {
       credit: mapLedgerTransaction(created.credit),
     };
   }
+}
+
+/** 409 con el pago importado que ya existe y los datos para mostrarlo. */
+function possibleDuplicateError(duplicate: PossibleManualCardPaymentDuplicate) {
+  return {
+    code: CARD_PAYMENT_POSSIBLE_DUPLICATE,
+    message: CARD_PAYMENT_POSSIBLE_DUPLICATE_MESSAGE,
+    matchedBy: duplicate.matchedBy,
+    candidate: {
+      ...duplicate.candidate,
+      amount: decimalToString(duplicate.candidate.amount),
+      transactionDate: duplicate.candidate.transactionDate.toISOString(),
+    },
+  };
 }
