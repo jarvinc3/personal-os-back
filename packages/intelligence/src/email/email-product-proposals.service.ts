@@ -125,6 +125,7 @@ export class EmailProductProposalsService {
         subject: message.subject,
         body,
         movementClass: transaction?.movementClass ?? null,
+        accountNumberLast4: transaction?.accountNumberLast4 ?? null,
       });
       if (!detections.length) {
         ignored += 1;
@@ -780,7 +781,7 @@ function parseDraft(value: unknown): EmailProductProposalDraft {
 
 function readTransaction(
   payload: unknown,
-): { movementClass: string | null } | null {
+): { movementClass: string | null; accountNumberLast4: string | null } | null {
   if (
     typeof payload !== 'object' ||
     payload === null ||
@@ -792,9 +793,14 @@ function readTransaction(
   if (typeof transaction !== 'object' || transaction === null) {
     return null;
   }
-  const movementClass = (transaction as Record<string, unknown>).movementClass;
+  const fields = transaction as Record<string, unknown>;
   return {
-    movementClass: typeof movementClass === 'string' ? movementClass : null,
+    movementClass:
+      typeof fields.movementClass === 'string' ? fields.movementClass : null,
+    accountNumberLast4:
+      typeof fields.accountNumberLast4 === 'string'
+        ? fields.accountNumberLast4
+        : null,
   };
 }
 

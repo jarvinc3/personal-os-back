@@ -1,5 +1,11 @@
 import { detectBhdEmailProductProposal } from './email-product-proposal-detector';
 
+const maskedIbanBody = [
+  'Producto origen: DO26BCBH000000000XXXXXXX0016',
+  'Producto destino: DO04BCBH000000000XXXXXXX0024',
+  'Beneficiario: CTA DE AHORRO MÓVIL',
+].join(' ');
+
 describe('detectBhdEmailProductProposal', () => {
   it('detects a BHD card from its explicit transaction alert', () => {
     const [proposal] = detectBhdEmailProductProposal({
@@ -7,6 +13,7 @@ describe('detectBhdEmailProductProposal', () => {
       subject: 'BHD Notificación de Transacciones',
       body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones',
       movementClass: 'PURCHASE',
+      accountNumberLast4: null,
     });
 
     expect(proposal).toMatchObject({
@@ -25,6 +32,7 @@ describe('detectBhdEmailProductProposal', () => {
       subject: 'Transacciones entre mis productos',
       body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXX0024 Beneficiario: CTA DE AHORRO MÓVIL',
       movementClass: 'TRANSFER_OUT',
+      accountNumberLast4: '0016',
     });
 
     expect(proposal).toMatchObject({
@@ -40,6 +48,7 @@ describe('detectBhdEmailProductProposal', () => {
       subject: 'Transferencia recibida',
       body: 'Producto origen: XXXXXXX0024 Producto destino: XXXXXXX0016',
       movementClass: 'TRANSFER_IN',
+      accountNumberLast4: '0016',
     });
 
     expect(proposal?.lastFour).toBe('0016');
@@ -58,6 +67,7 @@ describe('detectBhdEmailProductProposal', () => {
         'Monto: RD$500.00',
       ].join(' '),
       movementClass: 'TRANSFER_IN',
+      accountNumberLast4: '0016',
     });
 
     expect(proposals).toHaveLength(1);
@@ -74,6 +84,7 @@ describe('detectBhdEmailProductProposal', () => {
       subject: 'Transacciones entre mis productos',
       body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXX6506 Beneficiario: VISA PREMIA',
       movementClass: 'CARD_PAYMENT',
+      accountNumberLast4: '0016',
     });
 
     expect(proposals).toEqual([
@@ -96,6 +107,7 @@ describe('detectBhdEmailProductProposal', () => {
         subject: 'Transacciones entre mis productos',
         body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXX0024',
         movementClass: null,
+        accountNumberLast4: null,
       }),
     ).toEqual([]);
   });
@@ -107,6 +119,7 @@ describe('detectBhdEmailProductProposal', () => {
         subject: 'BHD Notificación de Transacciones',
         body: 'Tarjeta Visa Premia # 0000 Detalle de Transacciones',
         movementClass: 'PURCHASE',
+        accountNumberLast4: null,
       }),
     ).toEqual([]);
     expect(
@@ -115,7 +128,66 @@ describe('detectBhdEmailProductProposal', () => {
         subject: 'Estado de cuenta',
         body: 'Tarjeta Visa Premia # 0000 Detalle de Transacciones',
         movementClass: 'PURCHASE',
+        accountNumberLast4: null,
       }),
     ).toEqual([]);
+  });
+
+  it('takes the trailing four digits of a masked IBAN source product', () => {
+    const [proposal] = detectBhdEmailProductProposal({
+      fromDomain: 'bhd.com.do',
+      subject: 'Transacciones entre mis productos',
+      body: maskedIbanBody,
+      movementClass: 'TRANSFER_OUT',
+      accountNumberLast4: '0016',
+    });
+
+    expect(proposal).toMatchObject({
+      productType: 'ACCOUNT',
+      name: 'Cuenta BHD ****0016',
+      lastFour: '0016',
+      evidence: { label: 'Producto origen', side: 'SOURCE', lastFour: '0016' },
+    });
+  });
+
+  it('takes the trailing four digits of a masked IBAN destination product', () => {
+    const [proposal] = detectBhdEmailProductProposal({
+      fromDomain: 'bhd.com.do',
+      subject: 'Transacciones entre mis productos',
+      body: maskedIbanBody,
+      movementClass: 'TRANSFER_IN',
+      accountNumberLast4: '0024',
+    });
+
+    expect(proposal).toMatchObject({
+      productType: 'ACCOUNT',
+      name: 'Cuenta BHD ****0024',
+      lastFour: '0024',
+      evidence: { label: 'Producto destino', side: 'DESTINATION' },
+    });
+  });
+
+  it('does not propose a token that does not match the signal account', () => {
+    expect(
+      detectBhdEmailProductProposal({
+        fromDomain: 'bhd.com.do',
+        subject: 'Transacciones entre mis productos',
+        body: maskedIbanBody,
+        movementClass: 'TRANSFER_OUT',
+        accountNumberLast4: '0099',
+      }),
+    ).toEqual([]);
+  });
+
+  it('keeps the classified side when the signal has no account number', () => {
+    const [proposal] = detectBhdEmailProductProposal({
+      fromDomain: 'bhd.com.do',
+      subject: 'Transacciones entre mis productos',
+      body: maskedIbanBody,
+      movementClass: 'TRANSFER_OUT',
+      accountNumberLast4: null,
+    });
+
+    expect(proposal).toMatchObject({ lastFour: '0016' });
   });
 });

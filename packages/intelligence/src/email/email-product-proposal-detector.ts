@@ -34,6 +34,8 @@ export function detectBhdEmailProductProposal(input: {
   subject: string;
   body: string;
   movementClass: string | null;
+  /** La cuenta que ya resolvió el clasificador; confirma qué etiqueta es del dueño. */
+  accountNumberLast4: string | null;
 }): DetectedEmailProductProposal[] {
   if (input.fromDomain.trim().toLowerCase() !== BHD_INSTITUTION.domain) {
     return [];
@@ -72,7 +74,11 @@ export function detectBhdEmailProductProposal(input: {
     }
   }
 
-  const account = readOwnAccount(body, input.movementClass);
+  const account = readOwnAccount({
+    body,
+    movementClass: input.movementClass,
+    accountNumberLast4: input.accountNumberLast4,
+  });
   if (!account) {
     return [];
   }
@@ -95,17 +101,49 @@ export function detectBhdEmailProductProposal(input: {
   ];
 }
 
+const OWN_ORIGIN_TOKEN = /producto\s+origen\s*:\s*(\S{4,40})/i;
+const OWN_DESTINATION_TOKEN = /producto\s+destino\s*:\s*(\S{4,40})/i;
+/** Misma etiqueta que el lector de transferencias recibidas: `Producto :`. */
+const INCOMING_PRODUCT_TOKEN = /producto\s*:\s*(\S{4,40})/i;
+
+type OwnAccountCandidate = {
+  lastFour: string;
+  label: 'Producto origen' | 'Producto destino' | 'Producto';
+  side: 'SOURCE' | 'DESTINATION';
+};
+
 /**
  * La cuenta propia es la que ya clasificó el correo. La transferencia recibida
  * escribe `Producto :`, no `Producto destino`. Un pago de tarjeta sale de
  * `Producto origen`; el destino es la tarjeta y no se propone como cuenta.
  */
-function readOwnAccount(
+function readOwnAccount({
+  body,
+  movementClass,
+  accountNumberLast4,
+}: {
+  body: string;
+  movementClass: string | null;
+  accountNumberLast4: string | null;
+}): OwnAccountCandidate | null {
+  const candidate = readOwnAccountCandidate(body, movementClass);
+  if (!candidate) {
+    return null;
+  }
+  // La señal ya resolvió qué producto es del dueño: un token con otro número no
+  // es esa cuenta y no se propone.
+  if (accountNumberLast4 && candidate.lastFour !== accountNumberLast4) {
+    return null;
+  }
+  return candidate;
+}
+
+function readOwnAccountCandidate(
   body: string,
   movementClass: string | null,
-): { lastFour: string; label: string; side: 'SOURCE' | 'DESTINATION' } | null {
+): OwnAccountCandidate | null {
   if (movementClass === 'TRANSFER_OUT' || movementClass === 'CARD_PAYMENT') {
-    const lastFour = readLabeledLast4(body, 'origen');
+    const lastFour = trailingLastFour(body, OWN_ORIGIN_TOKEN);
     return lastFour
       ? { lastFour, label: 'Producto origen', side: 'SOURCE' }
       : null;
@@ -113,7 +151,7 @@ function readOwnAccount(
   if (movementClass !== 'TRANSFER_IN') {
     return null;
   }
-  const destination = readLabeledLast4(body, 'destino');
+  const destination = trailingLastFour(body, OWN_DESTINATION_TOKEN);
   if (destination) {
     return {
       lastFour: destination,
@@ -121,23 +159,16 @@ function readOwnAccount(
       side: 'DESTINATION',
     };
   }
-  const incoming = readIncomingProductLast4(body);
+  const incoming = trailingLastFour(body, INCOMING_PRODUCT_TOKEN);
   return incoming
     ? { lastFour: incoming, label: 'Producto', side: 'DESTINATION' }
     : null;
 }
 
-function readLabeledLast4(body: string, label: 'origen' | 'destino') {
-  return new RegExp(
-    `Producto\\s+${label}\\s*:\\s*[^\\r\\n]*?(\\d{4})(?!\\d)`,
-    'i',
-  ).exec(body)?.[1];
-}
-
-/** Misma etiqueta que el lector de transferencias recibidas: `Producto :`. */
-function readIncomingProductLast4(body: string) {
-  const token = /Producto\s*:\s*(\S{4,40})/i.exec(body)?.[1];
-  return token?.match(/(\d{4})$/)?.[1];
+/** Nunca los primeros dígitos: un IBAN enmascarado empieza por `0000`. */
+function trailingLastFour(body: string, pattern: RegExp): string | null {
+  const token = pattern.exec(body)?.[1];
+  return token?.match(/(\d{4})$/)?.[1] ?? null;
 }
 
 function cardNetwork(label: string): DetectedEmailProductProposal['network'] {
