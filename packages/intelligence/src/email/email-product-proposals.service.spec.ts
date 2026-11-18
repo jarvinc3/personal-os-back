@@ -54,6 +54,26 @@ function storedSignal(id: string, lastFour = '0016') {
   };
 }
 
+function maskedIbanSignal(id: string, accountNumberLast4: string) {
+  const row = storedSignal(id);
+  return {
+    ...row,
+    payload: {
+      transaction: { movementClass: 'TRANSFER_OUT', accountNumberLast4 },
+    },
+    emailMessage: {
+      ...row.emailMessage,
+      content: {
+        sanitizedBody: [
+          'Producto origen: DO26BCBH000000000XXXXXXX0016',
+          'Producto destino: DO04BCBH000000000XXXXXXX0024',
+          'Beneficiario: CTA DE AHORRO MÓVIL',
+        ].join(' '),
+      },
+    },
+  };
+}
+
 function linkableProduct(overrides: Record<string, unknown> = {}) {
   return {
     productId: 'account-1',
@@ -237,6 +257,37 @@ function createService(overrides?: {
 }
 
 describe('EmailProductProposalsService', () => {
+  it('proposes the account from the trailing four of a masked IBAN', async () => {
+    const { service, proposals, evidence } = createService({
+      signals: [maskedIbanSignal('message-iban', '0016')],
+    });
+
+    const discovery = await service.discover({ userId: 'user-1', limit: 20 });
+
+    expect(discovery.created).toBe(1);
+    const [proposal] = [...proposals.values()];
+    expect(proposal.draft).toMatchObject({
+      name: 'Cuenta BHD ****0016',
+      lastFour: '0016',
+    });
+    expect([...evidence.values()][0].evidence).toMatchObject({
+      label: 'Producto origen',
+      side: 'SOURCE',
+      lastFour: '0016',
+    });
+  });
+
+  it('skips the proposal when the IBAN does not match the signal account', async () => {
+    const { service, proposals } = createService({
+      signals: [maskedIbanSignal('message-iban-mismatch', '0099')],
+    });
+
+    const discovery = await service.discover({ userId: 'user-1', limit: 20 });
+
+    expect(discovery.created).toBe(0);
+    expect(proposals.size).toBe(0);
+  });
+
   it('deduplicates repeated product detections and preserves separate evidence', async () => {
     const rows = [storedSignal('message-1'), storedSignal('message-2')];
     const { service, proposals, evidence } = createService({ signals: rows });

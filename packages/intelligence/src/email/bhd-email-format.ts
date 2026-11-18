@@ -288,7 +288,10 @@ function readAmount(text: string): number | null {
 }
 
 /** Los productos llegan enmascarados; los últimos 4 son los del producto. */
-function readTrailingLast4(pattern: RegExp, text: string): string | null {
+export function readTrailingLast4(
+  pattern: RegExp,
+  text: string,
+): string | null {
   const token = readGroup(pattern, text);
   const last4 = token?.match(/(\d{4})$/);
   return last4 ? last4[1] : null;

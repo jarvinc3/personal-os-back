@@ -64,8 +64,12 @@ revisa hasta 200 señales BHD en `ROUTED` cuyo preview de Finance muestra un
 bloqueo de destino. Reconoce solo etiquetas explícitas de tarjeta BHD y la
 cuenta propia que indica la clase: `Producto origen` en `TRANSFER_OUT` y en
 `CARD_PAYMENT`, y en `TRANSFER_IN` el `Producto destino` o la etiqueta
-`Producto :` de la transferencia recibida. La contraparte, el ordenante y el
-banco de origen nunca se proponen. Un destino no registrado no se adivina como
+`Producto :` de la transferencia recibida. El número del producto son los cuatro
+dígitos finales del token completo: un IBAN enmascarado como
+`DO26BCBH000000000XXXXXXX0016` da `0016`, no `0000`. Ese número se confirma
+contra `accountNumberLast4` de la señal; si no coincide, no hay propuesta ni
+evidencia, y la evidencia guarda la etiqueta y el lado que aportaron el número.
+La contraparte, el ordenante y el banco de origen nunca se proponen. Un destino no registrado no se adivina como
 tarjeta ni como cuenta. Identificar el lado o el tipo con ambigüedad no produce
 propuesta.
 
