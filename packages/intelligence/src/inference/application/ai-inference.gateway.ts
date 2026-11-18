@@ -212,8 +212,11 @@ export class AiInferenceGateway {
         }
         attempts += 1;
         lastProvider = provider;
+        let attemptUsage:
+          { inputTokens?: number; outputTokens?: number } | undefined;
         try {
           const completion = await provider.chatComplete(messages);
+          attemptUsage = completion.usage;
           const json = extractJson(completion.content);
           if (!json) {
             throw new InvalidOutputError('INVALID_JSON');
@@ -259,6 +262,11 @@ export class AiInferenceGateway {
           if (error instanceof InvalidOutputError) {
             lastErrorCode = error.errorCode;
             lastOutputDetail = error.detail;
+            await this.recordRejectedCompletionCost({
+              request,
+              provider,
+              usage: attemptUsage,
+            });
             continue;
           }
           const retryable = isRetryableProviderError(error);
@@ -377,6 +385,37 @@ export class AiInferenceGateway {
     }
     const cooldownMs = retryAfterMs(error) ?? fallbackMs;
     this.providerCooldownUntil.set(provider.name, Date.now() + cooldownMs);
+  }
+
+  private async recordRejectedCompletionCost({
+    request,
+    provider,
+    usage,
+  }: {
+    request: StructuredInferenceRequest<unknown>;
+    provider: AIProviderClient;
+    usage?: { inputTokens?: number; outputTokens?: number };
+  }): Promise<void> {
+    if (request.task !== 'EMAIL_CLASSIFICATION' || !request.userId || !usage) {
+      return;
+    }
+    const costUsd = inferenceCostUsd({
+      model: provider.model,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
+    if (costUsd === null) {
+      return;
+    }
+    const now = new Date();
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    await this.prisma.aiEmailDailyCost.upsert({
+      where: { date },
+      create: { date, costUsd },
+      update: { costUsd: { increment: costUsd } },
+    });
   }
 
   private async persistTelemetry<T>(

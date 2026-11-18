@@ -34,6 +34,7 @@ describe('summarizeEmailUsage', () => {
         },
       ],
       messages: [message],
+      classificationTypes: new Map([['message-1', 'FIN_TRANSACTION']]),
     });
 
     expect(summary.totals).toEqual({
@@ -68,8 +69,8 @@ describe('summarizeEmailUsage', () => {
       },
     ]);
     expect(summary.byType).toEqual([
-      expect.objectContaining({ type: 'PROCESSED', calls: 1 }),
-      expect.objectContaining({ type: 'FAILED', calls: 1 }),
+      expect.objectContaining({ type: 'FIN_TRANSACTION', calls: 1 }),
+      expect.objectContaining({ type: 'SIN_CLASIFICACION', calls: 1 }),
     ]);
   });
 });

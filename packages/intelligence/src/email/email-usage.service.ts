@@ -44,9 +44,11 @@ const EMPTY_BUCKET: UsageBucket = {
 export function summarizeEmailUsage({
   rows,
   messages,
+  classificationTypes,
 }: {
   rows: readonly EmailUsageRow[];
   messages: readonly EmailUsageMessage[];
+  classificationTypes: ReadonlyMap<string, string>;
 }) {
   const messageById = new Map(messages.map((message) => [message.id, message]));
   const totals: UsageBucket & { succeeded: number; failed: number } = {
@@ -92,7 +94,8 @@ export function summarizeEmailUsage({
     const message = row.sourceId ? messageById.get(row.sourceId) : undefined;
     const bank = message?.fromDomain ?? 'desconocido';
     byBank.set(bank, add(byBank.get(bank), amounts));
-    const type = message?.processingStatus ?? row.status;
+    const type =
+      classificationTypes.get(row.sourceId ?? '') ?? 'SIN_CLASIFICACION';
     byType.set(type, add(byType.get(type), amounts));
   }
 
@@ -151,6 +154,22 @@ export class EmailUsageService {
           select: { id: true, fromDomain: true, processingStatus: true },
         })
       : [];
+    const classifications = sourceIds.length
+      ? await this.prisma.aiEmailClassification.findMany({
+          where: { userId, messageId: { in: sourceIds } },
+          select: { messageId: true, semanticType: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      : [];
+    const classificationTypes = new Map<string, string>();
+    for (const classification of classifications) {
+      if (!classificationTypes.has(classification.messageId)) {
+        classificationTypes.set(
+          classification.messageId,
+          classification.semanticType,
+        );
+      }
+    }
     const [budget, connection, dailyCost] = await Promise.all([
       this.prisma.aiEmailModelBudget.findFirst({
         where: { userId, budgetDate: today },
@@ -172,7 +191,7 @@ export class EmailUsageService {
         from: from.toISOString(),
         to: new Date().toISOString(),
       },
-      ...summarizeEmailUsage({ rows, messages }),
+      ...summarizeEmailUsage({ rows, messages, classificationTypes }),
       caps: {
         perMinute: CLASSIFICATIONS_PER_MINUTE,
         initial: {

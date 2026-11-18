@@ -171,16 +171,12 @@ export class AiEmailClassificationService {
 
     let modelCalls = 0;
     let processed = 0;
-    const activeTimestamps = recentClassificationTimestamps({
-      timestamps: this.classificationTimestamps.get(userId) ?? [],
-      now: new Date(),
-    });
     let rateLimited = false;
     const reviewSettings = pending.length
       ? await loadEmailReviewSettings(this.moduleSettings, userId)
       : defaultEmailReviewSettings();
     for (const candidate of pending) {
-      if (activeTimestamps.length >= CLASSIFICATIONS_PER_MINUTE) {
+      if (!this.canStartClassification(userId)) {
         rateLimited = true;
         break;
       }
@@ -192,13 +188,11 @@ export class AiEmailClassificationService {
       modelCalls += result.modelCalls;
       if (result.processed) {
         processed += 1;
-        activeTimestamps.push(Date.now());
       }
       if (result.budgetExhausted) {
         break;
       }
     }
-    this.classificationTimestamps.set(userId, activeTimestamps);
     return { processed, modelCalls, rateLimited };
   }
 
@@ -742,6 +736,9 @@ export class AiEmailClassificationService {
   }
 
   private async hasModelBudget(userId: string): Promise<boolean> {
+    if (!this.canStartClassification(userId)) {
+      return false;
+    }
     if (await this.isGlobalCostPaused()) {
       return false;
     }
@@ -1058,6 +1055,9 @@ export class AiEmailClassificationService {
   }
 
   private async reserveModelCall(userId: string): Promise<boolean> {
+    if (!this.reserveClassificationSlot(userId)) {
+      return false;
+    }
     if (await this.isGlobalCostPaused()) {
       return false;
     }
@@ -1103,6 +1103,25 @@ export class AiEmailClassificationService {
       data: { calls: { increment: 1 }, dailyLimit },
     });
     return reserved.count === 1;
+  }
+
+  private canStartClassification(userId: string): boolean {
+    const active = recentClassificationTimestamps({
+      timestamps: this.classificationTimestamps.get(userId) ?? [],
+      now: new Date(),
+    });
+    this.classificationTimestamps.set(userId, active);
+    return active.length < CLASSIFICATIONS_PER_MINUTE;
+  }
+
+  private reserveClassificationSlot(userId: string): boolean {
+    if (!this.canStartClassification(userId)) {
+      return false;
+    }
+    const active = this.classificationTimestamps.get(userId) ?? [];
+    active.push(Date.now());
+    this.classificationTimestamps.set(userId, active);
+    return true;
   }
 
   private async isGlobalCostPaused(): Promise<boolean> {
