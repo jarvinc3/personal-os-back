@@ -54,7 +54,7 @@ type ModuleReferenceInput = {
   flags?: string;
 };
 
-/** Detects static, dynamic and CommonJS references to a module path. */
+/** Detects static (including side-effect), dynamic and CommonJS references. */
 function expectNoModuleReference({
   source,
   modules,
@@ -66,7 +66,7 @@ function expectNoModuleReference({
   expectNoMatch({
     source,
     pattern: new RegExp(
-      `(?:from\\s+|import\\s*\\(\\s*|require\\s*\\(\\s*)${quotedModule}`,
+      `(?:from\\s+|import\\s*\\(\\s*|import\\s+|require\\s*\\(\\s*)${quotedModule}`,
       flags,
     ),
     file,
@@ -247,6 +247,8 @@ describe('Roadmap frontier invariants', () => {
   it('detects static, dynamic and required imports of a module', () => {
     const references = [
       "import { FinanceModule } from '@personal-os/finance';",
+      "import '@personal-os/finance';",
+      'import "@personal-os/finance";',
       "const finance = await import('@personal-os/finance');",
       "const finance = require('@personal-os/finance');",
       'const finance = await import(`@personal-os/finance`);',
