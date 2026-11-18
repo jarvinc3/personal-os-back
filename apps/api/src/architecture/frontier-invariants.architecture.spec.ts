@@ -41,6 +41,25 @@ function expectNoMatch(source: string, pattern: RegExp, file: string): void {
   }
 }
 
+/** Detects static, dynamic and CommonJS references to a module path. */
+function expectNoModuleReference(
+  source: string,
+  modules: readonly string[],
+  file: string,
+  flags = '',
+): void {
+  const names = modules.join('|');
+  const quotedModule = `['"\`][^'"\`]*(?:${names})[^'"\`]*['"\`]`;
+  expectNoMatch(
+    source,
+    new RegExp(
+      `(?:from\\s+|import\\s*\\(\\s*|require\\s*\\(\\s*)${quotedModule}`,
+      flags,
+    ),
+    file,
+  );
+}
+
 function packageDependencies(relativePath: string): string[] {
   const manifest = JSON.parse(
     readFileSync(join(repositoryRoot, relativePath), 'utf8'),
@@ -51,15 +70,15 @@ function packageDependencies(relativePath: string): string[] {
 describe('Roadmap frontier invariants', () => {
   it('1. the generic AI runtime does not import Finance implementation or its facade', () => {
     const aiRuntimeFiles = [
-      ...projectFiles('packages/intelligence/src'),
-      ...projectFiles('packages/core/src/ai'),
+      ...runtimeFiles('packages/intelligence/src'),
+      ...runtimeFiles('packages/core/src/ai'),
     ];
 
     for (const file of aiRuntimeFiles) {
       const source = read(file);
-      expectNoMatch(
+      expectNoModuleReference(
         source,
-        /from\s+['"][^'"]*(?:@personal-os\/finance|packages\/finance)[^'"]*['"]/,
+        ['@personal-os/finance', 'packages/finance'],
         file,
       );
       expectNoMatch(
@@ -73,10 +92,11 @@ describe('Roadmap frontier invariants', () => {
   it('2. Finance does not import Gmail provider or source infrastructure', () => {
     for (const file of runtimeFiles('packages/finance/src')) {
       const source = read(file);
-      expectNoMatch(
+      expectNoModuleReference(
         source,
-        /from\s+['"][^'"]*(?:googleapis|@google\/|gmail-(?:source|sync))[^'"]*['"]/i,
+        ['googleapis', '@google/', 'gmail-source', 'gmail-sync'],
         file,
+        'i',
       );
       expectNoMatch(source, /\bGmail\b|\bOAuth\b/, file);
     }
@@ -93,7 +113,7 @@ describe('Roadmap frontier invariants', () => {
   it('3. Finance does not import chat context contracts', () => {
     for (const file of runtimeFiles('packages/finance/src')) {
       const source = read(file);
-      expectNoMatch(source, /from\s+['"][^'"]*chat-context[^'"]*['"]/, file);
+      expectNoModuleReference(source, ['chat-context'], file);
       expectNoMatch(
         source,
         /\b(?:ChatContext|ChatContextEntity|EntityRef|EntityRefType|ENTITY_REF_TYPES)\b/,
@@ -105,9 +125,9 @@ describe('Roadmap frontier invariants', () => {
   it('4. Notifications does not import Finance payloads, copy or settings constants', () => {
     for (const file of projectFiles('packages/notifications/src')) {
       const source = read(file);
-      expectNoMatch(
+      expectNoModuleReference(
         source,
-        /from\s+['"][^'"]*(?:@personal-os\/finance|packages\/finance)[^'"]*['"]/,
+        ['@personal-os/finance', 'packages/finance'],
         file,
       );
       expectNoMatch(
@@ -135,9 +155,9 @@ describe('Roadmap frontier invariants', () => {
 
   it('6. Users does not import Finance configuration validators or defaults', () => {
     for (const file of projectFiles('packages/users/src')) {
-      expectNoMatch(
+      expectNoModuleReference(
         read(file),
-        /from\s+['"][^'"]*(?:@personal-os\/finance|packages\/finance)[^'"]*['"]/,
+        ['@personal-os/finance', 'packages/finance'],
         file,
       );
     }
@@ -199,5 +219,32 @@ describe('Roadmap frontier invariants', () => {
       /\b(?:FinanceEvents|AgendaEvents|ProjectsEvents|HealthEvents)\b/,
       'packages/core/src/events/event.constants.ts',
     );
+  });
+
+  it('detects static, dynamic and required imports of a module', () => {
+    const references = [
+      "import { FinanceModule } from '@personal-os/finance';",
+      "const finance = await import('@personal-os/finance');",
+      "const finance = require('@personal-os/finance');",
+      'const finance = await import(`@personal-os/finance`);',
+    ];
+
+    for (const reference of references) {
+      expect(() =>
+        expectNoModuleReference(
+          reference,
+          ['@personal-os/finance'],
+          'fixture.ts',
+        ),
+      ).toThrow('fixture.ts');
+    }
+
+    expect(() =>
+      expectNoModuleReference(
+        "import { AppEvents } from '@personal-os/core';",
+        ['@personal-os/finance'],
+        'fixture.ts',
+      ),
+    ).not.toThrow();
   });
 });
