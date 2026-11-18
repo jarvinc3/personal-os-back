@@ -8,7 +8,6 @@ Pipeline: audit producción (no bloqueante) → Prisma validate → Prisma gener
 
 ## Pull requests y forks
 
-- Los PRs usan `pull_request_target`: el workflow que corre es el de la rama base, así que un PR no puede quitar ni cambiar la guarda de fork.
-- Solo los PRs del mismo repositorio (`github.event.pull_request.head.repo.full_name == github.repository`) hacen checkout del head (`github.event.pull_request.head.sha`) y se ejecutan en el runner. Un PR de fork deja todos los jobs en `skipped` y no toca la PC.
+- Los PRs usan `pull_request`: el workflow corre con el merge del PR, así que un cambio al CI se valida en el mismo PR.
+- El repositorio es privado y GitHub no ofrece la aprobación de PRs de fork en repos privados; la política de forks queda fuera de este runbook.
 - Un push a `develop` o `master`, y una corrida manual (`workflow_dispatch`), usan el commit de la rama.
-- El CI de un PR del mismo repositorio no valida cambios al propio workflow: esos se validan con `workflow_dispatch` sobre la rama y con el push a `develop` después del merge.
