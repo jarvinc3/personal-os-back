@@ -17,7 +17,10 @@ import { AiEmailSourceService } from './ai-email-source.service';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
 import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 import { AiEmailClassificationService } from './ai-email-classification.service';
-import { matchesSenderFilter } from './gmail-import-scope';
+import {
+  matchesSenderFilter,
+  narrowerSenderFilter,
+} from './gmail-import-scope';
 
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 const SCOPED_BHD_SENDER = 'bhd.com.do';
@@ -315,13 +318,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     }
     this.activeSyncConnections.add(connection.id);
     try {
-      if (
-        connection.senderFilter &&
-        !matchesSenderFilter({
-          fromDomain: SCOPED_BHD_SENDER,
-          senderFilter: connection.senderFilter,
-        })
-      ) {
+      const senderScope = connection.senderFilter
+        ? narrowerSenderFilter({
+            first: SCOPED_BHD_SENDER,
+            second: connection.senderFilter,
+          })
+        : SCOPED_BHD_SENDER;
+      if (!senderScope) {
         throw new BadRequestException(
           `La conexión importa solo correo de ${connection.senderFilter}; la sync acotada es de BHD.`,
         );
@@ -331,7 +334,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           ? connection.importStartAt
           : scope.dateFrom;
       const accessToken = await this.source.getAccessToken(connection.id);
-      const query = `from:${SCOPED_BHD_SENDER} after:${gmailQueryDate(effectiveFrom)} before:${gmailQueryDate(scope.dateTo)}`;
+      const query = `from:${senderScope} after:${gmailQueryDate(effectiveFrom)} before:${gmailQueryDate(scope.dateTo)}`;
       if (effectiveFrom > scope.dateTo) {
         return {
           connected: true,

@@ -303,7 +303,7 @@ La sincronización los respeta en todas sus fases:
 - Bootstrap: consulta Gmail con `after:` de la fecha guardada y `from:` del filtro.
 - Recuperación: el `after` es el mayor entre `lastSyncedAt` menos la ventana y la fecha guardada; también lleva `from:`.
 - Incremental: el historial de Gmail no acepta consulta, así que el corte y el remitente se aplican antes de guardar el correo; un mensaje anterior a la fecha o de otro remitente no se persiste.
-- La sync acotada del piloto BHD cruza su ventana con la fecha guardada: nunca consulta ni descarga correo anterior a ese corte. Si el filtro guardado no incluye `bhd.com.do`, responde 400 sin consultar Gmail; cuando la conexión tiene alcance, pre-filtra metadata antes del cuerpo. Si la ventana queda fuera del corte, devuelve todo en cero sin consultar Gmail.
+- La sync acotada del piloto BHD cruza su ventana con la fecha guardada: nunca consulta ni descarga correo anterior a ese corte. Usa el dominio más específico entre `bhd.com.do` y el filtro guardado (por ejemplo `alerts.bhd.com.do`); si no se solapan, responde 400 sin consultar Gmail. Cuando la conexión tiene alcance, pre-filtra metadata antes del cuerpo. Si la ventana queda fuera del corte, devuelve todo en cero sin consultar Gmail.
 
 Errores: 400 por un período o un filtro con formato inválido. En una reconexión, `senderFilter: null` borra el filtro guardado; omitirlo conserva el anterior. Cambiar el período en una reconexión no borra correo ya importado; solo cambia el corte hacia adelante.
 

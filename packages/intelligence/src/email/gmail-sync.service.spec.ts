@@ -1197,6 +1197,26 @@ describe('GmailSyncService', () => {
       expect(syncResult.imported).toBe(1);
     });
 
+    it('acepta un filtro de conexión sobre un subdominio de BHD', async () => {
+      const fixture = makeFixture();
+      fixture.current.senderFilter = 'alerts.bhd.com.do';
+      fixture.source.gmailApiRequest.mockResolvedValueOnce({
+        messages: [],
+        resultSizeEstimate: 0,
+      });
+
+      await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-10T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      const listUrl = decodeURIComponent(
+        fixture.source.gmailApiRequest.mock.calls[0][1] as string,
+      );
+      expect(listUrl).toContain('from:alerts.bhd.com.do');
+    });
+
     it('rechaza la sync BHD si la conexión está limitada a otro remitente', async () => {
       const fixture = makeFixture();
       fixture.current.senderFilter = 'popular.com.do';

@@ -1,6 +1,7 @@
 import {
   isSenderFilter,
   matchesSenderFilter,
+  narrowerSenderFilter,
   normalizeSenderFilter,
   resolveImportStartAt,
 } from './gmail-import-scope';
@@ -88,5 +89,29 @@ describe('Gmail import scope', () => {
         senderFilter: 'bhd.com.do',
       }),
     ).toBe(false);
+  });
+
+  it('elige el dominio más específico cuando los filtros se solapan', () => {
+    expect(
+      narrowerSenderFilter({ first: 'bhd.com.do', second: 'bhd.com.do' }),
+    ).toBe('bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'bhd.com.do',
+        second: 'alerts.bhd.com.do',
+      }),
+    ).toBe('alerts.bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'alerts.bhd.com.do',
+        second: 'bhd.com.do',
+      }),
+    ).toBe('alerts.bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'bhd.com.do',
+        second: 'popular.com.do',
+      }),
+    ).toBeNull();
   });
 });
