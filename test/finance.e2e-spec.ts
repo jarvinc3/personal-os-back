@@ -2558,6 +2558,65 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/card-payments asks for confirmation when an imported payment matches', async () => {
+    const cardId = '22222222-2222-4222-8222-222222222222';
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    const importedTransactionId = '44444444-4444-4444-8444-444444444444';
+    const importedGroupId = '55555555-5555-4555-8555-555555555555';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      name: 'Visa',
+      type: 'CREDIT',
+      accountId: null,
+      balances: [{ currency: 'DOP' }],
+    });
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      currency: 'DOP',
+    });
+    prismaMock.finTransaction.findMany
+      .mockResolvedValueOnce([
+        {
+          id: importedTransactionId,
+          transferGroupId: importedGroupId,
+          accountId,
+          externalReference: null,
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: new Date('2026-01-03T10:00:00.000Z'),
+          source: 'EMAIL',
+          description: 'Pago de tarjeta',
+        },
+      ])
+      .mockResolvedValueOnce([{ transferGroupId: importedGroupId, cardId }]);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/card-payments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: accountId,
+        cardId,
+        amount: 100,
+        currency: 'DOP',
+        transactionDate: '2026-01-03T10:05:00.000Z',
+      })
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.code).toBe('CARD_PAYMENT_POSSIBLE_DUPLICATE');
+        expect(res.body.details).toMatchObject({
+          matchedBy: 'SIMILAR',
+          candidate: {
+            transactionId: importedTransactionId,
+            amount: '100',
+            currency: 'DOP',
+          },
+        });
+      });
+    expect(prismaMock.finTransaction.create).not.toHaveBeenCalled();
+  });
+
   it('GET /api/finance/cards/:id/statements lists the mapped statements', async () => {
     const cardId = '22222222-2222-4222-8222-222222222222';
     prismaMock.finCard.findFirst.mockResolvedValue({

@@ -124,6 +124,8 @@ export type CreateCardPaymentCommand = {
   /** Only the source leg carries it: `(userId, importReference)` is unique. */
   importReference?: string | null;
   aiMetadata?: unknown;
+  /** Confirma un pago manual parecido a uno importado por correo. */
+  duplicateAcknowledged?: boolean;
 };
 
 export type ImportFinancialTransactionCommand = {

@@ -14,9 +14,13 @@ import {
   type CardPaymentOperation,
   type IncomingCardPayment,
 } from '../application/reconcile-card-payment-import';
+import { findManualCardPaymentDuplicate } from '../application/find-manual-card-payment-duplicate';
 import { PrismaService } from '@personal-os/database';
 import { randomUUID } from 'crypto';
-import type { ImportedCardPaymentOutcome } from '../application/ports/ledger.repository.port';
+import type {
+  ImportedCardPaymentOutcome,
+  ManualCardPaymentOutcome,
+} from '../application/ports/ledger.repository.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
@@ -420,13 +424,42 @@ export class PrismaLedgerWriteRepository {
     });
   }
 
-  createCardPayment(input: {
+  async createCardPayment(input: {
     userId: string;
     command: CreateCardPaymentCommand;
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
-  }): Promise<CreateTransferResult | null> {
-    return this.prisma.$transaction((tx) => this.writeCardPayment(tx, input));
+  }): Promise<ManualCardPaymentOutcome> {
+    const { userId, command, fromAmounts } = input;
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockCardPayments(tx, userId);
+      if (!command.duplicateAcknowledged) {
+        const transactionDate = new Date(command.transactionDate);
+        const duplicate = findManualCardPaymentDuplicate({
+          incoming: {
+            accountId: command.fromAccountId,
+            cardId: command.cardId,
+            amount: command.amount,
+            currency: fromAmounts.currency,
+            transactionDate,
+            bankReference: command.externalReference ?? null,
+          },
+          existing: await this.loadCardPaymentOperations(
+            tx,
+            userId,
+            transactionDate,
+          ),
+        });
+        if (duplicate.kind === 'possible_duplicate') {
+          return duplicate;
+        }
+      }
+      const created = await this.writeCardPayment(tx, input);
+      if (!created) {
+        return { kind: 'not_written' };
+      }
+      return { kind: 'created', payment: created };
+    });
   }
 
   /**
@@ -443,7 +476,7 @@ export class PrismaLedgerWriteRepository {
   }): Promise<ImportedCardPaymentOutcome> {
     const { userId, incoming } = input;
     return this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`card_payment:${userId}`}))`;
+      await this.lockCardPayments(tx, userId);
       const decision = reconcileCardPaymentImport({
         incoming,
         existing: await this.loadCardPaymentOperations(
@@ -497,6 +530,17 @@ export class PrismaLedgerWriteRepository {
   }
 
   /**
+   * Serializa los pagos de tarjeta de un usuario. La importación y la ruta
+   * manual comparten la clave: uno no puede decidir mientras el otro escribe.
+   */
+  private async lockCardPayments(
+    tx: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`card_payment:${userId}`}))`;
+  }
+
+  /**
    * Cartera de pagos de tarjeta del usuario alrededor de una fecha. Vive aquí
    * para que la decisión y la escritura compartan la misma transacción.
    */
@@ -528,6 +572,8 @@ export class PrismaLedgerWriteRepository {
         amount: true,
         currency: true,
         transactionDate: true,
+        source: true,
+        description: true,
       },
     });
     const groupIds = sources.flatMap(({ transferGroupId }) =>
@@ -567,6 +613,8 @@ export class PrismaLedgerWriteRepository {
           amount: scalarNumber(source.amount),
           currency: source.currency,
           transactionDate: source.transactionDate,
+          imported: source.source === 'EMAIL',
+          description: source.description,
         },
       ];
     });
