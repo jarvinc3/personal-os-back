@@ -5,13 +5,20 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CurrentUser, RequiresEnabledModule, Timeout } from '@personal-os/core';
 import { ImportReviewResolutionService } from '../import-review-resolution.service';
 import {
   ImportReviewItemResponseDto,
   ImportReviewResolutionResponseDto,
 } from './dto/import-review-response.dto';
 import { ResolveImportReviewDto } from './dto/resolve-import-review.dto';
+
+/**
+ * El consumidor puede esperar una tasa FX de hasta 10 s al importar moneda
+ * distinta; el límite global de 5 s cortaría la respuesta con el movimiento ya
+ * escrito. El margen cubre la transacción de resolución.
+ */
+const RESOLVE_IMPORT_TIMEOUT_MS = 30_000;
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -30,6 +37,7 @@ export class ImportReviewController {
   }
 
   @Post(':id/resolve')
+  @Timeout(RESOLVE_IMPORT_TIMEOUT_MS)
   @ApiOperation({
     summary: 'Fija fecha o destino, enlaza el reverso o descarta un import',
   })
