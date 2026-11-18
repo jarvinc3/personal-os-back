@@ -17,6 +17,7 @@ import { AiEmailSourceService } from './ai-email-source.service';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
 import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 import { AiEmailClassificationService } from './ai-email-classification.service';
+import { matchesSenderFilter } from './gmail-import-scope';
 
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 const SCOPED_BHD_SENDER = 'bhd.com.do';
@@ -30,6 +31,41 @@ const GMAIL_SYNC_IN_PROGRESS = 'GMAIL_SYNC_IN_PROGRESS';
 const SYNC_STALLED_ERROR_CODE = 'sync_stalled';
 const CLASSIFICATION_FAILED_ERROR_CODE = 'classification_failed';
 const SYNC_WATCHDOG_INTERVAL_MS = 60_000;
+
+type MessageImportFilters = {
+  importStartAt: Date | null;
+  senderFilter: string | null;
+};
+
+/** Consulta de Gmail con el corte de fecha y el remitente de la conexión. */
+function gmailScopeQuery({
+  afterSeconds,
+  beforeSeconds,
+  senderFilter,
+}: {
+  afterSeconds: number;
+  beforeSeconds?: number;
+  senderFilter: string | null;
+}): string {
+  const parts = [`after:${afterSeconds}`];
+  if (beforeSeconds) {
+    parts.push(`before:${beforeSeconds}`);
+  }
+  if (senderFilter) {
+    parts.push(`from:${senderFilter}`);
+  }
+  return parts.join(' ');
+}
+
+function importFiltersOf(connection: {
+  importStartAt: Date | null;
+  senderFilter: string | null;
+}): MessageImportFilters {
+  return {
+    importStartAt: connection.importStartAt,
+    senderFilter: connection.senderFilter,
+  };
+}
 
 type ScopedBhdSyncScope = {
   dateFrom: Date;
@@ -211,7 +247,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     }
     const connection = await this.prisma.aiEmailConnection.findUnique({
       where: { userId },
-      select: { id: true, userId: true, isActive: true },
+      select: {
+        id: true,
+        userId: true,
+        isActive: true,
+        importStartAt: true,
+        senderFilter: true,
+      },
     });
     if (!connection?.isActive) {
       throw new ConflictException({
@@ -246,12 +288,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           }),
       );
       const refs = page.messages ?? [];
-      const imported = await this.importMessageBatch(
-        connection.id,
-        connection.userId,
+      const imported = await this.importMessageBatch({
+        connectionId: connection.id,
+        userId: connection.userId,
         accessToken,
         refs,
-      );
+        filters: importFiltersOf(connection),
+      });
       return {
         connected: true,
         query,
@@ -902,7 +945,12 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     accessToken: string,
   ) {
     const query = new URLSearchParams({
-      q: `after:${BOOTSTRAP_START}`,
+      q: gmailScopeQuery({
+        afterSeconds: connection.importStartAt
+          ? Math.floor(connection.importStartAt.getTime() / 1000)
+          : BOOTSTRAP_START,
+        senderFilter: connection.senderFilter,
+      }),
       maxResults: '500',
     });
     if (connection.bootstrapPageToken) {
@@ -922,12 +970,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       batchSize: page.messages?.length ?? 0,
       totalEstimate: page.resultSizeEstimate,
     });
-    const imported = await this.importMessageBatch(
-      connection.id,
-      connection.userId,
+    const imported = await this.importMessageBatch({
+      connectionId: connection.id,
+      userId: connection.userId,
       accessToken,
-      page.messages ?? [],
-      async (processed, importedCount) => {
+      refs: page.messages ?? [],
+      filters: importFiltersOf(connection),
+      onBatchProgress: async (processed, importedCount) => {
         await this.updateSyncProgress(
           connection.id,
           connection.userId,
@@ -935,7 +984,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           { processed, imported: importedCount },
         );
       },
-    );
+    });
     await this.prisma.aiEmailConnection.update({
       where: { id: connection.id },
       data: {
@@ -987,12 +1036,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         .flatMap((entry) =>
           entry.message?.id ? [{ id: entry.message.id }] : [],
         );
-      imported += await this.importMessageBatch(
-        connection.id,
-        connection.userId,
+      imported += await this.importMessageBatch({
+        connectionId: connection.id,
+        userId: connection.userId,
         accessToken,
-        ids,
-        async (processed, importedCount) => {
+        refs: ids,
+        filters: importFiltersOf(connection),
+        onBatchProgress: async (processed, importedCount) => {
           await this.updateSyncProgress(
             connection.id,
             connection.userId,
@@ -1000,7 +1050,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             { processed, imported: importedCount },
           );
         },
-      );
+      });
       pageToken = page.nextPageToken;
     } while (pageToken);
 
@@ -1061,9 +1111,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     accessToken: string,
   ) {
     const nowSeconds = Math.floor(Date.now() / 1000);
+    const windowStartMs =
+      connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS;
+    const importFloorMs = connection.importStartAt?.getTime() ?? 0;
     const startSeconds = Math.floor(
-      (connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS) /
-        1000,
+      Math.max(windowStartMs, importFloorMs) / 1000,
     );
     const recoveryRange = {
       from: new Date(startSeconds * 1000).toISOString(),
@@ -1084,7 +1136,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         }),
     );
     const query = new URLSearchParams({
-      q: `after:${startSeconds} before:${nowSeconds}`,
+      q: gmailScopeQuery({
+        afterSeconds: startSeconds,
+        beforeSeconds: nowSeconds,
+        senderFilter: connection.senderFilter,
+      }),
       maxResults: '500',
     });
     let pageToken: string | undefined;
@@ -1110,12 +1166,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         batchSize: page.messages?.length ?? 0,
         totalEstimate: page.resultSizeEstimate,
       });
-      imported += await this.importMessageBatch(
-        connection.id,
-        connection.userId,
+      imported += await this.importMessageBatch({
+        connectionId: connection.id,
+        userId: connection.userId,
         accessToken,
-        page.messages ?? [],
-        async (processed, importedCount) => {
+        refs: page.messages ?? [],
+        filters: importFiltersOf(connection),
+        onBatchProgress: async (processed, importedCount) => {
           await this.updateSyncProgress(
             connection.id,
             connection.userId,
@@ -1123,7 +1180,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             { processed, imported: importedCount },
           );
         },
-      );
+      });
       pageToken = page.nextPageToken;
       if (pageToken) {
         query.set('pageToken', pageToken);
@@ -1143,13 +1200,21 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return { imported, recovered: true, bootstrapComplete: true };
   }
 
-  private async importMessageBatch(
-    connectionId: string,
-    userId: string,
-    accessToken: string,
-    refs: Array<{ id: string; threadId?: string }>,
-    onBatchProgress?: (processed: number, imported: number) => Promise<void>,
-  ) {
+  private async importMessageBatch({
+    connectionId,
+    userId,
+    accessToken,
+    refs,
+    filters,
+    onBatchProgress,
+  }: {
+    connectionId: string;
+    userId: string;
+    accessToken: string;
+    refs: Array<{ id: string; threadId?: string }>;
+    filters: MessageImportFilters;
+    onBatchProgress?: (processed: number, imported: number) => Promise<void>;
+  }): Promise<number> {
     let imported = 0;
     let unreportedProcessed = 0;
     let unreportedImported = 0;
@@ -1186,7 +1251,12 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
                   retryAt: state.retryAt,
                 }),
             );
-            return this.persistMessage(connectionId, userId, message);
+            return this.persistMessage({
+              connectionId,
+              userId,
+              message,
+              filters,
+            });
           } catch (error) {
             if (this.isGmailNotFound(error)) {
               return 0;
@@ -1212,11 +1282,17 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return imported;
   }
 
-  private async persistMessage(
-    connectionId: string,
-    userId: string,
-    message: GmailMessage,
-  ) {
+  private async persistMessage({
+    connectionId,
+    userId,
+    message,
+    filters,
+  }: {
+    connectionId: string;
+    userId: string;
+    message: GmailMessage;
+    filters: MessageImportFilters;
+  }) {
     const payload = message.payload ?? {};
     const headers = new Map(
       (payload.headers ?? []).map((header) => [
@@ -1228,6 +1304,18 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const fromAddress =
       fromHeader.match(/<([^>]+)>/)?.[1]?.trim() ?? fromHeader.trim();
     const fromDomain = fromAddress.split('@').at(-1)?.toLowerCase() ?? '';
+    const receivedAt = message.internalDate
+      ? new Date(Number(message.internalDate))
+      : new Date(headers.get('date') ?? Date.now());
+    if (filters.importStartAt && receivedAt < filters.importStartAt) {
+      return 0;
+    }
+    if (
+      filters.senderFilter &&
+      !matchesSenderFilter({ fromDomain, senderFilter: filters.senderFilter })
+    ) {
+      return 0;
+    }
     const subject = headers.get('subject')?.trim() || '(sin asunto)';
     const bodies = this.collectBodies(payload);
     const rawBody = bodies.plain || bodies.html || message.snippet || '';
@@ -1239,9 +1327,6 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const templateFingerprint = createHash('sha256')
       .update(this.templateize(canonicalBody))
       .digest('hex');
-    const receivedAt = message.internalDate
-      ? new Date(Number(message.internalDate))
-      : new Date(headers.get('date') ?? Date.now());
     const retentionDays =
       this.config.get('NODE_ENV', { infer: true }) === 'production'
         ? RAW_RETENTION_PROD_DAYS
