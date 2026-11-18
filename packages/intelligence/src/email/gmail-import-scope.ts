@@ -19,7 +19,7 @@ const MONTHS_BY_PERIOD: Record<Exclude<GmailImportPeriod, 'TODAY'>, number> = {
 
 /** Dominio del remitente, sin `@` ni espacios; admite subdominios. */
 export const GMAIL_SENDER_FILTER_PATTERN =
-  /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+  /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
 export function resolveImportStartAt({
   period,
@@ -61,6 +61,27 @@ export function matchesSenderFilter({
 }): boolean {
   const domain = fromDomain.trim().toLowerCase();
   return domain === senderFilter || domain.endsWith(`.${senderFilter}`);
+}
+
+/**
+ * El dominio más específico que satisface los dos, o null si no se solapan.
+ * `bhd.com.do` con `alerts.bhd.com.do` da `alerts.bhd.com.do`.
+ */
+export function narrowerSenderFilter({
+  first,
+  second,
+}: {
+  first: string;
+  second: string;
+}): string | null {
+  if (
+    first !== second &&
+    !first.endsWith(`.${second}`) &&
+    !second.endsWith(`.${first}`)
+  ) {
+    return null;
+  }
+  return first.length >= second.length ? first : second;
 }
 
 function subtractUtcMonths({

@@ -251,6 +251,71 @@ describe('GmailSyncService', () => {
     expect(prisma.aiEmailMessage.create).not.toHaveBeenCalled();
   });
 
+  it('pide metadata antes del cuerpo en el historial incremental', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    current.importStartAt = new Date('2026-11-01T00:00:00.000Z');
+    current.senderFilter = 'bhd.com.do';
+    const oldMetadata = {
+      id: 'gmail-old',
+      internalDate: String(Date.parse('2026-10-20T00:00:00.000Z')),
+      payload: { headers: [{ name: 'From', value: 'alerts@bhd.com.do' }] },
+    };
+    const inScopeMetadata = {
+      id: 'gmail-in',
+      internalDate: String(Date.parse('2026-11-10T00:00:00.000Z')),
+      payload: { headers: [{ name: 'From', value: 'alerts@bhd.com.do' }] },
+    };
+    const fullMessage = {
+      ...inScopeMetadata,
+      snippet: 'Transferencia',
+      payload: {
+        headers: [
+          { name: 'From', value: 'alerts@bhd.com.do' },
+          { name: 'Subject', value: 'Transacciones entre mis productos' },
+        ],
+      },
+    };
+    source.gmailApiRequest.mockImplementation((_token, path) => {
+      const requestPath = String(path);
+      if (requestPath.includes('/history')) {
+        return Promise.resolve({
+          historyId: '105',
+          history: [
+            {
+              messagesAdded: [
+                { message: { id: 'gmail-old' } },
+                { message: { id: 'gmail-in' } },
+              ],
+            },
+          ],
+        });
+      }
+      if (requestPath.includes('gmail-old')) {
+        return Promise.resolve(oldMetadata);
+      }
+      if (requestPath.includes('format=metadata')) {
+        return Promise.resolve(inScopeMetadata);
+      }
+      return Promise.resolve(fullMessage);
+    });
+
+    await service.syncConnection('connection-1');
+
+    const requestedPaths = source.gmailApiRequest.mock.calls.map(([, path]) =>
+      String(path),
+    );
+    expect(requestedPaths).toContain(
+      '/users/me/messages/gmail-old?format=metadata',
+    );
+    expect(requestedPaths).not.toContain(
+      '/users/me/messages/gmail-old?format=full',
+    );
+    expect(requestedPaths).toContain('/users/me/messages/gmail-in?format=full');
+    expect(prisma.aiEmailMessage.create).toHaveBeenCalledTimes(1);
+  });
+
   it('advances an incremental history cursor after importing a message', async () => {
     const { current, prisma, source, service } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
@@ -1036,12 +1101,15 @@ describe('GmailSyncService', () => {
       const gmailUrl = fixture.source.gmailApiRequest.mock
         .calls[0][1] as string;
       const decoded = decodeURIComponent(gmailUrl);
+      const fromSeconds = Math.floor(
+        Date.parse('2026-08-17T00:00:00.000Z') / 1000,
+      );
       expect(decoded).toContain('from:bhd.com.do');
-      expect(decoded).toContain('after:2026/08/17');
+      expect(decoded).toContain(`after:${fromSeconds}`);
       expect(decoded).toContain('before:2026/11/18');
       expect(decoded).toContain('maxResults=2');
       expect(syncResult.query).toBe(
-        'from:bhd.com.do after:2026/08/17 before:2026/11/18',
+        `from:bhd.com.do after:${fromSeconds} before:2026/11/18`,
       );
       expect(importBatch).toHaveBeenCalledWith({
         connectionId: 'connection-1',
@@ -1049,6 +1117,7 @@ describe('GmailSyncService', () => {
         accessToken: 'token',
         refs: [{ id: 'bhd-1' }, { id: 'bhd-2' }],
         filters: { importStartAt: null, senderFilter: null },
+        scopeAppliedInQuery: true,
       });
     });
 
@@ -1063,6 +1132,135 @@ describe('GmailSyncService', () => {
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(source.gmailApiRequest).not.toHaveBeenCalled();
+    });
+    it('cruza la ventana con el corte guardado y no descarga cuerpos fuera del alcance', async () => {
+      const fixture = makeFixture();
+      fixture.current.importStartAt = new Date('2026-10-01T00:00:00.000Z');
+      fixture.current.senderFilter = 'bhd.com.do';
+      fixture.source.gmailApiRequest.mockImplementation((_token, path) => {
+        const requestPath = String(path);
+        if (requestPath.includes('/messages?')) {
+          return Promise.resolve({
+            messages: [{ id: 'bhd-old' }, { id: 'bhd-in' }],
+            resultSizeEstimate: 2,
+          });
+        }
+        if (requestPath.includes('bhd-old')) {
+          return Promise.resolve({
+            id: 'bhd-old',
+            internalDate: String(Date.parse('2026-09-20T00:00:00.000Z')),
+            payload: {
+              headers: [{ name: 'From', value: 'alertas@bhd.com.do' }],
+            },
+          });
+        }
+        if (requestPath.includes('format=metadata')) {
+          return Promise.resolve({
+            id: 'bhd-in',
+            internalDate: String(Date.parse('2026-10-05T00:00:00.000Z')),
+            payload: {
+              headers: [{ name: 'From', value: 'alertas@bhd.com.do' }],
+            },
+          });
+        }
+        return Promise.resolve({
+          id: 'bhd-in',
+          internalDate: String(Date.parse('2026-10-05T00:00:00.000Z')),
+          snippet: 'Transferencia',
+          payload: {
+            headers: [
+              { name: 'From', value: 'alertas@bhd.com.do' },
+              { name: 'Subject', value: 'Transacciones entre mis productos' },
+            ],
+          },
+        });
+      });
+
+      const syncResult = await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-10T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      const listUrl = decodeURIComponent(
+        fixture.source.gmailApiRequest.mock.calls[0][1] as string,
+      );
+      const cutoffSeconds = Math.floor(
+        Date.parse('2026-10-01T00:00:00.000Z') / 1000,
+      );
+      expect(listUrl).toContain('from:bhd.com.do');
+      expect(listUrl).toContain(`after:${cutoffSeconds}`);
+      const requestedPaths = fixture.source.gmailApiRequest.mock.calls.map(
+        ([, path]) => String(path),
+      );
+      expect(requestedPaths).toContain(
+        '/users/me/messages/bhd-old?format=metadata',
+      );
+      expect(requestedPaths).not.toContain(
+        '/users/me/messages/bhd-old?format=full',
+      );
+      expect(requestedPaths).toContain('/users/me/messages/bhd-in?format=full');
+      expect(syncResult.imported).toBe(1);
+    });
+
+    it('acepta un filtro de conexión sobre un subdominio de BHD', async () => {
+      const fixture = makeFixture();
+      fixture.current.senderFilter = 'alerts.bhd.com.do';
+      fixture.source.gmailApiRequest.mockResolvedValueOnce({
+        messages: [],
+        resultSizeEstimate: 0,
+      });
+
+      await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-10T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      const listUrl = decodeURIComponent(
+        fixture.source.gmailApiRequest.mock.calls[0][1] as string,
+      );
+      expect(listUrl).toContain('from:alerts.bhd.com.do');
+    });
+
+    it('rechaza la sync BHD si la conexión está limitada a otro remitente', async () => {
+      const fixture = makeFixture();
+      fixture.current.senderFilter = 'popular.com.do';
+
+      await expect(
+        fixture.service.syncScopedBhdForUser('user-1', {
+          dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+          dateTo: new Date('2026-10-10T00:00:00.000Z'),
+          maxMessages: 20,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(fixture.source.gmailApiRequest).not.toHaveBeenCalled();
+    });
+
+    it('no consulta Gmail cuando la ventana queda fuera del corte guardado', async () => {
+      const fixture = makeFixture();
+      fixture.current.importStartAt = new Date('2026-11-10T00:00:00.000Z');
+
+      const syncResult = await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-01T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      expect(syncResult).toMatchObject({
+        found: 0,
+        imported: 0,
+        skipped: 0,
+        nextPageToken: null,
+        estimatedTotal: 0,
+      });
+      const cutoffSeconds = Math.floor(
+        Date.parse('2026-11-10T00:00:00.000Z') / 1000,
+      );
+      expect(syncResult.query).toBe(
+        `from:bhd.com.do after:${cutoffSeconds} before:2026/10/01`,
+      );
+      expect(fixture.source.gmailApiRequest).not.toHaveBeenCalled();
     });
   });
 });

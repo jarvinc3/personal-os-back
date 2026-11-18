@@ -1,6 +1,7 @@
 import {
   isSenderFilter,
   matchesSenderFilter,
+  narrowerSenderFilter,
   normalizeSenderFilter,
   resolveImportStartAt,
 } from './gmail-import-scope';
@@ -62,6 +63,7 @@ describe('Gmail import scope', () => {
     expect(normalizeSenderFilter(null)).toBeNull();
     expect(normalizeSenderFilter('   ')).toBeNull();
     expect(isSenderFilter('bhd.com.do')).toBe(true);
+    expect(isSenderFilter('BHD.COM.DO')).toBe(true);
     expect(isSenderFilter('alerts.bhd.com.do')).toBe(true);
     expect(isSenderFilter('bhd')).toBe(false);
     expect(isSenderFilter('bhd..com')).toBe(false);
@@ -87,5 +89,29 @@ describe('Gmail import scope', () => {
         senderFilter: 'bhd.com.do',
       }),
     ).toBe(false);
+  });
+
+  it('elige el dominio más específico cuando los filtros se solapan', () => {
+    expect(
+      narrowerSenderFilter({ first: 'bhd.com.do', second: 'bhd.com.do' }),
+    ).toBe('bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'bhd.com.do',
+        second: 'alerts.bhd.com.do',
+      }),
+    ).toBe('alerts.bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'alerts.bhd.com.do',
+        second: 'bhd.com.do',
+      }),
+    ).toBe('alerts.bhd.com.do');
+    expect(
+      narrowerSenderFilter({
+        first: 'bhd.com.do',
+        second: 'popular.com.do',
+      }),
+    ).toBeNull();
   });
 });
