@@ -60,6 +60,7 @@ function setup({
     .mockResolvedValueOnce(reviewRow)
     .mockResolvedValueOnce(settledRow);
   const executeRaw = jest.fn().mockResolvedValue(undefined);
+  const transactionOptions = jest.fn();
   const prisma = {
     finSignalImport: {
       findFirst,
@@ -72,17 +73,20 @@ function setup({
     finAccount: { findFirst: jest.fn().mockResolvedValue(account) },
     finCard: { findFirst: jest.fn().mockResolvedValue(card) },
     finTransaction: { findFirst: jest.fn().mockResolvedValue(original) },
-    $transaction: jest.fn((handler: (tx: never) => unknown) => {
-      const tx = {
-        $executeRaw: executeRaw,
-        finSignalImport: prisma.finSignalImport,
-        finSignalImportResolution: prisma.finSignalImportResolution,
-        finAccount: prisma.finAccount,
-        finCard: prisma.finCard,
-        finTransaction: prisma.finTransaction,
-      };
-      return handler(tx as never);
-    }),
+    $transaction: jest.fn(
+      (handler: (tx: never) => unknown, options?: unknown) => {
+        transactionOptions(options);
+        const tx = {
+          $executeRaw: executeRaw,
+          finSignalImport: prisma.finSignalImport,
+          finSignalImportResolution: prisma.finSignalImportResolution,
+          finAccount: prisma.finAccount,
+          finCard: prisma.finCard,
+          finTransaction: prisma.finTransaction,
+        };
+        return handler(tx as never);
+      },
+    ),
   };
   const signals = {
     consumeResolved: jest.fn().mockResolvedValue(consumeResult),
@@ -91,7 +95,7 @@ function setup({
     prisma as never,
     signals as never,
   );
-  return { service, prisma, signals, executeRaw };
+  return { service, prisma, signals, executeRaw, transactionOptions };
 }
 
 describe('ImportReviewResolutionService', () => {
@@ -229,6 +233,21 @@ describe('ImportReviewResolutionService', () => {
         },
       }),
     );
+  });
+
+  it('da a la transacción margen para la escritura del consumidor', async () => {
+    const { service, transactionOptions } = setup();
+
+    await service.resolve({
+      userId: 'user-1',
+      importId: 'import-1',
+      input: { action: 'SET_DATE', transactionDate: '2026-10-30T12:00:00Z' },
+    });
+
+    expect(transactionOptions).toHaveBeenCalledWith({
+      timeout: 30_000,
+      maxWait: 10_000,
+    });
   });
 
   it('toma el bloqueo por usuario antes de leer el import', async () => {

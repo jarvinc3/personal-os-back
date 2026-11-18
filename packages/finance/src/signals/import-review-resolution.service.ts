@@ -21,6 +21,13 @@ const FINANCE_TRANSACTION_SIGNAL = 'FINANCE.TRANSACTION_DETECTED';
 const EMAIL_SIGNAL_SOURCE = 'EMAIL_MESSAGE';
 const REVIEW_IMPORT_LIMIT = 100;
 const IMPORT_LOCK_KEY = 'signal_import';
+/**
+ * El consumidor escribe con su propio cliente y puede pedir una tasa FX al
+ * importar moneda distinta (hasta 10 s). La transacción del bloqueo debe
+ * sobrevivir a esa escritura para que la auditoría se guarde después.
+ */
+const RESOLUTION_TRANSACTION_TIMEOUT_MS = 30_000;
+const RESOLUTION_TRANSACTION_MAX_WAIT_MS = 10_000;
 
 export type ResolveImportReviewInput = {
   action: ImportReviewAction;
@@ -111,31 +118,37 @@ export class ImportReviewResolutionService {
     importId: string;
     input: ResolveImportReviewInput;
   }): Promise<ImportReviewResolution> {
-    const attempt = await this.prisma.$transaction(async (tx) => {
-      await this.lockUserImports({ tx, userId });
-      const reviewImport = await this.loadReviewImport({
-        userId,
-        importId,
-        tx,
-      });
-      if (input.action === IMPORT_REVIEW_ACTION.DISCARD) {
-        const resolution = await this.discard({
+    const attempt = await this.prisma.$transaction(
+      async (tx) => {
+        await this.lockUserImports({ tx, userId });
+        const reviewImport = await this.loadReviewImport({
           userId,
-          reviewImport,
-          reason: input.reason,
+          importId,
           tx,
         });
-        return { kind: 'resolved', resolution } satisfies ResolutionAttempt;
-      }
-      const prepared = await this.prepareResolution({ userId, input, tx });
-      return this.applyResolution({
-        userId,
-        reviewImport,
-        action: input.action,
-        prepared,
-        tx,
-      });
-    });
+        if (input.action === IMPORT_REVIEW_ACTION.DISCARD) {
+          const resolution = await this.discard({
+            userId,
+            reviewImport,
+            reason: input.reason,
+            tx,
+          });
+          return { kind: 'resolved', resolution } satisfies ResolutionAttempt;
+        }
+        const prepared = await this.prepareResolution({ userId, input, tx });
+        return this.applyResolution({
+          userId,
+          reviewImport,
+          action: input.action,
+          prepared,
+          tx,
+        });
+      },
+      {
+        timeout: RESOLUTION_TRANSACTION_TIMEOUT_MS,
+        maxWait: RESOLUTION_TRANSACTION_MAX_WAIT_MS,
+      },
+    );
     if (attempt.kind === 'unresolved') {
       throw new UnprocessableEntityException({
         message: 'El import sigue en revisión',
