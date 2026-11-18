@@ -116,9 +116,12 @@ describe('CreateCardPaymentUseCase', () => {
 
   it('creates the two legs', async () => {
     const createCardPayment = jest.fn().mockResolvedValue({
-      transferGroupId: 'grp-1',
-      debit: leg('d1'),
-      credit: leg('c1'),
+      kind: 'created',
+      payment: {
+        transferGroupId: 'grp-1',
+        debit: leg('d1'),
+        credit: leg('c1'),
+      },
     });
     const repo = buildRepo({
       createCardPayment,
@@ -128,5 +131,52 @@ describe('CreateCardPaymentUseCase', () => {
 
     expect(createCardPayment).toHaveBeenCalledTimes(1);
     expect(paymentResult).toMatchObject({ transferGroupId: 'grp-1' });
+  });
+
+  it('asks for confirmation when an imported payment matches', async () => {
+    const repo = buildRepo({
+      createCardPayment: jest.fn().mockResolvedValue({
+        kind: 'possible_duplicate',
+        matchedBy: 'SIMILAR',
+        candidate: {
+          transactionId: 'tx-imported',
+          transferGroupId: 'grp-imported',
+          accountId: 'acc-1',
+          cardId: 'card-1',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: new Date('2026-08-01T11:58:00.000Z'),
+          description: 'Pago de tarjeta',
+        },
+      }),
+    });
+
+    await expect(
+      buildUseCase(repo).execute('user-1', command),
+    ).rejects.toMatchObject({
+      status: 409,
+      response: {
+        code: 'CARD_PAYMENT_POSSIBLE_DUPLICATE',
+        matchedBy: 'SIMILAR',
+        candidate: {
+          transactionId: 'tx-imported',
+          transferGroupId: 'grp-imported',
+          amount: '100',
+          currency: 'DOP',
+          transactionDate: '2026-08-01T11:58:00.000Z',
+          description: 'Pago de tarjeta',
+        },
+      },
+    });
+  });
+
+  it('reports a payment that could not be written', async () => {
+    const repo = buildRepo({
+      createCardPayment: jest.fn().mockResolvedValue({ kind: 'not_written' }),
+    });
+
+    await expect(
+      buildUseCase(repo).execute('user-1', command),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

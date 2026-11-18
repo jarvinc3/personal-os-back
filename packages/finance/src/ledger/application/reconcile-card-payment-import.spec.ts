@@ -29,6 +29,8 @@ function operation(
     amount: 2500,
     currency: 'DOP',
     transactionDate: new Date('2026-11-01T12:00:00.000Z'),
+    imported: false,
+    description: null,
     ...overrides,
   };
 }

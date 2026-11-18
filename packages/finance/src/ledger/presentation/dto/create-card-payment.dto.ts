@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -57,6 +58,15 @@ export class CreateCardPaymentDto {
   @IsOptional()
   @IsUUID()
   statementId?: string;
+
+  @ApiPropertyOptional({
+    default: false,
+    description:
+      'Confirma el pago aunque ya exista uno importado por correo con los mismos datos.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  duplicateAcknowledged?: boolean;
 }
 
 export class UpdateCardPaymentDto extends PartialType(CreateCardPaymentDto) {}

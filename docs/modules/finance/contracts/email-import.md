@@ -190,9 +190,9 @@ La referencia es la primera pista, no prueba de duplicado.
 3. Si no hay coincidencia por referencia, o el correo no trae referencia, se busca un pago parecido por misma cuenta de origen, misma tarjeta, mismo monto, misma moneda y fecha dentro de la ventana de dedupe del ADR-003. La búsqueda incluye pagos manuales sin referencia.
 4. Si hay exactamente un candidato parecido y coincide en cuenta de origen, tarjeta, monto y moneda con fecha cercana, se vincula a ese pago: no se crean patas nuevas y la señal queda `DUPLICATE` o `ALREADY_APPLIED` con el pago existente en evidencia. Si la coincidencia no es clara, el correo queda en revisión con `CARD_PAYMENT_POSSIBLE_DUPLICATE` y el candidato en evidencia.
 5. Si hay varios candidatos, queda `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` con los IDs y no se crea movimiento.
-6. Si no hay candidato, el pago confirmado se importa una sola vez. La creación manual posterior con los mismos datos queda PENDIENTE CONCRETAR; no se promete 409 ni `duplicateAcknowledged` como acuerdo.
+6. Si no hay candidato, el pago confirmado se importa una sola vez. La creación manual posterior con los mismos datos pide confirmación explícita (párrafo siguiente).
 
-La ruta manual no cambia en este contrato. La opción de responder 409 y exigir `duplicateAcknowledged` queda PENDIENTE CONCRETAR: (A) bloquear con confirmación explícita, (B) solo advertir sin bloquear, (C) dejar la ruta manual intacta. Impacto: A evita dobles pero cambia la API manual; B no garantiza el objetivo; C deja el riesgo. No se implementa hasta decisión del owner.
+La ruta manual pide confirmación explícita (decisión del owner del 2026-11-17, opción A). `POST /api/finance/card-payments` responde 409 `CARD_PAYMENT_POSSIBLE_DUPLICATE` con el candidato —id de la pata de origen, `transferGroupId`, cuenta, tarjeta, monto, moneda, fecha y descripción— cuando ya existe un pago importado con la misma cuenta de origen, tarjeta, monto y moneda y una fecha dentro de la ventana de dedupe del ADR-003, o con la misma `bankReference`. La decisión y la escritura comparten la transacción y el bloqueo por usuario de la importación. El pago se guarda solo si se reenvía con `duplicateAcknowledged: true`; sin candidato, la ruta no cambia. Solo compiten pagos importados: dos pagos manuales iguales siguen permitidos. El parecido no exige que el pago importado venga sin referencia, porque el pago manual casi nunca trae la suya.
 
 ### 4.4 Dedupe e idempotencia
 
@@ -202,7 +202,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 - Misma referencia con cuenta, tarjeta, monto o moneda distintos: `CARD_PAYMENT_REFERENCE_CONFLICT`, revisión; no se crea ni se descarta.
 - Dos correos distintos con la misma referencia y la misma operación: un solo pago.
 - Dos pagos legítimos con referencias distintas: se permiten aunque compartan cuenta, tarjeta, monto y día.
-- Sin referencia y sin candidato: se permite un solo pago; la opción de la ruta manual queda PENDIENTE CONCRETAR.
+- Sin referencia y sin candidato: se permite un solo pago; un pago manual parecido pide confirmación explícita con el candidato (§4.3).
 - Reintento después de un fallo de reclasificación: no duplica el pago ni la verificación.
 
 ### 4.5 Recordatorios
@@ -405,6 +405,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 
 - Transferencia: una pata conocida, emparejamiento pendiente y contraparte no inventada.
 - Pago de tarjeta: dos patas `CARD_PAYMENT`, sin gasto, conciliadas con pagos manuales y sin duplicados.
+- Pago de tarjeta manual: parecido a uno importado responde 409 `CARD_PAYMENT_POSSIBLE_DUPLICATE` con el candidato y se guarda solo con `duplicateAcknowledged: true`; sin candidato la ruta no cambia.
 - Recordatorios: no crean movimientos.
 - Fecha del correo: solo sugerencia con procedencia; confirmación humana antes de registrar.
 - Reverso: referencia primero; sin referencia, id de correo y candidatos; candidato único válido automático, cero o varios a revisión. Una referencia explícita sin original queda en revisión y se vincula cuando el original aparezca.
@@ -419,8 +420,6 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 
 ### 8.2 Pendiente concretar
 
-- Creación manual posterior a un pago importado por correo: no se promete 409 ni `duplicateAcknowledged`.
-- Ruta manual ante un pago parecido: opciones (A) bloqueo con `duplicateAcknowledged`, (B) aviso sin bloqueo, (C) ruta intacta. Cambia la API y el objetivo de no duplicar; no está aprobada.
 - Comercio ausente en candidatos de reverso: decidido por #369; se usa la tarjeta y su cuenta, no solo monto, moneda y fecha.
 - Reverso de transferencias y de pagos de tarjeta: ruta específica fuera de estos cuatro issues; por ahora `REVERSAL_TARGET_NOT_SUPPORTED`.
 - Texto visible y ubicación de los motivos en la UI: los códigos son estables; el texto puede cambiar.
@@ -463,6 +462,7 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no
 | Un import en revisión por falta de destino se recalcula   | `buildImportPlan` vuelve a resolver la cuenta o la tarjeta de un `fin_signal_import` en `REVIEW_REQUIRED` con un motivo de destino; conserva los imports aplicados y las revisiones por otros motivos (`finance-signal-consumer.ts`).                                                                                                                                                                                                              | `IMPLEMENTADO` (#376)          |
 | El doble aviso BHD se empareja en la misma cuenta         | `pickTransferMatch` acepta tipo opuesto, mismo monto y moneda, misma cuenta y hasta 10 minutos cuando una pata lleva la referencia M01/M02 y la otra no; la pata de salida se registra como `TRANSFER_OUT` aunque el destino no sea un producto propio (`match-imported-transfers.ts`, `bhd-email-format.ts`).                                                                                                                                     | `IMPLEMENTADO` (#380)          |
 | El fallo del proveedor FX conserva su causa               | `ExchangeRateHostAdapter` devuelve `PROVIDER_UNAUTHORIZED`, `PROVIDER_UNAVAILABLE`, `API_KEY_MISSING`, `PROVIDER_ERROR` o `NO_EXACT_RATE`; el ledger busca la última publicación hacia atrás en caché y proveedor, no usa una caché más antigua que una publicación posterior y registra su fecha en todos los flujos de importación, incluida la contraparte ATM completada desde un gasto (`exchange-rate-host.adapter.ts`, `rate-metadata.ts`). | `IMPLEMENTADO` (#379)          |
+| El pago manual parecido pide confirmación                 | `POST /api/finance/card-payments` devuelve 409 `CARD_PAYMENT_POSSIBLE_DUPLICATE` con el candidato y no escribe hasta `duplicateAcknowledged: true`; la decisión y la escritura comparten transacción y el bloqueo `card_payment:<userId>` de la importación (`find-manual-card-payment-duplicate.ts`, `prisma-ledger-write.repository.ts`).                                                                                                        | `IMPLEMENTADO` (#389)          |
 
 La tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente. La ventana de emparejamiento es de 3 días, y de 7 cuando las dos patas comparten referencia, por decisión del owner. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
@@ -471,7 +471,7 @@ La tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento 
 Los casos propuestos viven en el paquete local de revisión y se resumen en los issues:
 
 - `T-TRA`: una pata, cuenta ambigua, solo tarjeta, referencia compartida, conflicto de referencia en operaciones distintas, emparejamiento único y ambiguo, replay, aislamiento y estado pendiente. El emparejamiento tiene pruebas de unidad de la ventana (3 y 7 días), del consumidor (llamada, ausencia y evidencia de ambigüedad) y de integración (dos patas en un solo grupo, sin categoría).
-- `T-TAR`: dos patas, saldos, estado de cuenta, pago manual con y sin referencia, referencia conflictiva, recordatorio, tarjeta o cuenta inválida, replay, dos pagos legítimos, aislamiento y opciones manuales pendientes.
+- `T-TAR`: dos patas, saldos, estado de cuenta, pago manual con y sin referencia, referencia conflictiva, recordatorio, tarjeta o cuenta inválida, replay, dos pagos legítimos, aislamiento y pago manual parecido que pide confirmación con `duplicateAcknowledged`.
 - `T-DAT`: monto, moneda, fecha, sugerencia, confirmación, instrumento, replay, ausencia de verificación implícita y aislamiento.
 - `T-REV`: referencia, correo, candidato único, cero, varios, referencia explícita sin match, comercio ausente, transferencia, pago de tarjeta, parcial, otro usuario, fuera de ventana y replay.
 
