@@ -215,6 +215,11 @@ Agregar tests estáticos/de imports o verificaciones equivalentes para estos inv
 7. Los settings de un módulo nuevo se registran sin modificar los defaults centrales de Users.
 8. Los eventos de dominio nuevos se publican sin modificar las constantes de eventos de Core.
 
+Cobertura: `apps/api/src/architecture/frontier-invariants.architecture.spec.ts` tiene un
+test dedicado por invariante (1–8).
+`packages/finance/src/contracts/finance-boundaries.architecture.spec.ts` conserva
+las comprobaciones de 1, 2, 3, 4 y 5.
+
 ## Regla de cierre de fase
 
 Cada fase local sigue requiriendo:
