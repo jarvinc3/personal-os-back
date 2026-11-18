@@ -1,3 +1,5 @@
+import { readTrailingLast4 } from './bhd-email-format';
+
 export type EmailProductProposalEvidence = {
   label: string;
   lastFour: string;
@@ -101,6 +103,10 @@ export function detectBhdEmailProductProposal(input: {
   ];
 }
 
+/**
+ * El número del producto son los cuatro dígitos finales del token, no los
+ * primeros: un IBAN enmascarado empieza por `0000`.
+ */
 const OWN_ORIGIN_TOKEN = /producto\s+origen\s*:\s*(\S{4,40})/i;
 const OWN_DESTINATION_TOKEN = /producto\s+destino\s*:\s*(\S{4,40})/i;
 /** Misma etiqueta que el lector de transferencias recibidas: `Producto :`. */
@@ -143,7 +149,7 @@ function readOwnAccountCandidate(
   movementClass: string | null,
 ): OwnAccountCandidate | null {
   if (movementClass === 'TRANSFER_OUT' || movementClass === 'CARD_PAYMENT') {
-    const lastFour = trailingLastFour(body, OWN_ORIGIN_TOKEN);
+    const lastFour = readTrailingLast4(OWN_ORIGIN_TOKEN, body);
     return lastFour
       ? { lastFour, label: 'Producto origen', side: 'SOURCE' }
       : null;
@@ -151,7 +157,7 @@ function readOwnAccountCandidate(
   if (movementClass !== 'TRANSFER_IN') {
     return null;
   }
-  const destination = trailingLastFour(body, OWN_DESTINATION_TOKEN);
+  const destination = readTrailingLast4(OWN_DESTINATION_TOKEN, body);
   if (destination) {
     return {
       lastFour: destination,
@@ -159,16 +165,10 @@ function readOwnAccountCandidate(
       side: 'DESTINATION',
     };
   }
-  const incoming = trailingLastFour(body, INCOMING_PRODUCT_TOKEN);
+  const incoming = readTrailingLast4(INCOMING_PRODUCT_TOKEN, body);
   return incoming
     ? { lastFour: incoming, label: 'Producto', side: 'DESTINATION' }
     : null;
-}
-
-/** Nunca los primeros dígitos: un IBAN enmascarado empieza por `0000`. */
-function trailingLastFour(body: string, pattern: RegExp): string | null {
-  const token = pattern.exec(body)?.[1];
-  return token?.match(/(\d{4})$/)?.[1] ?? null;
 }
 
 function cardNetwork(label: string): DetectedEmailProductProposal['network'] {

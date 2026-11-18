@@ -793,13 +793,15 @@ function readTransaction(
   if (typeof transaction !== 'object' || transaction === null) {
     return null;
   }
-  const fields = transaction as Record<string, unknown>;
+  const transactionFields = transaction as Record<string, unknown>;
   return {
     movementClass:
-      typeof fields.movementClass === 'string' ? fields.movementClass : null,
+      typeof transactionFields.movementClass === 'string'
+        ? transactionFields.movementClass
+        : null,
     accountNumberLast4:
-      typeof fields.accountNumberLast4 === 'string'
-        ? fields.accountNumberLast4
+      typeof transactionFields.accountNumberLast4 === 'string'
+        ? transactionFields.accountNumberLast4
         : null,
   };
 }
