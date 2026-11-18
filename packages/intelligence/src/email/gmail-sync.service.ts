@@ -334,7 +334,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           ? connection.importStartAt
           : scope.dateFrom;
       const accessToken = await this.source.getAccessToken(connection.id);
-      const query = `from:${senderScope} after:${gmailQueryDate(effectiveFrom)} before:${gmailQueryDate(scope.dateTo)}`;
+      const query = `from:${senderScope} after:${Math.floor(effectiveFrom.getTime() / 1000)} before:${gmailQueryDate(scope.dateTo)}`;
       if (effectiveFrom > scope.dateTo) {
         return {
           connected: true,

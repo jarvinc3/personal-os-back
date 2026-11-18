@@ -1101,12 +1101,15 @@ describe('GmailSyncService', () => {
       const gmailUrl = fixture.source.gmailApiRequest.mock
         .calls[0][1] as string;
       const decoded = decodeURIComponent(gmailUrl);
+      const fromSeconds = Math.floor(
+        Date.parse('2026-08-17T00:00:00.000Z') / 1000,
+      );
       expect(decoded).toContain('from:bhd.com.do');
-      expect(decoded).toContain('after:2026/08/17');
+      expect(decoded).toContain(`after:${fromSeconds}`);
       expect(decoded).toContain('before:2026/11/18');
       expect(decoded).toContain('maxResults=2');
       expect(syncResult.query).toBe(
-        'from:bhd.com.do after:2026/08/17 before:2026/11/18',
+        `from:bhd.com.do after:${fromSeconds} before:2026/11/18`,
       );
       expect(importBatch).toHaveBeenCalledWith({
         connectionId: 'connection-1',
@@ -1182,8 +1185,11 @@ describe('GmailSyncService', () => {
       const listUrl = decodeURIComponent(
         fixture.source.gmailApiRequest.mock.calls[0][1] as string,
       );
+      const cutoffSeconds = Math.floor(
+        Date.parse('2026-10-01T00:00:00.000Z') / 1000,
+      );
       expect(listUrl).toContain('from:bhd.com.do');
-      expect(listUrl).toContain('after:2026/10/01');
+      expect(listUrl).toContain(`after:${cutoffSeconds}`);
       const requestedPaths = fixture.source.gmailApiRequest.mock.calls.map(
         ([, path]) => String(path),
       );
@@ -1248,8 +1254,11 @@ describe('GmailSyncService', () => {
         nextPageToken: null,
         estimatedTotal: 0,
       });
+      const cutoffSeconds = Math.floor(
+        Date.parse('2026-11-10T00:00:00.000Z') / 1000,
+      );
       expect(syncResult.query).toBe(
-        'from:bhd.com.do after:2026/11/10 before:2026/10/01',
+        `from:bhd.com.do after:${cutoffSeconds} before:2026/10/01`,
       );
       expect(fixture.source.gmailApiRequest).not.toHaveBeenCalled();
     });
