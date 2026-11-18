@@ -1,65 +1,103 @@
 name: CI
 
+# El CI corre en la PC de casa (runners self-hosted de Windows) mientras
+# GitHub Actions está bloqueado por facturación. El runner es dedicado:
+# conserva node_modules entre corridas y usa el store de pnpm de la máquina.
+# Los PRs usan pull_request_target: corre el workflow de la rama base, así que
+# un fork no puede quitar la guarda de head.repo. Solo los PRs del mismo
+# repositorio hacen checkout del head en el runner.
 on:
   push:
-    branches:
-      - main
-      - master
-      - develop
-  pull_request:
+    branches: [main, master, develop]
+  pull_request_target:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_ENV: test
+  DATABASE_URL: postgresql://postgres:test@localhost:55432/postgres
+  SUPABASE_URL: https://example.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY: test-service-key
+  CORS_ORIGIN: http://localhost:5173
+  REDIS_URL: redis://localhost:6379
+  REDIS_ENABLED: false
+  GOOGLE_CLIENT_ID: test-google-client-id
+  GOOGLE_CLIENT_SECRET: test-google-client-secret
+  GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
+  ENCRYPTION_KEY: test-encryption-key-minimum-32-chars!!
+  DATA_ENCRYPTION_KEY: test-data-encryption-key-minimum-32-chars!!
+  OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
+  GROQ_API_KEY: ''
+  OPENCODE_API_KEY: ''
+  OPENROUTER_API_KEY: ''
+  # Evita CRLF y rutas largas en el checkout de Windows sin tocar la config global de git
+  GIT_CONFIG_COUNT: '2'
+  GIT_CONFIG_KEY_0: core.autocrlf
+  GIT_CONFIG_VALUE_0: 'false'
+  GIT_CONFIG_KEY_1: core.longpaths
+  GIT_CONFIG_VALUE_1: 'true'
 
 jobs:
-  backend:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      NODE_ENV: test
-      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
-      SUPABASE_URL: https://example.supabase.co
-      SUPABASE_SERVICE_ROLE_KEY: test-service-key
-      CORS_ORIGIN: http://localhost:5173
-      REDIS_URL: redis://localhost:6379
-      REDIS_ENABLED: false
-      GOOGLE_CLIENT_ID: test-google-client-id
-      GOOGLE_CLIENT_SECRET: test-google-client-secret
-      GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
-      ENCRYPTION_KEY: test-encryption-key-minimum-32-chars!!
-      DATA_ENCRYPTION_KEY: test-data-encryption-key-minimum-32-chars!!
-      OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
-      GROQ_API_KEY: ''
-      OPENCODE_API_KEY: ''
-      OPENROUTER_API_KEY: ''
-
+  changes:
+    if: github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, personal-os]
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - id: filter
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100,
+            });
+            const code = files.some(
+              (file) =>
+                !file.filename.endsWith('.md') &&
+                !file.filename.startsWith('docs/'),
+            );
+            core.setOutput('code', String(code));
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        # version comes from package.json "packageManager"
+  checks:
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, personal-os]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # Conserva node_modules entre corridas para evitar los hardlinks lentos de
+      # Windows; el resto del workspace se limpia.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          clean: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Limpiar el workspace salvo node_modules
+        run: git clean -fdx -e node_modules
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --store-dir "$env:LOCALAPPDATA\pnpm\store"
 
       - name: Audit production dependencies (non-blocking)
         continue-on-error: true
@@ -73,41 +111,6 @@ jobs:
 
       - name: Build workspace packages
         run: pnpm build:packages
-
-      - name: Stub Supabase roles for CI Postgres
-        env:
-          PGPASSWORD: test
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-          DO $$
-          BEGIN
-            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
-              CREATE ROLE authenticated NOLOGIN;
-            END IF;
-            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
-              CREATE ROLE anon NOLOGIN;
-            END IF;
-            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
-              CREATE ROLE service_role NOLOGIN BYPASSRLS;
-            END IF;
-          END
-          $$;
-          CREATE SCHEMA IF NOT EXISTS auth;
-          CREATE OR REPLACE FUNCTION auth.uid()
-          RETURNS uuid LANGUAGE sql STABLE AS $$
-            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-          $$;
-          GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
-          GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
-          SQL
-
-      - name: Prisma migrate deploy
-        run: pnpm db:migrate:deploy
-
-      - name: Prisma migrate diff (no drift)
-        run: pnpm db:migrate:diff:check
 
       - name: Lint
         run: pnpm lint
@@ -124,10 +127,100 @@ jobs:
       - name: Unit tests
         run: pnpm exec jest --coverage --coverageReporters=text-summary --passWithNoTests
 
+  backend:
+    needs: changes
+    if: always() && (github.event_name != 'pull_request_target' || (github.event.pull_request.head.repo.full_name == github.repository && needs.changes.outputs.code == 'true'))
+    runs-on: [self-hosted, personal-os]
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      PG_CONTAINER: pos-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      # El runner es dedicado: conserva node_modules entre corridas para evitar
+      # ~7 minutos de hardlinks en Windows; el resto se limpia.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          clean: false
+
+      - name: Limpiar el workspace salvo node_modules
+        run: git clean -fdx -e node_modules
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --store-dir "$env:LOCALAPPDATA\pnpm\store"
+
+      - name: Prisma generate
+        run: pnpm db:generate
+
+      - name: Build workspace packages
+        run: pnpm build:packages
+
+      - name: Start CI Postgres (puerto dinámico)
+        run: |
+          docker rm -f $env:PG_CONTAINER 2>$null
+          docker run -d --name $env:PG_CONTAINER -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres -p '127.0.0.1::5432' postgres:16-alpine
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar Postgres (Docker Desktop encendido?)' }
+          $port = (docker port $env:PG_CONTAINER 5432 | Select-Object -First 1).Split(':')[-1].Trim()
+          if (-not $port) { throw 'No se obtuvo el puerto de Postgres' }
+          Add-Content -Path $env:GITHUB_ENV -Value "CI_PG_PORT=$port"
+          Add-Content -Path $env:GITHUB_ENV -Value "DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
+          Add-Content -Path $env:GITHUB_ENV -Value "TEST_DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
+          for ($i = 0; $i -lt 30; $i++) {
+            docker exec $env:PG_CONTAINER pg_isready -U postgres -h localhost 2>$null
+            if ($LASTEXITCODE -eq 0) { break }
+            Start-Sleep -Seconds 2
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Postgres no quedo listo' }
+
+      - name: Stub Supabase roles for CI Postgres
+        run: |
+          $sql = @"
+          DO `$`$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role NOLOGIN BYPASSRLS;
+            END IF;
+          END
+          `$`$;
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS `$`$
+            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          `$`$;
+          GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
+          GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
+          "@
+          $sql | docker exec -i $env:PG_CONTAINER psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub de roles' }
+
+      - name: Prisma migrate deploy
+        run: pnpm db:migrate:deploy
+
+      - name: Prisma migrate diff (no drift)
+        run: pnpm db:migrate:diff:check
+
       - name: E2E tests
         run: pnpm test:e2e
 
       - name: PostgreSQL integration and crash recovery
-        env:
-          TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
         run: pnpm test:integration
+
+      - name: Stop CI Postgres
+        if: always()
+        run: docker rm -f $env:PG_CONTAINER 2>$null; exit 0
