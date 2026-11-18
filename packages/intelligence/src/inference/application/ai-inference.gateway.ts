@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '@personal-os/database';
 import { createHmac } from 'node:crypto';
 import { AI_PROVIDER } from '../../shared/ai-provider.token';
+import { inferenceCostUsd } from '../inference-pricing';
 import type {
   AIService as AIProviderClient,
   ChatMessage,
@@ -415,6 +416,11 @@ export class AiInferenceGateway {
           latencyMs: record.latencyMs,
           inputTokens: record.inputTokens,
           outputTokens: record.outputTokens,
+          costUsd: inferenceCostUsd({
+            model: record.model,
+            inputTokens: record.inputTokens,
+            outputTokens: record.outputTokens,
+          }),
           createdAt,
           expiresAt: addDays(createdAt, RETENTION_DAYS),
         },

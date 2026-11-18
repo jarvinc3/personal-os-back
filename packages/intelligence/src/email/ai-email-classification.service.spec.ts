@@ -66,8 +66,8 @@ function fixture(
         id: options.messageId ?? 'message-1',
         receivedAt: options.receivedAt ?? new Date('2026-10-01T12:00:00Z'),
         providerThreadId: 'thread-1',
-        fromAddress: options.fromAddress ?? 'notice@example.com',
-        fromDomain: options.fromDomain ?? 'example.com',
+        fromAddress: options.fromAddress ?? 'alertas@bhd.com.do',
+        fromDomain: options.fromDomain ?? 'bhd.com.do',
         subject: options.subject ?? 'Notice',
         templateFingerprint: 'template-1',
         content: { sanitizedBody: options.body ?? 'A regular email.' },
@@ -93,6 +93,17 @@ function fixture(
         .mockResolvedValueOnce({
           count: options.budgetAvailable === false ? 0 : 1,
         }),
+    },
+    aiEmailConnection: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiEmailDailyCost: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      upsert: jest
+        .fn()
+        .mockResolvedValue({ costUsd: 0, alertedAt: null, pausedAt: null }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     ...tx,
     $transaction: jest.fn(async (queries: Promise<unknown>[]) =>
@@ -814,6 +825,7 @@ describe('AiEmailClassificationService model call accounting', () => {
     await expect(service.processPendingForUser('user-1')).resolves.toEqual({
       processed: 1,
       modelCalls: 1,
+      rateLimited: false,
     });
   });
 
@@ -825,6 +837,7 @@ describe('AiEmailClassificationService model call accounting', () => {
     await expect(service.processPendingForUser('user-1')).resolves.toEqual({
       processed: 1,
       modelCalls: 0,
+      rateLimited: false,
     });
   });
 });

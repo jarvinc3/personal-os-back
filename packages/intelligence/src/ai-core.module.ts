@@ -20,6 +20,8 @@ import { RolesGuard } from './roles/roles.guard';
 import { AiConsentController } from './consent/ai-consent.controller';
 import { AiConsentService } from './consent/ai-consent.service';
 import { AiIntelligenceController } from './email/ai-intelligence.controller';
+import { EmailUsageController } from './email/email-usage.controller';
+import { EmailUsageService } from './email/email-usage.service';
 import { AiEmailSourceService } from './email/ai-email-source.service';
 import { AiEmailRetentionScheduler } from './email/ai-email-retention.scheduler';
 import { GmailSyncService } from './email/gmail-sync.service';
@@ -72,6 +74,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiRolesController,
     AiConsentController,
     AiIntelligenceController,
+    EmailUsageController,
     EmailProductProposalsController,
     AiEvidenceController,
     AiKnowledgeController,
@@ -87,6 +90,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailSourceService,
     AiEmailRetentionScheduler,
     AiEmailClassificationService,
+    EmailUsageService,
     AiEmailReclassificationService,
     EmailSampleImportService,
     EmailProductProposalsService,

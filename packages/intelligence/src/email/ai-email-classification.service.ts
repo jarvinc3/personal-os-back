@@ -5,12 +5,14 @@ import {
   EMAIL_PRODUCT_HINTS,
   INFERENCE_COMPLETION,
   MODULE_SETTINGS_READER,
+  NOTIFICATION_INTENT_SINK,
   StructuredInferenceOutputError,
   type EmailProductHints,
   type EmailProductHintsPort,
   type InferenceCompletionPort,
   type InferenceMessage,
   type ModuleSettingsReader,
+  type NotificationIntentSink,
   type StructuredInference,
   type StructuredInferenceRequest,
 } from '@personal-os/contracts';
@@ -51,6 +53,15 @@ import {
 } from '../knowledge/knowledge-normalizer';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
+import {
+  CLASSIFICATIONS_PER_MINUTE,
+  globalCostStatus,
+  isBankSenderDomain,
+  recentClassificationTimestamps,
+  startOfUtcDay,
+  GLOBAL_DAILY_COST_LIMIT_USD,
+} from './email-classification-limits';
+import { inferenceCostUsd } from '../inference/inference-pricing';
 
 const CLASSIFICATION_TASK = 'EMAIL_CLASSIFICATION';
 const CLASSIFICATION_SYSTEM_PROMPT = [
@@ -131,6 +142,7 @@ export type MessageClassificationResult =
 @Injectable()
 export class AiEmailClassificationService {
   private readonly logger = new Logger(AiEmailClassificationService.name);
+  private readonly classificationTimestamps = new Map<string, number[]>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -143,6 +155,9 @@ export class AiEmailClassificationService {
     @Optional()
     @Inject(EMAIL_PRODUCT_HINTS)
     private readonly productHints?: EmailProductHintsPort,
+    @Optional()
+    @Inject(NOTIFICATION_INTENT_SINK)
+    private readonly notifications?: NotificationIntentSink,
   ) {}
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
@@ -156,10 +171,19 @@ export class AiEmailClassificationService {
 
     let modelCalls = 0;
     let processed = 0;
+    const activeTimestamps = recentClassificationTimestamps({
+      timestamps: this.classificationTimestamps.get(userId) ?? [],
+      now: new Date(),
+    });
+    let rateLimited = false;
     const reviewSettings = pending.length
       ? await loadEmailReviewSettings(this.moduleSettings, userId)
       : defaultEmailReviewSettings();
     for (const candidate of pending) {
+      if (activeTimestamps.length >= CLASSIFICATIONS_PER_MINUTE) {
+        rateLimited = true;
+        break;
+      }
       const result = await this.classifyOne(
         userId,
         candidate.id,
@@ -168,12 +192,14 @@ export class AiEmailClassificationService {
       modelCalls += result.modelCalls;
       if (result.processed) {
         processed += 1;
+        activeTimestamps.push(Date.now());
       }
       if (result.budgetExhausted) {
         break;
       }
     }
-    return { processed, modelCalls };
+    this.classificationTimestamps.set(userId, activeTimestamps);
+    return { processed, modelCalls, rateLimited };
   }
 
   /** Cuánto correo queda por clasificar con el mismo criterio de la próxima pasada. */
@@ -457,6 +483,10 @@ export class AiEmailClassificationService {
       });
     }
     if (!classification) {
+      if (!isBankSenderDomain(message.fromDomain)) {
+        await this.persistFailure(userId, message.id);
+        return { kind: 'no_classification' };
+      }
       const budgetAvailable =
         modelBudget === 'reserve'
           ? await this.reserveModelCall(userId)
@@ -622,7 +652,7 @@ export class AiEmailClassificationService {
 
     onModelCall?.();
     try {
-      return await this.inference.infer(request);
+      return await this.runModelInference({ userId, request });
     } catch (error) {
       if (!(error instanceof StructuredInferenceOutputError)) {
         throw error;
@@ -632,15 +662,18 @@ export class AiEmailClassificationService {
         `Email classification output rejected for message ${message.id}: ${rejection}`,
       );
       onModelCall?.();
-      return this.inference.infer({
-        ...request,
-        messages: [
-          ...messages,
-          {
-            role: 'user',
-            content: `${MODEL_REPAIR_INSTRUCTION}\nRejection: ${rejection}`,
-          },
-        ],
+      return this.runModelInference({
+        userId,
+        request: {
+          ...request,
+          messages: [
+            ...messages,
+            {
+              role: 'user',
+              content: `${MODEL_REPAIR_INSTRUCTION}\nRejection: ${rejection}`,
+            },
+          ],
+        },
       });
     }
   }
@@ -709,6 +742,9 @@ export class AiEmailClassificationService {
   }
 
   private async hasModelBudget(userId: string): Promise<boolean> {
+    if (await this.isGlobalCostPaused()) {
+      return false;
+    }
     const now = new Date();
     const today = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -1022,6 +1058,30 @@ export class AiEmailClassificationService {
   }
 
   private async reserveModelCall(userId: string): Promise<boolean> {
+    if (await this.isGlobalCostPaused()) {
+      return false;
+    }
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { initialBudgetRemaining: true },
+    });
+    if ((connection?.initialBudgetRemaining ?? 0) > 0) {
+      const claimed = await this.prisma.aiEmailConnection.updateMany({
+        where: { userId, initialBudgetRemaining: { gt: 0 } },
+        data: { initialBudgetRemaining: { decrement: 1 } },
+      });
+      if (claimed.count === 1) {
+        if ((connection?.initialBudgetRemaining ?? 0) - 1 === 0) {
+          await this.notifyLimit({
+            userId,
+            key: 'INITIAL_BUDGET',
+            title: 'Carga inicial completada',
+            body: 'Se clasificaron las 500 importaciones iniciales; el resto sigue en cola para el próximo día.',
+          });
+        }
+        return true;
+      }
+    }
     const now = new Date();
     const today = new Date(
       Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
@@ -1043,6 +1103,116 @@ export class AiEmailClassificationService {
       data: { calls: { increment: 1 }, dailyLimit },
     });
     return reserved.count === 1;
+  }
+
+  private async isGlobalCostPaused(): Promise<boolean> {
+    const dailyCost = await this.prisma.aiEmailDailyCost.findUnique({
+      where: { date: startOfUtcDay(new Date()) },
+      select: { costUsd: true },
+    });
+    return Boolean(
+      dailyCost &&
+      globalCostStatus({ costUsd: Number(dailyCost.costUsd) }) === 'PAUSED',
+    );
+  }
+
+  private async runModelInference({
+    userId,
+    request,
+  }: {
+    userId: string;
+    request: StructuredInferenceRequest<EmailClassification>;
+  }): Promise<StructuredInference<EmailClassification>> {
+    const inferred = await this.inference.infer(request);
+    await this.recordClassificationCost({ userId, result: inferred });
+    return inferred;
+  }
+
+  private async recordClassificationCost({
+    userId,
+    result,
+  }: {
+    userId: string;
+    result: StructuredInference<EmailClassification>;
+  }): Promise<void> {
+    const costUsd = inferenceCostUsd({
+      model: result.model,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+    });
+    if (costUsd === null) {
+      return;
+    }
+    const date = startOfUtcDay(new Date());
+    const updated = await this.prisma.aiEmailDailyCost.upsert({
+      where: { date },
+      create: { date, costUsd },
+      update: { costUsd: { increment: costUsd } },
+      select: { costUsd: true, alertedAt: true, pausedAt: true },
+    });
+    const status = globalCostStatus({ costUsd: Number(updated.costUsd) });
+    if (status === 'OK') {
+      return;
+    }
+    if (status === 'ALERT' && !updated.alertedAt) {
+      await this.prisma.aiEmailDailyCost.updateMany({
+        where: { date, alertedAt: null },
+        data: { alertedAt: new Date() },
+      });
+      await this.notifyLimit({
+        userId,
+        key: 'COST_ALERT',
+        title: 'Uso de clasificación al 80 %',
+        body: 'El piloto alcanzó el 80 % del tope diario de 5 USD.',
+      });
+      return;
+    }
+    if (status === 'PAUSED' && !updated.pausedAt) {
+      await this.prisma.aiEmailDailyCost.updateMany({
+        where: { date, pausedAt: null },
+        data: { pausedAt: new Date() },
+      });
+      await this.notifyLimit({
+        userId,
+        key: 'COST_PAUSED',
+        title: 'Clasificación en pausa',
+        body: `Se alcanzó el tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; la clasificación sigue mañana.`,
+      });
+    }
+  }
+
+  private async notifyLimit({
+    userId,
+    key,
+    title,
+    body,
+  }: {
+    userId: string;
+    key: string;
+    title: string;
+    body: string;
+  }): Promise<void> {
+    if (!this.notifications) {
+      return;
+    }
+    try {
+      await this.notifications.submit({
+        schemaVersion: 1,
+        userId,
+        sourceDomain: 'INTELLIGENCE',
+        type: 'AI_EMAIL_CLASSIFICATION_LIMIT',
+        preferenceKey: `ai.email.${key.toLowerCase()}`,
+        title,
+        body,
+        requestedChannels: ['IN_APP'],
+        deduplicationKey: `ai-email-limit:${userId}:${key}:${startOfUtcDay(new Date()).toISOString()}`,
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Email classification notice failed: ${(error as Error).message}`,
+      );
+    }
   }
 
   private async persistFailure(userId: string, messageId: string) {
