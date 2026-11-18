@@ -107,11 +107,15 @@ function toCandidate(
   };
 }
 
-function possibleDuplicate(
-  incoming: ManualCardPayment,
-  candidates: readonly CardPaymentOperation[],
-  matchedBy: 'REFERENCE' | 'SIMILAR',
-): PossibleManualCardPaymentDuplicate {
+function possibleDuplicate({
+  incoming,
+  candidates,
+  matchedBy,
+}: {
+  incoming: ManualCardPayment;
+  candidates: readonly CardPaymentOperation[];
+  matchedBy: 'REFERENCE' | 'SIMILAR';
+}): PossibleManualCardPaymentDuplicate {
   return {
     kind: 'possible_duplicate',
     matchedBy,
@@ -136,7 +140,11 @@ export function findManualCardPaymentDuplicate({
     matchesByReference(incoming, operation),
   );
   if (referenceMatches.length > 0) {
-    return possibleDuplicate(incoming, referenceMatches, 'REFERENCE');
+    return possibleDuplicate({
+      incoming,
+      candidates: referenceMatches,
+      matchedBy: 'REFERENCE',
+    });
   }
   const similar = imported.filter((operation) =>
     matchesBySimilarity(incoming, operation),
@@ -144,5 +152,9 @@ export function findManualCardPaymentDuplicate({
   if (similar.length === 0) {
     return { kind: 'none' };
   }
-  return possibleDuplicate(incoming, similar, 'SIMILAR');
+  return possibleDuplicate({
+    incoming,
+    candidates: similar,
+    matchedBy: 'SIMILAR',
+  });
 }
