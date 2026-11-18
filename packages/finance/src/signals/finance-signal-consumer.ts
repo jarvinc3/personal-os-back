@@ -578,11 +578,20 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     let target: { accountId?: string; cardId?: string };
     let transferLeg: TransferLegIdentity | null = null;
     if (override?.destination) {
-      if (transfer && !override.destination.accountId) {
-        return this.reviewPlan(TRANSFER_REVIEW_REASON.ACCOUNT_HINT_UNSUPPORTED);
+      if (transfer) {
+        if (!override.destination.accountId) {
+          return this.reviewPlan(
+            TRANSFER_REVIEW_REASON.ACCOUNT_HINT_UNSUPPORTED,
+          );
+        }
+        target = { accountId: override.destination.accountId };
+        transferLeg = transferLegIdentity(movementClass);
+      } else {
+        if (override.destination.accountId && override.destination.cardId) {
+          return this.reviewPlan('AMBIGUOUS_LEDGER_TARGET');
+        }
+        target = override.destination;
       }
-      target = override.destination;
-      transferLeg = transfer ? transferLegIdentity(movementClass) : null;
     } else if (transfer) {
       const transferTarget = this.resolveTransferTarget({
         candidate,

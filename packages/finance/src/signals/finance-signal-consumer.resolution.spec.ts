@@ -334,6 +334,33 @@ describe('FinanceSignalConsumer con decisión humana', () => {
     );
   });
 
+  it('rechaza dos destinos en un movimiento que solo admite uno', async () => {
+    const { consumer, importTransaction } = setup();
+    const signal: RoutedSignal = {
+      ...purchaseSignal,
+      payload: {
+        ...purchaseSignal.payload,
+        transaction: {
+          ...purchaseSignal.payload.transaction,
+          last4: undefined,
+        },
+      },
+    };
+
+    await expect(
+      consumer.consumeResolved({
+        signal,
+        override: {
+          destination: { accountId: 'account-bhd', cardId: 'card-visa' },
+        },
+      }),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'AMBIGUOUS_LEDGER_TARGET',
+    });
+    expect(importTransaction.execute).not.toHaveBeenCalled();
+  });
+
   it('usa la tarjeta elegida en un pago de tarjeta', async () => {
     const { consumer, cardPaymentImport, prisma } = setup();
 

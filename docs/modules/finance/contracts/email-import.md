@@ -599,7 +599,8 @@ Reglas:
 
 - Solo se resuelve un import en `REVIEW_REQUIRED`; otro estado responde 409 sin tocar el ledger. Un import de otro usuario responde 404.
 - El destino se valida contra un producto activo del usuario. Una transferencia exige cuenta y un pago de tarjeta exige una tarjeta de crédito. Si el dato no encaja con el movimiento, el import sigue en revisión con su motivo.
-- En un pago de tarjeta, `accountId` es la cuenta de origen y `cardId` la tarjeta. Se eligen de a uno: si falta el otro, el import sigue en revisión para la siguiente decisión.
+- En un pago de tarjeta, `accountId` es la cuenta de origen y `cardId` la tarjeta, y se pueden enviar juntos. Una misma decisión puede llevar varias correcciones (por ejemplo fecha y destino) y se aplican en el mismo intento.
+- La resolución y el descarte toman un bloqueo por usuario, así que un descarte no puede cruzarse con una resolución en curso ni reabrir un import descartado.
 - El original elegido se revalida: mismo usuario, `CONFIRMED`, `DEBIT`, sin `transferGroupId`, misma moneda y monto devuelto no mayor al original. La evidencia conserva el paso `HUMAN`.
 - `DISMISSED` es terminal: no se reabre ni se reimporta.
 - Cada decisión agrega una fila append-only en `fin_signal_import_resolutions` con actor, fecha, acción, resultado, motivo y campos cambiados.

@@ -20,6 +20,7 @@ import {
 const FINANCE_TRANSACTION_SIGNAL = 'FINANCE.TRANSACTION_DETECTED';
 const EMAIL_SIGNAL_SOURCE = 'EMAIL_MESSAGE';
 const REVIEW_IMPORT_LIMIT = 100;
+const IMPORT_LOCK_KEY = 'signal_import';
 
 export type ResolveImportReviewInput = {
   action: ImportReviewAction;
@@ -38,9 +39,6 @@ export type ImportReviewResolutionOutcome =
   | 'REJECTED'
   | 'DISMISSED';
 
-type SignalConsumeOutcome =
-  'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
-
 export type ImportReviewResolution = {
   id: string;
   status: string;
@@ -48,6 +46,9 @@ export type ImportReviewResolution = {
   transactionId: string | null;
   reviewReason: string | null;
 };
+
+type SignalConsumeOutcome =
+  'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
 
 type ReviewImportRow = {
   id: string;
@@ -63,10 +64,19 @@ type PreparedResolution = {
   changes: Prisma.InputJsonObject;
 };
 
+type ResolutionAttempt =
+  | { kind: 'resolved'; resolution: ImportReviewResolution }
+  | { kind: 'unresolved'; importId: string; reason: string | null };
+
+type ReplaceableChanges = Record<string, string>;
+
 /**
  * Vía humana para la cola de imports de correo en `REVIEW_REQUIRED`: fija la
- * fecha, el destino o el reverso original elegidos, o descarta el import. Cada
- * decisión se audita y solo escribe en el ledger cuando el import la aplica.
+ * fecha, el destino o el reverso original, o descarta el import. Cada decisión
+ * se audita y solo escribe en el ledger cuando el plan de importación la aplica.
+ *
+ * La resolución y el descarte toman el mismo bloqueo por usuario, así que un
+ * descarte no puede cruzarse con una resolución en curso.
  */
 @Injectable()
 export class ImportReviewResolutionService {
@@ -101,30 +111,61 @@ export class ImportReviewResolutionService {
     importId: string;
     input: ResolveImportReviewInput;
   }): Promise<ImportReviewResolution> {
-    const reviewImport = await this.loadReviewImport({ userId, importId });
-    if (input.action === IMPORT_REVIEW_ACTION.DISCARD) {
-      return this.discard({ userId, reviewImport, reason: input.reason });
+    const attempt = await this.prisma.$transaction(async (tx) => {
+      await this.lockUserImports({ tx, userId });
+      const reviewImport = await this.loadReviewImport({
+        userId,
+        importId,
+        tx,
+      });
+      if (input.action === IMPORT_REVIEW_ACTION.DISCARD) {
+        const resolution = await this.discard({
+          userId,
+          reviewImport,
+          reason: input.reason,
+          tx,
+        });
+        return { kind: 'resolved', resolution } satisfies ResolutionAttempt;
+      }
+      const prepared = await this.prepareResolution({ userId, input, tx });
+      return this.applyResolution({
+        userId,
+        reviewImport,
+        action: input.action,
+        prepared,
+        tx,
+      });
+    });
+    if (attempt.kind === 'unresolved') {
+      throw new UnprocessableEntityException({
+        message: 'El import sigue en revisión',
+        importId: attempt.importId,
+        reason: attempt.reason,
+      });
     }
-    const prepared = await this.prepareResolution({
-      userId,
-      input,
-    });
-    return this.applyResolution({
-      userId,
-      reviewImport,
-      action: input.action,
-      prepared,
-    });
+    return attempt.resolution;
+  }
+
+  private async lockUserImports({
+    tx,
+    userId,
+  }: {
+    tx: Prisma.TransactionClient;
+    userId: string;
+  }): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${IMPORT_LOCK_KEY}:${userId}`}))`;
   }
 
   private async loadReviewImport({
     userId,
     importId,
+    tx,
   }: {
     userId: string;
     importId: string;
+    tx: Prisma.TransactionClient;
   }): Promise<ReviewImportRow> {
-    const reviewImport = await this.prisma.finSignalImport.findFirst({
+    const reviewImport = await tx.finSignalImport.findFirst({
       where: { id: importId, userId },
       select: {
         id: true,
@@ -145,74 +186,122 @@ export class ImportReviewResolutionService {
     return reviewImport;
   }
 
+  /**
+   * Una decisión puede traer más de una corrección: un pago de tarjeta puede
+   * necesitar su cuenta de origen y su tarjeta a la vez, y un movimiento puede
+   * necesitar fecha y destino. Se aplican juntas.
+   */
   private async prepareResolution({
     userId,
     input,
+    tx,
   }: {
     userId: string;
     input: ResolveImportReviewInput;
+    tx: Prisma.TransactionClient;
   }): Promise<PreparedResolution> {
-    if (input.action === IMPORT_REVIEW_ACTION.SET_DATE) {
-      return this.prepareDate(input.transactionDate);
+    const override: ImportResolutionOverride = {};
+    const changes: ReplaceableChanges = {};
+    if (input.transactionDate) {
+      const resolvedDate = this.readTransactionDate(input.transactionDate);
+      override.transactionDate = resolvedDate;
+      changes.transactionDate = resolvedDate.toISOString();
     }
-    if (input.action === IMPORT_REVIEW_ACTION.SET_DESTINATION) {
-      return this.prepareDestination({ userId, input });
+    if (input.accountId || input.cardId) {
+      const destination = await this.prepareDestination({ userId, input, tx });
+      override.destination = destination.destination;
+      Object.assign(changes, destination.changes);
     }
-    return this.prepareReversalOriginal({
-      userId,
-      originalTransactionId: input.originalTransactionId,
-    });
+    if (input.originalTransactionId) {
+      const originalTransactionId = await this.prepareReversalOriginal({
+        userId,
+        originalTransactionId: input.originalTransactionId,
+        tx,
+      });
+      override.originalTransactionId = originalTransactionId;
+      changes.originalTransactionId = originalTransactionId;
+    }
+    this.assertActionHasData({ action: input.action, override });
+    return { override, changes };
   }
 
-  private prepareDate(transactionDate?: string): PreparedResolution {
-    if (!transactionDate) {
+  private assertActionHasData({
+    action,
+    override,
+  }: {
+    action: ImportReviewAction;
+    override: ImportResolutionOverride;
+  }): void {
+    if (action === IMPORT_REVIEW_ACTION.SET_DATE && !override.transactionDate) {
       throw new BadRequestException(
         'La acción SET_DATE requiere transactionDate',
       );
     }
+    if (
+      action === IMPORT_REVIEW_ACTION.SET_DESTINATION &&
+      !override.destination
+    ) {
+      throw new BadRequestException(
+        'La acción SET_DESTINATION requiere una cuenta o una tarjeta',
+      );
+    }
+    if (
+      action === IMPORT_REVIEW_ACTION.LINK_REVERSAL &&
+      !override.originalTransactionId
+    ) {
+      throw new BadRequestException(
+        'La acción LINK_REVERSAL requiere originalTransactionId',
+      );
+    }
+  }
+
+  private readTransactionDate(transactionDate: string): Date {
     const resolvedDate = new Date(transactionDate);
     if (Number.isNaN(resolvedDate.getTime())) {
       throw new BadRequestException('transactionDate no es una fecha válida');
     }
-    return {
-      override: { transactionDate: resolvedDate },
-      changes: { transactionDate: resolvedDate.toISOString() },
-    };
+    return resolvedDate;
   }
 
   private async prepareDestination({
     userId,
     input,
+    tx,
   }: {
     userId: string;
     input: ResolveImportReviewInput;
-  }): Promise<PreparedResolution> {
+    tx: Prisma.TransactionClient;
+  }): Promise<{
+    destination: { accountId?: string; cardId?: string };
+    changes: ReplaceableChanges;
+  }> {
+    const destination: { accountId?: string; cardId?: string } = {};
+    const changes: ReplaceableChanges = {};
     const accountId = input.accountId?.trim() || null;
     const cardId = input.cardId?.trim() || null;
-    if (accountId && cardId) {
-      throw new BadRequestException(
-        'La acción SET_DESTINATION requiere una cuenta o una tarjeta',
-      );
-    }
     if (accountId) {
-      return this.prepareAccountDestination({ userId, accountId });
+      const account = await this.loadOwnedAccount({ userId, accountId, tx });
+      destination.accountId = account.id;
+      changes.accountId = account.id;
     }
-    if (!cardId) {
-      throw new BadRequestException(
-        'La acción SET_DESTINATION requiere una cuenta o una tarjeta',
-      );
+    if (cardId) {
+      const card = await this.loadOwnedCard({ userId, cardId, tx });
+      destination.cardId = card.id;
+      changes.cardId = card.id;
     }
-    return this.prepareCardDestination({ userId, cardId });
+    return { destination, changes };
   }
 
-  private async prepareAccountDestination({
+  private async loadOwnedAccount({
     userId,
     accountId,
+    tx,
   }: {
     userId: string;
     accountId: string;
-  }): Promise<PreparedResolution> {
-    const account = await this.prisma.finAccount.findFirst({
+    tx: Prisma.TransactionClient;
+  }): Promise<{ id: string }> {
+    const account = await tx.finAccount.findFirst({
       where: { id: accountId, userId, isActive: true },
       select: { id: true, type: true },
     });
@@ -224,56 +313,46 @@ export class ImportReviewResolutionService {
         'La cuenta elegida no sirve como destino de un movimiento',
       );
     }
-    return {
-      override: { destination: { accountId: account.id } },
-      changes: { accountId: account.id },
-    };
+    return { id: account.id };
   }
 
-  private async prepareCardDestination({
+  private async loadOwnedCard({
     userId,
     cardId,
+    tx,
   }: {
     userId: string;
     cardId: string;
-  }): Promise<PreparedResolution> {
-    const card = await this.prisma.finCard.findFirst({
+    tx: Prisma.TransactionClient;
+  }): Promise<{ id: string }> {
+    const card = await tx.finCard.findFirst({
       where: { id: cardId, userId, isActive: true },
       select: { id: true },
     });
     if (!card) {
       throw new NotFoundException('La tarjeta no existe o no está activa');
     }
-    return {
-      override: { destination: { cardId: card.id } },
-      changes: { cardId: card.id },
-    };
+    return { id: card.id };
   }
 
   private async prepareReversalOriginal({
     userId,
     originalTransactionId,
+    tx,
   }: {
     userId: string;
-    originalTransactionId?: string;
-  }): Promise<PreparedResolution> {
-    const originalId = originalTransactionId?.trim() || null;
-    if (!originalId) {
-      throw new BadRequestException(
-        'La acción LINK_REVERSAL requiere originalTransactionId',
-      );
-    }
-    const original = await this.prisma.finTransaction.findFirst({
+    originalTransactionId: string;
+    tx: Prisma.TransactionClient;
+  }): Promise<string> {
+    const originalId = originalTransactionId.trim();
+    const original = await tx.finTransaction.findFirst({
       where: { id: originalId, userId },
       select: { id: true },
     });
     if (!original) {
       throw new NotFoundException('El movimiento original no existe');
     }
-    return {
-      override: { originalTransactionId: original.id },
-      changes: { originalTransactionId: original.id },
-    };
+    return original.id;
   }
 
   private async applyResolution({
@@ -281,17 +360,19 @@ export class ImportReviewResolutionService {
     reviewImport,
     action,
     prepared,
+    tx,
   }: {
     userId: string;
     reviewImport: ReviewImportRow;
     action: ImportReviewAction;
     prepared: PreparedResolution;
-  }): Promise<ImportReviewResolution> {
+    tx: Prisma.TransactionClient;
+  }): Promise<ResolutionAttempt> {
     const consumeResult = await this.signals.consumeResolved({
       signal: this.toRoutedSignal(reviewImport),
       override: prepared.override,
     });
-    const updated = await this.prisma.finSignalImport.findFirst({
+    const updated = await tx.finSignalImport.findFirst({
       where: { id: reviewImport.id, userId },
       select: { status: true, transactionId: true, reviewReason: true },
     });
@@ -302,27 +383,34 @@ export class ImportReviewResolutionService {
       consumeResult,
       status: updated.status,
     });
-    await this.recordResolution({
-      userId,
-      signalImportId: reviewImport.id,
-      action,
-      outcome,
-      reason: consumeResult.reason ?? updated.reviewReason ?? null,
-      changes: prepared.changes,
+    const reviewReason = consumeResult.reason ?? updated.reviewReason ?? null;
+    await tx.finSignalImportResolution.create({
+      data: {
+        userId,
+        signalImportId: reviewImport.id,
+        actorUserId: userId,
+        action,
+        outcome,
+        reason: reviewReason,
+        changes: prepared.changes,
+      },
     });
     if (outcome === 'REVIEW_REQUIRED' || outcome === 'REJECTED') {
-      throw new UnprocessableEntityException({
-        message: 'El import sigue en revisión',
+      return {
+        kind: 'unresolved',
         importId: reviewImport.id,
-        reason: consumeResult.reason ?? updated.reviewReason ?? null,
-      });
+        reason: reviewReason,
+      };
     }
     return {
-      id: reviewImport.id,
-      status: updated.status,
-      outcome,
-      transactionId: updated.transactionId,
-      reviewReason: updated.reviewReason,
+      kind: 'resolved',
+      resolution: {
+        id: reviewImport.id,
+        status: updated.status,
+        outcome,
+        transactionId: updated.transactionId,
+        reviewReason: updated.reviewReason,
+      },
     };
   }
 
@@ -330,35 +418,35 @@ export class ImportReviewResolutionService {
     userId,
     reviewImport,
     reason,
+    tx,
   }: {
     userId: string;
     reviewImport: ReviewImportRow;
     reason?: string;
+    tx: Prisma.TransactionClient;
   }): Promise<ImportReviewResolution> {
     const discardReason = this.readDiscardReason(reason);
-    await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.finSignalImport.updateMany({
-        where: {
-          id: reviewImport.id,
-          userId,
-          status: 'REVIEW_REQUIRED',
-        },
-        data: { status: 'DISMISSED' },
-      });
-      if (updated.count !== 1) {
-        throw new ConflictException('El import ya no está en revisión');
-      }
-      await tx.finSignalImportResolution.create({
-        data: {
-          userId,
-          signalImportId: reviewImport.id,
-          actorUserId: userId,
-          action: IMPORT_REVIEW_ACTION.DISCARD,
-          outcome: 'DISMISSED',
-          reason: discardReason,
-          changes: { reason: discardReason },
-        },
-      });
+    const updated = await tx.finSignalImport.updateMany({
+      where: {
+        id: reviewImport.id,
+        userId,
+        status: 'REVIEW_REQUIRED',
+      },
+      data: { status: 'DISMISSED' },
+    });
+    if (updated.count !== 1) {
+      throw new ConflictException('El import ya no está en revisión');
+    }
+    await tx.finSignalImportResolution.create({
+      data: {
+        userId,
+        signalImportId: reviewImport.id,
+        actorUserId: userId,
+        action: IMPORT_REVIEW_ACTION.DISCARD,
+        outcome: 'DISMISSED',
+        reason: discardReason,
+        changes: { reason: discardReason },
+      },
     });
     return {
       id: reviewImport.id,
@@ -391,34 +479,6 @@ export class ImportReviewResolutionService {
       return 'REVIEW_REQUIRED';
     }
     return status as ImportReviewResolutionOutcome;
-  }
-
-  private async recordResolution({
-    userId,
-    signalImportId,
-    action,
-    outcome,
-    reason,
-    changes,
-  }: {
-    userId: string;
-    signalImportId: string;
-    action: ImportReviewAction;
-    outcome: ImportReviewResolutionOutcome;
-    reason: string | null;
-    changes: Prisma.InputJsonObject;
-  }): Promise<void> {
-    await this.prisma.finSignalImportResolution.create({
-      data: {
-        userId,
-        signalImportId,
-        actorUserId: userId,
-        action,
-        outcome,
-        reason,
-        changes,
-      },
-    });
   }
 
   private toRoutedSignal(reviewImport: ReviewImportRow): RoutedSignal {

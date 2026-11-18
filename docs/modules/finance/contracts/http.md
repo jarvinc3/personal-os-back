@@ -51,9 +51,11 @@ Cuerpo de `resolve`:
 | `action`          | Campos                           | Resultado                                                                                       |
 | ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `SET_DATE`        | `transactionDate` (ISO)          | Registra el movimiento con esa fecha.                                                           |
-| `SET_DESTINATION` | `accountId` o `cardId`, uno solo | Registra contra el producto elegido; en un pago de tarjeta, `accountId` es la cuenta de origen. |
+| `SET_DESTINATION` | `accountId`, `cardId` o ambos    | Registra contra el producto elegido; en un pago de tarjeta, `accountId` es la cuenta de origen. |
 | `LINK_REVERSAL`   | `originalTransactionId`          | Enlaza el reverso sin duplicar el movimiento.                                                   |
 | `DISCARD`         | `reason` (obligatorio, 500 máx.) | Pasa a `DISMISSED` sin crear movimiento.                                                        |
+
+Una misma petición puede incluir varias correcciones (por ejemplo `transactionDate` y `accountId`); se aplican juntas. La resolución y el descarte se serializan con un bloqueo por usuario.
 
 Errores: 400 dato faltante o inválido, 404 import o producto inexistente, 409 el import ya no está en revisión, 422 la decisión no resuelve el import (el motivo vuelve en el cuerpo y el ledger no cambia).
 

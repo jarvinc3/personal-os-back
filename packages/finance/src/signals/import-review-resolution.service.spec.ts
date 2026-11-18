@@ -59,6 +59,7 @@ function setup({
     .fn()
     .mockResolvedValueOnce(reviewRow)
     .mockResolvedValueOnce(settledRow);
+  const executeRaw = jest.fn().mockResolvedValue(undefined);
   const prisma = {
     finSignalImport: {
       findFirst,
@@ -73,8 +74,12 @@ function setup({
     finTransaction: { findFirst: jest.fn().mockResolvedValue(original) },
     $transaction: jest.fn((handler: (tx: never) => unknown) => {
       const tx = {
+        $executeRaw: executeRaw,
         finSignalImport: prisma.finSignalImport,
         finSignalImportResolution: prisma.finSignalImportResolution,
+        finAccount: prisma.finAccount,
+        finCard: prisma.finCard,
+        finTransaction: prisma.finTransaction,
       };
       return handler(tx as never);
     }),
@@ -86,7 +91,7 @@ function setup({
     prisma as never,
     signals as never,
   );
-  return { service, prisma, signals };
+  return { service, prisma, signals, executeRaw };
 }
 
 describe('ImportReviewResolutionService', () => {
@@ -165,8 +170,20 @@ describe('ImportReviewResolutionService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('exige una sola dirección en SET_DESTINATION', async () => {
+  it('exige al menos una dirección en SET_DESTINATION', async () => {
     const { service } = setup();
+
+    await expect(
+      service.resolve({
+        userId: 'user-1',
+        importId: 'import-1',
+        input: { action: 'SET_DESTINATION' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('acepta la cuenta de origen y la tarjeta en la misma decisión', async () => {
+    const { service, signals } = setup();
 
     await expect(
       service.resolve({
@@ -178,7 +195,52 @@ describe('ImportReviewResolutionService', () => {
           cardId: 'card-visa',
         },
       }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).resolves.toMatchObject({ status: 'IMPORTED' });
+
+    expect(signals.consumeResolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        override: {
+          destination: { accountId: 'account-bhd', cardId: 'card-visa' },
+        },
+      }),
+    );
+  });
+
+  it('aplica juntas la fecha y el destino', async () => {
+    const { service, signals } = setup();
+
+    await expect(
+      service.resolve({
+        userId: 'user-1',
+        importId: 'import-1',
+        input: {
+          action: 'SET_DATE',
+          transactionDate: '2026-10-30T12:00:00Z',
+          accountId: 'account-bhd',
+        },
+      }),
+    ).resolves.toMatchObject({ status: 'IMPORTED' });
+
+    expect(signals.consumeResolved).toHaveBeenCalledWith(
+      expect.objectContaining({
+        override: {
+          transactionDate: new Date('2026-10-30T12:00:00Z'),
+          destination: { accountId: 'account-bhd' },
+        },
+      }),
+    );
+  });
+
+  it('toma el bloqueo por usuario antes de leer el import', async () => {
+    const { service, executeRaw } = setup();
+
+    await service.resolve({
+      userId: 'user-1',
+      importId: 'import-1',
+      input: { action: 'SET_DATE', transactionDate: '2026-10-30T12:00:00Z' },
+    });
+
+    expect(executeRaw).toHaveBeenCalledTimes(1);
   });
 
   it('rechaza una cuenta que no es del usuario', async () => {
@@ -377,7 +439,7 @@ describe('ImportReviewResolutionService', () => {
         input: { action: 'DISCARD', reason: '   ' },
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.updateMany).not.toHaveBeenCalled();
   });
 
   it('no descarta si el import cambió de estado mientras se resolvía', async () => {
