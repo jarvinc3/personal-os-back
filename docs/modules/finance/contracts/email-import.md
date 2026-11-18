@@ -415,6 +415,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 - Referencia compartida: dos patas de la misma operación no son duplicado ni conflicto; la ventana es de 7 días.
 - Referencia bancaria: no es obligatoria ni única; un match es candidato y un conflicto de atributos va a revisión. La contraparte legítima (tipo opuesto y cuenta distinta) no es duplicado ni conflicto. El fallback y la conciliación manual cubren su ausencia.
 - Revisión por falta de destino: al volver a calcular el plan (aprobar una propuesta o repetir `sample-import`), un import previo en revisión por falta de cuenta o tarjeta vuelve a resolver el destino contra el libro actual. Si el destino ya existe, el movimiento se importa una sola vez; si sigue ausente, el import permanece en revisión. Un import aplicado o en revisión por otro motivo no cambia.
+- Resolución humana de la cola: un import en `REVIEW_REQUIRED` admite fijar la fecha, fijar la cuenta o tarjeta de destino, enlazar el reverso original o descartarlo con motivo. La decisión se aplica recalculando el mismo plan de importación con ese dato, se audita y solo escribe en el ledger si el plan la acepta. El descarte es terminal y no crea movimiento (sección 12).
 
 ### 8.2 Pendiente concretar
 
@@ -437,6 +438,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 | #337    | El clasificador ya envía la sugerencia; la cola de revisión y la confirmación antes de registrar siguen pendientes.                                                                                                            | Parcial; issue #337                                                                                      |
 | PR #345 | Cadena de reversos por referencia, id de correo y candidato único con evidencia; reintento cuando aparece el original; parcial vinculado con límite acumulado decimal; comercio desconocido marcado.                           | Pruebas del consumidor, `resolve-reversal-target.spec.ts`, PostgreSQL, lector de presupuesto y analítica |
 | #369    | Reverso sin comercio por tarjeta y cuenta: tarjeta por `last4` a su cuenta, compra sin `accountId` cuenta como esa cuenta, ventana de 3 días, evidencia `CARD_ACCOUNT` y revisión para cero, varios o tarjeta ausente/ambigua. | Pruebas del consumidor, consulta del repositorio e integración PostgreSQL                                |
+| #383    | Resolución humana de la cola: fecha, destino, reverso original o descarte con motivo, auditados en `fin_signal_import_resolutions`; un import que sigue sin poder aplicarse responde 422 y conserva la revisión.               | Pruebas del consumidor con decisión y del servicio de resolución                                         |
 
 Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no hay una corrida completa del contrato. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
 
@@ -579,3 +581,26 @@ Un fallo de clasificación no se confunde con un correo sin transacción. El pri
   timeout de aplicación de 480 segundos no evita que Railway cierre antes una
   corrida que supere los 5 minutos. Para aprovechar los 480 segundos completos
   haría falta enviar progreso periódico o usar un trabajo asíncrono con polling.
+
+## 12. Resolución humana de la cola de revisión
+
+Un import en `REVIEW_REQUIRED` tiene salida: el dueño de la cuenta fija el dato
+que faltaba o descarta el import. Cada decisión se aplica recalculando el mismo
+plan de importación con ese dato; no existe una segunda ruta de escritura.
+
+| Acción            | Dato                    | Efecto                                                                                                                   |
+| ----------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `SET_DATE`        | `transactionDate`       | La fecha elegida manda sobre la del correo y sobre la sugerencia del encabezado.                                         |
+| `SET_DESTINATION` | `accountId` o `cardId`  | El movimiento se registra contra el producto elegido. Una cuenta de efectivo no sirve como destino.                      |
+| `LINK_REVERSAL`   | `originalTransactionId` | El reverso se aplica al original elegido y pasa por las reglas de 6.2; no se duplica el movimiento.                      |
+| `DISCARD`         | `reason`                | El import pasa a `DISMISSED`, no se crea movimiento y repetir el mismo correo se rechaza con `IMPORT_DISMISSED_BY_USER`. |
+
+Reglas:
+
+- Solo se resuelve un import en `REVIEW_REQUIRED`; otro estado responde 409 sin tocar el ledger. Un import de otro usuario responde 404.
+- El destino se valida contra un producto activo del usuario. Una transferencia exige cuenta y un pago de tarjeta exige una tarjeta de crédito. Si el dato no encaja con el movimiento, el import sigue en revisión con su motivo.
+- En un pago de tarjeta, `accountId` es la cuenta de origen y `cardId` la tarjeta. Se eligen de a uno: si falta el otro, el import sigue en revisión para la siguiente decisión.
+- El original elegido se revalida: mismo usuario, `CONFIRMED`, `DEBIT`, sin `transferGroupId`, misma moneda y monto devuelto no mayor al original. La evidencia conserva el paso `HUMAN`.
+- `DISMISSED` es terminal: no se reabre ni se reimporta.
+- Cada decisión agrega una fila append-only en `fin_signal_import_resolutions` con actor, fecha, acción, resultado, motivo y campos cambiados.
+- Si al aplicar la decisión el import sigue en revisión, la respuesta es 422 con el motivo y el ledger no cambia.

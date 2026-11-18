@@ -9,16 +9,16 @@ datasource db {
 }
 
 model User {
-  id                             String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  email                          String                          @unique
-  fullName                       String                          @map("full_name")
-  avatarUrl                      String?                         @map("avatar_url")
-  timezone                       String                          @default("America/Santo_Domingo")
-  locale                         String                          @default("es-DO")
-  preferences                    Json                            @default("{}")
-  lastSeenReleaseVersion         String?                         @map("last_seen_release_version")
-  createdAt                      DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                      DateTime                        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                             String                           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  email                          String                           @unique
+  fullName                       String                           @map("full_name")
+  avatarUrl                      String?                          @map("avatar_url")
+  timezone                       String                           @default("America/Santo_Domingo")
+  locale                         String                           @default("es-DO")
+  preferences                    Json                             @default("{}")
+  lastSeenReleaseVersion         String?                          @map("last_seen_release_version")
+  createdAt                      DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                      DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiActions                      AiAction[]
   aiInferences                   AiInference[]
   aiEmailConnection              AiEmailConnection?
@@ -32,7 +32,7 @@ model User {
   aiSignalEvidence               AiSignalEvidence[]
   aiSettings                     UserAiSettings?
   aiRole                         UserRole?
-  grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
+  grantedAiRoles                 UserRole[]                       @relation("AiRoleGrantedBy")
   aiDatasetItems                 AiDatasetItem[]
   aiAnalysisRuns                 AiAnalysisRun[]
   aiKnowledgeObservations        AiKnowledgeObservation[]
@@ -56,6 +56,7 @@ model User {
   finSavingsGoals                FinSavingsGoal[]
   finTransactions                FinTransaction[]
   finSignalImports               FinSignalImport[]
+  finSignalImportResolutions     FinSignalImportResolution[]
   finDeletionJournal             FinDeletionJournal[]
   finInstrumentEvents            FinInstrumentEvent[]
   finStatementImports            FinStatementImport[]
@@ -543,31 +544,31 @@ model AiEmailConnection {
 }
 
 model AiEmailMessage {
-  id                      String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId                  String                  @map("user_id")
-  connectionId            String                  @map("connection_id")
-  providerMessageId       String                  @map("provider_message_id")
-  providerThreadId        String?                 @map("provider_thread_id")
-  receivedAt              DateTime                @map("received_at") @db.Timestamptz(6)
-  fromAddress             String                  @map("from_address")
-  fromDomain              String                  @map("from_domain")
+  id                      String                           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                  String                           @map("user_id")
+  connectionId            String                           @map("connection_id")
+  providerMessageId       String                           @map("provider_message_id")
+  providerThreadId        String?                          @map("provider_thread_id")
+  receivedAt              DateTime                         @map("received_at") @db.Timestamptz(6)
+  fromAddress             String                           @map("from_address")
+  fromDomain              String                           @map("from_domain")
   subject                 String
-  contentFingerprint      String                  @map("content_fingerprint")
-  templateFingerprint     String?                 @map("template_fingerprint")
-  processingStatus        AiEmailProcessingStatus @default(INGESTED) @map("processing_status")
+  contentFingerprint      String                           @map("content_fingerprint")
+  templateFingerprint     String?                          @map("template_fingerprint")
+  processingStatus        AiEmailProcessingStatus          @default(INGESTED) @map("processing_status")
   classification          Json?
-  classificationPath      String?                 @map("classification_path")
-  classificationProvider  String?                 @map("classification_provider")
-  classificationModel     String?                 @map("classification_model")
-  classificationStartedAt DateTime?               @map("classification_started_at") @db.Timestamptz(6)
-  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  connection              AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  classificationPath      String?                          @map("classification_path")
+  classificationProvider  String?                          @map("classification_provider")
+  classificationModel     String?                          @map("classification_model")
+  classificationStartedAt DateTime?                        @map("classification_started_at") @db.Timestamptz(6)
+  createdAt               DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                    User                             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  connection              AiEmailConnection                @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
   content                 AiEmailMessageContent?
   classifications         AiEmailClassification[]
-  signals                 AiSignal[]              @relation("AiSignalEmailMessage")
-  signalEvidence          AiSignalEvidence[]      @relation("AiSignalEvidenceEmailMessage")
+  signals                 AiSignal[]                       @relation("AiSignalEmailMessage")
+  signalEvidence          AiSignalEvidence[]               @relation("AiSignalEvidenceEmailMessage")
   productProposalEvidence AiEmailProductProposalEvidence[]
 
   @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
@@ -646,16 +647,16 @@ model AiSignalEvidence {
 }
 
 model AiEmailProductProposal {
-  id                String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId            String                       @map("user_id")
-  productType       AiEmailProductProposalType   @map("product_type")
-  status            AiEmailProductProposalStatus @default(PENDING)
-  deduplicationKey  String                       @map("deduplication_key")
+  id                String                           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId            String                           @map("user_id")
+  productType       AiEmailProductProposalType       @map("product_type")
+  status            AiEmailProductProposalStatus     @default(PENDING)
+  deduplicationKey  String                           @map("deduplication_key")
   draft             Json
-  approvedProductId String?                      @map("approved_product_id")
-  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user              User                         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approvedProductId String?                          @map("approved_product_id")
+  createdAt         DateTime                         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user              User                             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   evidence          AiEmailProductProposalEvidence[]
 
   @@unique([userId, deduplicationKey], map: "ai_email_product_proposals_user_dedupe_key")
@@ -876,24 +877,45 @@ model FinTransaction {
 }
 
 model FinSignalImport {
-  id                       String                @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId                   String                @map("user_id")
-  signalId                 String                @map("signal_id")
-  sourceEmailMessageId     String                @map("source_email_message_id")
+  id                       String                      @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                   String                      @map("user_id")
+  signalId                 String                      @map("signal_id")
+  sourceEmailMessageId     String                      @map("source_email_message_id")
   status                   FinSignalImportStatus
-  reviewReason             String?               @map("review_reason")
-  transactionId            String?               @map("transaction_id")
-  duplicateOfTransactionId String?               @map("duplicate_of_transaction_id")
+  reviewReason             String?                     @map("review_reason")
+  transactionId            String?                     @map("transaction_id")
+  duplicateOfTransactionId String?                     @map("duplicate_of_transaction_id")
   candidate                Json
-  createdAt                DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  transaction              FinTransaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  createdAt                DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                     User                        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction              FinTransaction?             @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  resolutions              FinSignalImportResolution[]
 
   @@unique([userId, signalId], map: "fin_signal_imports_user_signal_key")
   @@index([userId, status, createdAt(sort: Desc)], map: "fin_signal_imports_user_status_created_idx")
   @@index([userId, sourceEmailMessageId], map: "fin_signal_imports_user_email_idx")
   @@map("fin_signal_imports")
+}
+
+/// Auditoría de cada decisión humana sobre un import en revisión. Es append-only:
+/// guarda quién resolvió, cuándo, qué acción tomó y qué cambió, o el motivo del descarte.
+model FinSignalImportResolution {
+  id             String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId         String                          @map("user_id")
+  signalImportId String                          @map("signal_import_id")
+  actorUserId    String                          @map("actor_user_id")
+  action         FinSignalImportResolutionAction
+  outcome        String                          @map("outcome")
+  reason         String?
+  changes        Json?
+  createdAt      DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User                            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  signalImport   FinSignalImport                 @relation(fields: [signalImportId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([signalImportId, createdAt(sort: Desc)], map: "fin_signal_import_resolutions_import_idx")
+  @@index([userId, createdAt(sort: Desc)], map: "fin_signal_import_resolutions_user_created_idx")
+  @@map("fin_signal_import_resolutions")
 }
 
 model FinCategory {
@@ -1706,8 +1728,18 @@ enum FinSignalImportStatus {
   DUPLICATE
   REVERSED
   FAILED
+  DISMISSED
 
   @@map("fin_signal_import_status")
+}
+
+enum FinSignalImportResolutionAction {
+  SET_DATE
+  SET_DESTINATION
+  LINK_REVERSAL
+  DISCARD
+
+  @@map("fin_signal_import_resolution_action")
 }
 
 enum FinTransactionSource {

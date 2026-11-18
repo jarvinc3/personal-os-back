@@ -21,6 +21,8 @@ import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
 import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
+import { ImportReviewResolutionService } from './signals/import-review-resolution.service';
+import { ImportReviewController } from './signals/presentation/import-review.controller';
 import { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 import { FinanceNotificationIntents } from './notifications/finance-notification-intents';
 import { FinanceNotificationsListener } from './notifications/finance-notifications.listener';
@@ -48,10 +50,12 @@ import { FinanceNotificationsListener } from './notifications/finance-notificati
     FinanceRecycleBinModule,
     FinanceWipeModule,
   ],
+  controllers: [ImportReviewController],
   providers: [
     FinanceFacade,
     FinanceAiCapabilities,
     FinanceSignalConsumer,
+    ImportReviewResolutionService,
     FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
     FinanceNotificationIntents,
