@@ -30,5 +30,5 @@ export class ConnectGmailDto {
   @IsString()
   @MaxLength(120)
   @Matches(GMAIL_SENDER_FILTER_PATTERN)
-  senderFilter?: string;
+  senderFilter?: string | null;
 }

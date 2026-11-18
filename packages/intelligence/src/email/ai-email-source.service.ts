@@ -322,7 +322,10 @@ export class AiEmailSourceService {
       importStartAt: period
         ? resolveImportStartAt({ period, now: new Date() })
         : null,
-      senderFilter: normalizeSenderFilter(senderFilter),
+      senderFilter:
+        senderFilter === undefined
+          ? undefined
+          : normalizeSenderFilter(senderFilter),
     });
     const url = new URL(GMAIL_AUTH_URL);
     url.search = new URLSearchParams({
@@ -418,7 +421,7 @@ export class AiEmailSourceService {
         tokenExpiresAt: expiresAt,
         ...(keepsPreviousCursor ? {} : { providerCursor: profile.historyId }),
         ...(importStartAt ? { importStartAt } : {}),
-        ...(senderFilter ? { senderFilter } : {}),
+        ...(senderFilter !== undefined ? { senderFilter } : {}),
         lastSyncErrorCode: null,
         reconnectRequiredAt: null,
       },
@@ -672,7 +675,8 @@ export class AiEmailSourceService {
   }: {
     userId: string;
     importStartAt: Date | null;
-    senderFilter: string | null;
+    /** `undefined` conserva el filtro anterior; `null` lo borra. */
+    senderFilter?: string | null;
   }): string {
     const payload = Buffer.from(
       JSON.stringify({
@@ -689,7 +693,7 @@ export class AiEmailSourceService {
   private verifyState(state: string): {
     userId: string;
     importStartAt: Date | null;
-    senderFilter: string | null;
+    senderFilter?: string | null;
   } {
     const [payload, signature, extra] = state.split('.');
     if (!payload || !signature || extra) {
@@ -723,13 +727,17 @@ export class AiEmailSourceService {
       if (importStartAt && Number.isNaN(importStartAt.getTime())) {
         throw new Error('invalid import start');
       }
-      if (data.senderFilter && !isSenderFilter(data.senderFilter)) {
+      if (
+        data.senderFilter !== undefined &&
+        data.senderFilter !== null &&
+        !isSenderFilter(data.senderFilter)
+      ) {
         throw new Error('invalid sender filter');
       }
       return {
         userId: data.userId,
         importStartAt,
-        senderFilter: data.senderFilter ?? null,
+        senderFilter: data.senderFilter,
       };
     } catch {
       throw new BadRequestException('OAuth state vencido o inválido');

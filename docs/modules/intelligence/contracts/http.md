@@ -305,7 +305,7 @@ La sincronización los respeta en todas sus fases:
 - Incremental: el historial de Gmail no acepta consulta, así que el corte y el remitente se aplican antes de guardar el correo; un mensaje anterior a la fecha o de otro remitente no se persiste.
 - La sync acotada del piloto BHD también respeta la fecha y el filtro guardados, además de su propia ventana.
 
-Errores: 400 por un período o un filtro con formato inválido. Cambiar el período en una reconexión no borra correo ya importado; solo cambia el corte hacia adelante.
+Errores: 400 por un período o un filtro con formato inválido. En una reconexión, `senderFilter: null` borra el filtro guardado; omitirlo conserva el anterior. Cambiar el período en una reconexión no borra correo ya importado; solo cambia el corte hacia adelante.
 
 # Señales de inteligencia (AI-7)
 
