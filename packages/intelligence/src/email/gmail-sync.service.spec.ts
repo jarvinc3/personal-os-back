@@ -1130,5 +1130,108 @@ describe('GmailSyncService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(source.gmailApiRequest).not.toHaveBeenCalled();
     });
+    it('cruza la ventana con el corte guardado y no descarga cuerpos fuera del alcance', async () => {
+      const fixture = makeFixture();
+      fixture.current.importStartAt = new Date('2026-10-01T00:00:00.000Z');
+      fixture.current.senderFilter = 'bhd.com.do';
+      fixture.source.gmailApiRequest.mockImplementation((_token, path) => {
+        const requestPath = String(path);
+        if (requestPath.includes('/messages?')) {
+          return Promise.resolve({
+            messages: [{ id: 'bhd-old' }, { id: 'bhd-in' }],
+            resultSizeEstimate: 2,
+          });
+        }
+        if (requestPath.includes('bhd-old')) {
+          return Promise.resolve({
+            id: 'bhd-old',
+            internalDate: String(Date.parse('2026-09-20T00:00:00.000Z')),
+            payload: {
+              headers: [{ name: 'From', value: 'alertas@bhd.com.do' }],
+            },
+          });
+        }
+        if (requestPath.includes('format=metadata')) {
+          return Promise.resolve({
+            id: 'bhd-in',
+            internalDate: String(Date.parse('2026-10-05T00:00:00.000Z')),
+            payload: {
+              headers: [{ name: 'From', value: 'alertas@bhd.com.do' }],
+            },
+          });
+        }
+        return Promise.resolve({
+          id: 'bhd-in',
+          internalDate: String(Date.parse('2026-10-05T00:00:00.000Z')),
+          snippet: 'Transferencia',
+          payload: {
+            headers: [
+              { name: 'From', value: 'alertas@bhd.com.do' },
+              { name: 'Subject', value: 'Transacciones entre mis productos' },
+            ],
+          },
+        });
+      });
+
+      const syncResult = await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-10T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      const listUrl = decodeURIComponent(
+        fixture.source.gmailApiRequest.mock.calls[0][1] as string,
+      );
+      expect(listUrl).toContain('from:bhd.com.do');
+      expect(listUrl).toContain('after:2026/10/01');
+      const requestedPaths = fixture.source.gmailApiRequest.mock.calls.map(
+        ([, path]) => String(path),
+      );
+      expect(requestedPaths).toContain(
+        '/users/me/messages/bhd-old?format=metadata',
+      );
+      expect(requestedPaths).not.toContain(
+        '/users/me/messages/bhd-old?format=full',
+      );
+      expect(requestedPaths).toContain('/users/me/messages/bhd-in?format=full');
+      expect(syncResult.imported).toBe(1);
+    });
+
+    it('rechaza la sync BHD si la conexión está limitada a otro remitente', async () => {
+      const fixture = makeFixture();
+      fixture.current.senderFilter = 'popular.com.do';
+
+      await expect(
+        fixture.service.syncScopedBhdForUser('user-1', {
+          dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+          dateTo: new Date('2026-10-10T00:00:00.000Z'),
+          maxMessages: 20,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(fixture.source.gmailApiRequest).not.toHaveBeenCalled();
+    });
+
+    it('no consulta Gmail cuando la ventana queda fuera del corte guardado', async () => {
+      const fixture = makeFixture();
+      fixture.current.importStartAt = new Date('2026-11-10T00:00:00.000Z');
+
+      const syncResult = await fixture.service.syncScopedBhdForUser('user-1', {
+        dateFrom: new Date('2026-09-01T00:00:00.000Z'),
+        dateTo: new Date('2026-10-01T00:00:00.000Z'),
+        maxMessages: 20,
+      });
+
+      expect(syncResult).toMatchObject({
+        found: 0,
+        imported: 0,
+        skipped: 0,
+        nextPageToken: null,
+        estimatedTotal: 0,
+      });
+      expect(syncResult.query).toBe(
+        'from:bhd.com.do after:2026/11/10 before:2026/10/01',
+      );
+      expect(fixture.source.gmailApiRequest).not.toHaveBeenCalled();
+    });
   });
 });

@@ -315,8 +315,34 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     }
     this.activeSyncConnections.add(connection.id);
     try {
+      if (
+        connection.senderFilter &&
+        !matchesSenderFilter({
+          fromDomain: SCOPED_BHD_SENDER,
+          senderFilter: connection.senderFilter,
+        })
+      ) {
+        throw new BadRequestException(
+          `La conexión importa solo correo de ${connection.senderFilter}; la sync acotada es de BHD.`,
+        );
+      }
+      const effectiveFrom =
+        connection.importStartAt && connection.importStartAt > scope.dateFrom
+          ? connection.importStartAt
+          : scope.dateFrom;
       const accessToken = await this.source.getAccessToken(connection.id);
-      const query = `from:${SCOPED_BHD_SENDER} after:${gmailQueryDate(scope.dateFrom)} before:${gmailQueryDate(scope.dateTo)}`;
+      const query = `from:${SCOPED_BHD_SENDER} after:${gmailQueryDate(effectiveFrom)} before:${gmailQueryDate(scope.dateTo)}`;
+      if (effectiveFrom > scope.dateTo) {
+        return {
+          connected: true,
+          query,
+          found: 0,
+          imported: 0,
+          skipped: 0,
+          nextPageToken: null,
+          estimatedTotal: 0,
+        };
+      }
       const params = new URLSearchParams({
         q: query,
         maxResults: String(scope.maxMessages),
@@ -340,7 +366,9 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         accessToken,
         refs,
         filters: importFiltersOf(connection),
-        scopeAppliedInQuery: true,
+        scopeAppliedInQuery: !(
+          connection.importStartAt || connection.senderFilter
+        ),
       });
       return {
         connected: true,
