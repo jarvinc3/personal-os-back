@@ -28,6 +28,7 @@ import { AiEmailSourceService } from './ai-email-source.service';
 import { EmailSampleImportService } from './email-sample-import.service';
 import { GmailSyncService } from './gmail-sync.service';
 import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
+import { ConnectGmailDto } from './dto/connect-gmail.dto';
 import { EmailSampleImportDto } from './dto/email-sample-import.dto';
 import { SyncBhdScopeDto } from './dto/sync-bhd-scope.dto';
 import {
@@ -125,9 +126,16 @@ export class AiIntelligenceController {
 
   @Post('email/connect')
   @ApiCreatedResponse({ type: AiEmailConnectResponseDto })
-  connect(@CurrentUser() user: { sub: string }) {
+  connect(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: ConnectGmailDto = {},
+  ) {
     return {
-      authorizationUrl: this.email.createAuthorizationUrl(user.sub),
+      authorizationUrl: this.email.createAuthorizationUrl({
+        userId: user.sub,
+        period: dto.period,
+        senderFilter: dto.senderFilter,
+      }),
     };
   }
 

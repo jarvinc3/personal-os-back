@@ -137,6 +137,21 @@ export class AiEmailConnectionResponseDto {
     nullable: true,
     type: String,
     format: 'date-time',
+    description: 'Fecha UTC desde la que se importa correo. Null sin elección.',
+  })
+  importStartAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: String,
+    description: 'Dominio de remitente que limita la importación.',
+  })
+  senderFilter?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: String,
+    format: 'date-time',
   })
   initialSyncCompletedAt?: string | null;
 

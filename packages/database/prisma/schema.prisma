@@ -513,6 +513,8 @@ model AiEmailConnection {
   refreshTokenEncrypted    String?                   @map("refresh_token_encrypted") @db.Text
   tokenExpiresAt           DateTime?                 @map("token_expires_at") @db.Timestamptz(6)
   providerCursor           String?                   @map("provider_cursor")
+  importStartAt            DateTime?                 @map("import_start_at") @db.Timestamptz(6)
+  senderFilter             String?                   @map("sender_filter")
   bootstrapPageToken       String?                   @map("bootstrap_page_token")
   bootstrapStartedAt       DateTime?                 @map("bootstrap_started_at") @db.Timestamptz(6)
   initialSyncCompletedAt   DateTime?                 @map("initial_sync_completed_at") @db.Timestamptz(6)

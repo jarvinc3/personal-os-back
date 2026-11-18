@@ -285,6 +285,28 @@ Qué hace en una sola operación:
 - `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: true, deletedMessages }` cuando existe la conexión. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` con un sync activo o esperando cuota.
 - `POST /api/intelligence/email/sync-bhd` es una operación de piloto disponible solo fuera de producción. Recibe `{ dateFrom, dateTo, maxMessages?, pageToken? }`, consulta Gmail con `from:bhd.com.do after:… before:…` y un tope de 500 por página, e importa solo los mensajes BHD que aún no están en el corpus. Devuelve `{ connected, query, found, imported, skipped, nextPageToken, estimatedTotal }`; `imported` son los nuevos. No cambia el cursor del bootstrap ni el estado de la sync normal, no usa `/email/reset` y no existe en producción.
 
+### Conexión de Gmail y fecha de importación (#382)
+
+`POST /api/intelligence/email/connect` acepta un cuerpo opcional y devuelve `{ authorizationUrl }`:
+
+| Campo          | Tipo                                    | Efecto                                                                                                                              |
+| -------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `period`       | `TODAY`, `LAST_MONTH` o `LAST_3_MONTHS` | Fecha desde la que se importa. `TODAY` es la medianoche UTC; los otros restan meses de calendario (día ajustado al último del mes). |
+| `senderFilter` | dominio, por ejemplo `bhd.com.do`       | Limita la importación a ese dominio y sus subdominios.                                                                              |
+
+Sin cuerpo, la conexión conserva el comportamiento anterior: bootstrap desde `2026-01-01` UTC y sin filtro de remitente. Esto mantiene compatible a la web anterior a #421.
+
+La elección viaja en el `state` OAuth firmado y se guarda en la conexión (`import_start_at`, `sender_filter`). `GET /api/intelligence/email` los devuelve como `connection.importStartAt` y `connection.senderFilter`.
+
+La sincronización los respeta en todas sus fases:
+
+- Bootstrap: consulta Gmail con `after:` de la fecha guardada y `from:` del filtro.
+- Recuperación: el `after` es el mayor entre `lastSyncedAt` menos la ventana y la fecha guardada; también lleva `from:`.
+- Incremental: el historial de Gmail no acepta consulta, así que el corte y el remitente se aplican antes de guardar el correo; un mensaje anterior a la fecha o de otro remitente no se persiste.
+- La sync acotada del piloto BHD también respeta la fecha y el filtro guardados, además de su propia ventana.
+
+Errores: 400 por un período o un filtro con formato inválido. Cambiar el período en una reconexión no borra correo ya importado; solo cambia el corte hacia adelante.
+
 # Señales de inteligencia (AI-7)
 
 - `GET /api/intelligence/signals`: devuelve las últimas 50 señales del usuario autenticado, cada una con su evidencia.

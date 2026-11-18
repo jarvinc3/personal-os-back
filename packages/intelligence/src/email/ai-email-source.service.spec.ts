@@ -272,7 +272,7 @@ describe('AiEmailSourceService', () => {
       });
     const service = new AiEmailSourceService(prisma as never, config as never);
     const state = new URL(
-      service.createAuthorizationUrl('user-1'),
+      service.createAuthorizationUrl({ userId: 'user-1' }),
     ).searchParams.get('state');
 
     await service.completeAuthorization('code', state ?? '');
@@ -285,6 +285,71 @@ describe('AiEmailSourceService', () => {
         }),
       }),
     );
+  });
+
+  it('guarda el período y el filtro de importación al conectar', async () => {
+    const encryptionKey = 'a'.repeat(32);
+    const prisma = {
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockResolvedValue({
+          id: 'connection-1',
+          userId: 'user-1',
+          emailAddress: 'qa@example.com',
+        }),
+      },
+    };
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+          })[key],
+      ),
+      getOrThrow: jest.fn().mockReturnValue(encryptionKey),
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            access_token: 'access-token',
+            refresh_token: 'refresh-token',
+            expires_in: 3600,
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            emailAddress: 'qa@example.com',
+            historyId: '100',
+          }),
+      });
+    const service = new AiEmailSourceService(prisma as never, config as never);
+    const state = new URL(
+      service.createAuthorizationUrl({
+        userId: 'user-1',
+        period: 'LAST_MONTH',
+        senderFilter: '  BHD.com.do ',
+      }),
+    ).searchParams.get('state');
+
+    await service.completeAuthorization('code', state ?? '');
+
+    const upsertArgument = prisma.aiEmailConnection.upsert.mock.calls[0][0] as {
+      create: { importStartAt: Date | null; senderFilter: string | null };
+      update: { importStartAt?: Date; senderFilter?: string };
+    };
+    expect(upsertArgument.create.senderFilter).toBe('bhd.com.do');
+    expect(upsertArgument.create.importStartAt).toBeInstanceOf(Date);
+    expect(upsertArgument.update.senderFilter).toBe('bhd.com.do');
+    expect(upsertArgument.update.importStartAt).toBeInstanceOf(Date);
   });
 
   it('expone la configuración OAuth sin valores sensibles', () => {
@@ -483,7 +548,7 @@ describe('AiEmailSourceService', () => {
         config as never,
       );
       const state = new URL(
-        service.createAuthorizationUrl('user-1'),
+        service.createAuthorizationUrl({ userId: 'user-1' }),
       ).searchParams.get('state');
 
       await service.completeAuthorization('code', state ?? '');

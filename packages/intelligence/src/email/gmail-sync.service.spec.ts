@@ -16,6 +16,8 @@ describe('GmailSyncService', () => {
     bootstrapPageToken: null as string | null,
     bootstrapStartedAt: null as Date | null,
     providerCursor: null as string | null,
+    importStartAt: null as Date | null,
+    senderFilter: null as string | null,
     lastSyncedAt: null as Date | null,
     syncState: null as Record<string, unknown> | null,
   });
@@ -188,6 +190,67 @@ describe('GmailSyncService', () => {
     });
   });
 
+  it('arranca el bootstrap desde la fecha y el remitente de la conexión', async () => {
+    const { current, source, service } = makeFixture();
+    const importStartAt = new Date('2026-09-01T00:00:00.000Z');
+    current.importStartAt = importStartAt;
+    current.senderFilter = 'bhd.com.do';
+    source.gmailApiRequest.mockResolvedValueOnce({
+      messages: [],
+      resultSizeEstimate: 0,
+    });
+
+    await service.syncConnection('connection-1');
+
+    const messagesPath = decodeURIComponent(
+      source.gmailApiRequest.mock.calls[0][1] as string,
+    );
+    expect(messagesPath).toContain(
+      `after:${Math.floor(importStartAt.getTime() / 1000)}`,
+    );
+    expect(messagesPath).toContain('from:bhd.com.do');
+  });
+
+  it('no importa correo anterior a la fecha de inicio de la conexión', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.importStartAt = new Date('2026-10-01T00:00:00.000Z');
+    source.gmailApiRequest
+      .mockResolvedValueOnce({
+        messages: [{ id: 'gmail-old' }],
+        resultSizeEstimate: 1,
+      })
+      .mockResolvedValueOnce({
+        id: 'gmail-old',
+        internalDate: String(Date.parse('2026-09-15T00:00:00.000Z')),
+        payload: { headers: [{ name: 'From', value: 'bank@example.com' }] },
+      });
+
+    await service.syncConnection('connection-1');
+
+    expect(prisma.aiEmailMessage.create).not.toHaveBeenCalled();
+  });
+
+  it('no importa correo de otro remitente cuando hay filtro', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.senderFilter = 'bhd.com.do';
+    source.gmailApiRequest
+      .mockResolvedValueOnce({
+        messages: [{ id: 'gmail-other' }],
+        resultSizeEstimate: 1,
+      })
+      .mockResolvedValueOnce({
+        id: 'gmail-other',
+        internalDate: String(Date.parse('2026-11-10T00:00:00.000Z')),
+        payload: {
+          headers: [{ name: 'From', value: 'otro@example.com' }],
+        },
+      });
+
+    await service.syncConnection('connection-1');
+
+    expect(prisma.aiEmailMessage.create).not.toHaveBeenCalled();
+  });
+
   it('advances an incremental history cursor after importing a message', async () => {
     const { current, prisma, source, service } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
@@ -343,6 +406,28 @@ describe('GmailSyncService', () => {
         lastRecoverySyncAt: expect.any(Date),
       }),
     });
+  });
+
+  it('no recupera correo anterior a la fecha de inicio de la conexión', async () => {
+    const { current, source, service } = makeFixture();
+    const importStartAt = new Date(Date.now() - 2 * 86400_000);
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.lastSyncedAt = new Date(Date.now() - 10 * 86400_000);
+    current.importStartAt = importStartAt;
+    current.senderFilter = 'bhd.com.do';
+    source.gmailApiRequest
+      .mockResolvedValueOnce({ historyId: '200' })
+      .mockResolvedValueOnce({ messages: [], resultSizeEstimate: 0 });
+
+    await service.syncConnection('connection-1');
+
+    const messagesPath = decodeURIComponent(
+      source.gmailApiRequest.mock.calls[1][1] as string,
+    );
+    expect(messagesPath).toContain(
+      `after:${Math.floor(importStartAt.getTime() / 1000)}`,
+    );
+    expect(messagesPath).toContain('from:bhd.com.do');
   });
 
   it('recovers from the last successful sync instead of a seven-day window', async () => {
@@ -958,12 +1043,13 @@ describe('GmailSyncService', () => {
       expect(syncResult.query).toBe(
         'from:bhd.com.do after:2026/08/17 before:2026/11/18',
       );
-      expect(importBatch).toHaveBeenCalledWith(
-        'connection-1',
-        'user-1',
-        'token',
-        [{ id: 'bhd-1' }, { id: 'bhd-2' }],
-      );
+      expect(importBatch).toHaveBeenCalledWith({
+        connectionId: 'connection-1',
+        userId: 'user-1',
+        accessToken: 'token',
+        refs: [{ id: 'bhd-1' }, { id: 'bhd-2' }],
+        filters: { importStartAt: null, senderFilter: null },
+      });
     });
 
     it('rechaza una ventana invertida sin consultar Gmail', async () => {

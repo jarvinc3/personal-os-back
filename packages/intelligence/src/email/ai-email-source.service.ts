@@ -10,6 +10,12 @@ import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { decryptToken, encryptToken } from './token-encryption.util';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
+import {
+  isSenderFilter,
+  normalizeSenderFilter,
+  resolveImportStartAt,
+  type GmailImportPeriod,
+} from './gmail-import-scope';
 
 const GMAIL_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -112,6 +118,8 @@ export class AiEmailSourceService {
         id: true,
         emailAddress: true,
         isActive: true,
+        importStartAt: true,
+        senderFilter: true,
         initialSyncCompletedAt: true,
         lastSyncedAt: true,
         lastRecoverySyncAt: true,
@@ -158,6 +166,8 @@ export class AiEmailSourceService {
         ? {
             connected: connection.isActive,
             emailAddress: connection.emailAddress,
+            importStartAt: connection.importStartAt,
+            senderFilter: connection.senderFilter,
             initialSyncCompletedAt: connection.initialSyncCompletedAt,
             lastSyncedAt: connection.lastSyncedAt,
             lastRecoverySyncAt: connection.lastRecoverySyncAt,
@@ -297,9 +307,23 @@ export class AiEmailSourceService {
     };
   }
 
-  createAuthorizationUrl(userId: string): string {
+  createAuthorizationUrl({
+    userId,
+    period,
+    senderFilter,
+  }: {
+    userId: string;
+    period?: GmailImportPeriod;
+    senderFilter?: string | null;
+  }): string {
     const { clientId, redirectUri } = this.requireOAuthConfig();
-    const state = this.createState(userId);
+    const state = this.createState({
+      userId,
+      importStartAt: period
+        ? resolveImportStartAt({ period, now: new Date() })
+        : null,
+      senderFilter: normalizeSenderFilter(senderFilter),
+    });
     const url = new URL(GMAIL_AUTH_URL);
     url.search = new URLSearchParams({
       client_id: clientId,
@@ -315,7 +339,7 @@ export class AiEmailSourceService {
   }
 
   async completeAuthorization(code: string, state: string) {
-    const userId = this.verifyState(state);
+    const { userId, importStartAt, senderFilter } = this.verifyState(state);
     const { clientId, clientSecret, redirectUri } = this.requireOAuthConfig();
     const tokenResponse = await this.requestGoogleToken(
       new URLSearchParams({
@@ -383,6 +407,8 @@ export class AiEmailSourceService {
         refreshTokenEncrypted,
         tokenExpiresAt: expiresAt,
         providerCursor: profile.historyId,
+        importStartAt,
+        senderFilter,
       },
       update: {
         emailAddress: profile.emailAddress,
@@ -391,6 +417,8 @@ export class AiEmailSourceService {
         refreshTokenEncrypted,
         tokenExpiresAt: expiresAt,
         ...(keepsPreviousCursor ? {} : { providerCursor: profile.historyId }),
+        ...(importStartAt ? { importStartAt } : {}),
+        ...(senderFilter ? { senderFilter } : {}),
         lastSyncErrorCode: null,
         reconnectRequiredAt: null,
       },
@@ -637,10 +665,20 @@ export class AiEmailSourceService {
     return { clientId, clientSecret, redirectUri };
   }
 
-  private createState(userId: string): string {
+  private createState({
+    userId,
+    importStartAt,
+    senderFilter,
+  }: {
+    userId: string;
+    importStartAt: Date | null;
+    senderFilter: string | null;
+  }): string {
     const payload = Buffer.from(
       JSON.stringify({
         userId,
+        importStartAt: importStartAt?.toISOString() ?? null,
+        senderFilter,
         expiresAt: Date.now() + STATE_TTL_MS,
         nonce: randomBytes(16).toString('base64url'),
       }),
@@ -648,7 +686,11 @@ export class AiEmailSourceService {
     return `${payload}.${this.sign(payload)}`;
   }
 
-  private verifyState(state: string): string {
+  private verifyState(state: string): {
+    userId: string;
+    importStartAt: Date | null;
+    senderFilter: string | null;
+  } {
     const [payload, signature, extra] = state.split('.');
     if (!payload || !signature || extra) {
       throw new BadRequestException('OAuth state inválido');
@@ -664,6 +706,8 @@ export class AiEmailSourceService {
     try {
       const data = JSON.parse(Buffer.from(payload, 'base64url').toString()) as {
         userId?: string;
+        importStartAt?: string | null;
+        senderFilter?: string | null;
         expiresAt?: number;
       };
       if (
@@ -673,7 +717,20 @@ export class AiEmailSourceService {
       ) {
         throw new Error('expired');
       }
-      return data.userId;
+      const importStartAt = data.importStartAt
+        ? new Date(data.importStartAt)
+        : null;
+      if (importStartAt && Number.isNaN(importStartAt.getTime())) {
+        throw new Error('invalid import start');
+      }
+      if (data.senderFilter && !isSenderFilter(data.senderFilter)) {
+        throw new Error('invalid sender filter');
+      }
+      return {
+        userId: data.userId,
+        importStartAt,
+        senderFilter: data.senderFilter ?? null,
+      };
     } catch {
       throw new BadRequestException('OAuth state vencido o inválido');
     }
