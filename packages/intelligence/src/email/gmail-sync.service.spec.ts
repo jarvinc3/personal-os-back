@@ -251,6 +251,71 @@ describe('GmailSyncService', () => {
     expect(prisma.aiEmailMessage.create).not.toHaveBeenCalled();
   });
 
+  it('pide metadata antes del cuerpo en el historial incremental', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    current.importStartAt = new Date('2026-11-01T00:00:00.000Z');
+    current.senderFilter = 'bhd.com.do';
+    const oldMetadata = {
+      id: 'gmail-old',
+      internalDate: String(Date.parse('2026-10-20T00:00:00.000Z')),
+      payload: { headers: [{ name: 'From', value: 'alerts@bhd.com.do' }] },
+    };
+    const inScopeMetadata = {
+      id: 'gmail-in',
+      internalDate: String(Date.parse('2026-11-10T00:00:00.000Z')),
+      payload: { headers: [{ name: 'From', value: 'alerts@bhd.com.do' }] },
+    };
+    const fullMessage = {
+      ...inScopeMetadata,
+      snippet: 'Transferencia',
+      payload: {
+        headers: [
+          { name: 'From', value: 'alerts@bhd.com.do' },
+          { name: 'Subject', value: 'Transacciones entre mis productos' },
+        ],
+      },
+    };
+    source.gmailApiRequest.mockImplementation((_token, path) => {
+      const requestPath = String(path);
+      if (requestPath.includes('/history')) {
+        return Promise.resolve({
+          historyId: '105',
+          history: [
+            {
+              messagesAdded: [
+                { message: { id: 'gmail-old' } },
+                { message: { id: 'gmail-in' } },
+              ],
+            },
+          ],
+        });
+      }
+      if (requestPath.includes('gmail-old')) {
+        return Promise.resolve(oldMetadata);
+      }
+      if (requestPath.includes('format=metadata')) {
+        return Promise.resolve(inScopeMetadata);
+      }
+      return Promise.resolve(fullMessage);
+    });
+
+    await service.syncConnection('connection-1');
+
+    const requestedPaths = source.gmailApiRequest.mock.calls.map(([, path]) =>
+      String(path),
+    );
+    expect(requestedPaths).toContain(
+      '/users/me/messages/gmail-old?format=metadata',
+    );
+    expect(requestedPaths).not.toContain(
+      '/users/me/messages/gmail-old?format=full',
+    );
+    expect(requestedPaths).toContain('/users/me/messages/gmail-in?format=full');
+    expect(prisma.aiEmailMessage.create).toHaveBeenCalledTimes(1);
+  });
+
   it('advances an incremental history cursor after importing a message', async () => {
     const { current, prisma, source, service } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
@@ -1049,6 +1114,7 @@ describe('GmailSyncService', () => {
         accessToken: 'token',
         refs: [{ id: 'bhd-1' }, { id: 'bhd-2' }],
         filters: { importStartAt: null, senderFilter: null },
+        scopeAppliedInQuery: true,
       });
     });
 

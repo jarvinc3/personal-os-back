@@ -294,9 +294,9 @@ Qué hace en una sola operación:
 | `period`       | `TODAY`, `LAST_MONTH` o `LAST_3_MONTHS` | Fecha desde la que se importa. `TODAY` es la medianoche UTC; los otros restan meses de calendario (día ajustado al último del mes). |
 | `senderFilter` | dominio, por ejemplo `bhd.com.do`       | Limita la importación a ese dominio y sus subdominios.                                                                              |
 
-Sin cuerpo, la conexión conserva el comportamiento anterior: bootstrap desde `2026-01-01` UTC y sin filtro de remitente. Esto mantiene compatible a la web anterior a #421.
+Sin cuerpo en una conexión nueva se conserva el comportamiento anterior: bootstrap desde `2026-01-01` UTC y sin filtro de remitente, para no romper a la web anterior a #421. En una reconexión, omitir `period` y `senderFilter` conserva los valores guardados; `senderFilter: null` borra el filtro y un período nuevo mueve la fecha de inicio hacia adelante.
 
-La elección viaja en el `state` OAuth firmado y se guarda en la conexión (`import_start_at`, `sender_filter`). `GET /api/intelligence/email` los devuelve como `connection.importStartAt` y `connection.senderFilter`.
+La elección viaja en el `state` OAuth firmado y se guarda en la conexión (`import_start_at`, `sender_filter`). `GET /api/intelligence` los devuelve como `connection.importStartAt` y `connection.senderFilter`.
 
 La sincronización los respeta en todas sus fases:
 

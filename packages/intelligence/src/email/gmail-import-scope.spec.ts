@@ -62,6 +62,7 @@ describe('Gmail import scope', () => {
     expect(normalizeSenderFilter(null)).toBeNull();
     expect(normalizeSenderFilter('   ')).toBeNull();
     expect(isSenderFilter('bhd.com.do')).toBe(true);
+    expect(isSenderFilter('BHD.COM.DO')).toBe(true);
     expect(isSenderFilter('alerts.bhd.com.do')).toBe(true);
     expect(isSenderFilter('bhd')).toBe(false);
     expect(isSenderFilter('bhd..com')).toBe(false);

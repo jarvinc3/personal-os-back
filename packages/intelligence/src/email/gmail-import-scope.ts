@@ -19,7 +19,7 @@ const MONTHS_BY_PERIOD: Record<Exclude<GmailImportPeriod, 'TODAY'>, number> = {
 
 /** Dominio del remitente, sin `@` ni espacios; admite subdominios. */
 export const GMAIL_SENDER_FILTER_PATTERN =
-  /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+  /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
 export function resolveImportStartAt({
   period,

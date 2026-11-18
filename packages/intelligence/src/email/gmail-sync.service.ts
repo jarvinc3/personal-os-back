@@ -67,6 +67,52 @@ function importFiltersOf(connection: {
   };
 }
 
+type MessageEnvelope = {
+  headers: Map<string, string>;
+  fromAddress: string;
+  fromDomain: string;
+  receivedAt: Date;
+};
+
+function readMessageEnvelope(message: GmailMessage): MessageEnvelope {
+  const headers = new Map(
+    (message.payload?.headers ?? []).map((header) => [
+      header.name.toLowerCase(),
+      header.value,
+    ]),
+  );
+  const fromHeader = headers.get('from') ?? '';
+  const fromAddress =
+    fromHeader.match(/<([^>]+)>/)?.[1]?.trim() ?? fromHeader.trim();
+  const fromDomain = fromAddress.split('@').at(-1)?.toLowerCase() ?? '';
+  const receivedAt = message.internalDate
+    ? new Date(Number(message.internalDate))
+    : new Date(headers.get('date') ?? Date.now());
+  return { headers, fromAddress, fromDomain, receivedAt };
+}
+
+function isWithinImportScope({
+  envelope,
+  filters,
+}: {
+  envelope: MessageEnvelope;
+  filters: MessageImportFilters;
+}): boolean {
+  if (filters.importStartAt && envelope.receivedAt < filters.importStartAt) {
+    return false;
+  }
+  if (
+    filters.senderFilter &&
+    !matchesSenderFilter({
+      fromDomain: envelope.fromDomain,
+      senderFilter: filters.senderFilter,
+    })
+  ) {
+    return false;
+  }
+  return true;
+}
+
 type ScopedBhdSyncScope = {
   dateFrom: Date;
   dateTo: Date;
@@ -294,6 +340,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         accessToken,
         refs,
         filters: importFiltersOf(connection),
+        scopeAppliedInQuery: true,
       });
       return {
         connected: true,
@@ -976,6 +1023,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       accessToken,
       refs: page.messages ?? [],
       filters: importFiltersOf(connection),
+      scopeAppliedInQuery: true,
       onBatchProgress: async (processed, importedCount) => {
         await this.updateSyncProgress(
           connection.id,
@@ -1042,6 +1090,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         accessToken,
         refs: ids,
         filters: importFiltersOf(connection),
+        scopeAppliedInQuery: false,
         onBatchProgress: async (processed, importedCount) => {
           await this.updateSyncProgress(
             connection.id,
@@ -1172,6 +1221,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         accessToken,
         refs: page.messages ?? [],
         filters: importFiltersOf(connection),
+        scopeAppliedInQuery: true,
         onBatchProgress: async (processed, importedCount) => {
           await this.updateSyncProgress(
             connection.id,
@@ -1206,6 +1256,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     accessToken,
     refs,
     filters,
+    scopeAppliedInQuery,
     onBatchProgress,
   }: {
     connectionId: string;
@@ -1213,8 +1264,15 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     accessToken: string;
     refs: Array<{ id: string; threadId?: string }>;
     filters: MessageImportFilters;
+    /** El bootstrap y la recuperación ya acotan en la consulta de Gmail. */
+    scopeAppliedInQuery: boolean;
     onBatchProgress?: (processed: number, imported: number) => Promise<void>;
   }): Promise<number> {
+    // El historial no acepta consulta: sin alcance en la query hay que leer la
+    // metadata antes del cuerpo para no descargar correo fuera del alcance.
+    const filterBeforeFetch =
+      !scopeAppliedInQuery &&
+      Boolean(filters.importStartAt || filters.senderFilter);
     let imported = 0;
     let unreportedProcessed = 0;
     let unreportedImported = 0;
@@ -1242,15 +1300,30 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             return 0;
           }
           try {
-            const message = await this.source.gmailApiRequest<GmailMessage>(
+            if (filterBeforeFetch) {
+              const metadata = await this.fetchMessage({
+                accessToken,
+                connectionId,
+                userId,
+                messageId: ref.id,
+                format: 'metadata',
+              });
+              if (
+                !isWithinImportScope({
+                  envelope: readMessageEnvelope(metadata),
+                  filters,
+                })
+              ) {
+                return 0;
+              }
+            }
+            const message = await this.fetchMessage({
               accessToken,
-              `/users/me/messages/${encodeURIComponent(ref.id)}?format=full`,
-              (state) =>
-                this.updateSyncProgress(connectionId, userId, {
-                  ...state,
-                  retryAt: state.retryAt,
-                }),
-            );
+              connectionId,
+              userId,
+              messageId: ref.id,
+              format: 'full',
+            });
             return this.persistMessage({
               connectionId,
               userId,
@@ -1282,6 +1355,30 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return imported;
   }
 
+  private async fetchMessage({
+    accessToken,
+    connectionId,
+    userId,
+    messageId,
+    format,
+  }: {
+    accessToken: string;
+    connectionId: string;
+    userId: string;
+    messageId: string;
+    format: 'metadata' | 'full';
+  }): Promise<GmailMessage> {
+    return this.source.gmailApiRequest<GmailMessage>(
+      accessToken,
+      `/users/me/messages/${encodeURIComponent(messageId)}?format=${format}`,
+      (state) =>
+        this.updateSyncProgress(connectionId, userId, {
+          ...state,
+          retryAt: state.retryAt,
+        }),
+    );
+  }
+
   private async persistMessage({
     connectionId,
     userId,
@@ -1294,28 +1391,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     filters: MessageImportFilters;
   }) {
     const payload = message.payload ?? {};
-    const headers = new Map(
-      (payload.headers ?? []).map((header) => [
-        header.name.toLowerCase(),
-        header.value,
-      ]),
-    );
-    const fromHeader = headers.get('from') ?? '';
-    const fromAddress =
-      fromHeader.match(/<([^>]+)>/)?.[1]?.trim() ?? fromHeader.trim();
-    const fromDomain = fromAddress.split('@').at(-1)?.toLowerCase() ?? '';
-    const receivedAt = message.internalDate
-      ? new Date(Number(message.internalDate))
-      : new Date(headers.get('date') ?? Date.now());
-    if (filters.importStartAt && receivedAt < filters.importStartAt) {
+    const envelope = readMessageEnvelope(message);
+    if (!isWithinImportScope({ envelope, filters })) {
       return 0;
     }
-    if (
-      filters.senderFilter &&
-      !matchesSenderFilter({ fromDomain, senderFilter: filters.senderFilter })
-    ) {
-      return 0;
-    }
+    const { headers, fromAddress, fromDomain, receivedAt } = envelope;
     const subject = headers.get('subject')?.trim() || '(sin asunto)';
     const bodies = this.collectBodies(payload);
     const rawBody = bodies.plain || bodies.html || message.snippet || '';
