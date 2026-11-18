@@ -898,8 +898,9 @@ model FinSignalImport {
   @@map("fin_signal_imports")
 }
 
-/// Auditoría de cada decisión humana sobre un import en revisión. Es append-only:
-/// guarda quién resolvió, cuándo, qué acción tomó y qué cambió, o el motivo del descarte.
+/// Auditoría de cada decisión humana sobre un import en revisión. Se escribe
+/// con resultado PENDING antes de tocar el ledger y se completa con el
+/// resultado; nunca se borra. Guarda actor, acción, cambios o motivo.
 model FinSignalImportResolution {
   id             String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId         String                          @map("user_id")

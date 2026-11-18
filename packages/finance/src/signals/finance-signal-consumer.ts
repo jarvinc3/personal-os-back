@@ -56,6 +56,11 @@ import {
   financeValidationReviewReasons,
   orderFinanceReviewReasons,
 } from './finance-review-reasons';
+import {
+  lockSignalImports,
+  SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+  SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+} from './signal-import-lock';
 import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
 import {
   ImportFinancialTransactionUseCase,
@@ -210,6 +215,13 @@ export type ImportResolutionOverride = {
 type ImportResolution = {
   signal: RoutedSignal;
   override: ImportResolutionOverride;
+};
+
+type PendingReversalRow = {
+  signalId: string;
+  sourceEmailMessageId: string;
+  createdAt: Date;
+  candidate: Prisma.JsonValue;
 };
 
 const pairingInstrumentInclude = {
@@ -1461,21 +1473,51 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       take: PENDING_REVERSAL_RETRY_LIMIT,
     });
     for (const row of pending) {
-      const parsed = payloadSchema.safeParse(row.candidate);
-      const candidate = parsed.success ? parsed.data.transaction : null;
-      if (!candidate) {
-        continue;
-      }
-      const signal = this.pendingSignal(userId, row);
       try {
-        const plan = await this.buildReversalPlan({ signal, candidate });
-        await this.applyImportPlan(signal, plan);
+        await this.applyPendingReversal({ userId, row });
       } catch (error) {
         this.logger.warn(
           `Reversal retry failed for signal ${row.signalId}: ${(error as { code?: string }).code ?? 'UNKNOWN'}`,
         );
       }
     }
+  }
+
+  /**
+   * El reintento comparte el bloqueo por usuario con la resolución humana y el
+   * descarte. Si el import ya salió de revisión, no se aplica ningún cambio.
+   */
+  private async applyPendingReversal({
+    userId,
+    row,
+  }: {
+    userId: string;
+    row: PendingReversalRow;
+  }): Promise<void> {
+    const parsed = payloadSchema.safeParse(row.candidate);
+    const candidate = parsed.success ? parsed.data.transaction : null;
+    if (!candidate) {
+      return;
+    }
+    const signal = this.pendingSignal(userId, row);
+    await this.prisma.$transaction(
+      async (tx) => {
+        await lockSignalImports({ tx, userId });
+        const current = await tx.finSignalImport.findFirst({
+          where: { userId, signalId: row.signalId },
+          select: { status: true },
+        });
+        if (current?.status !== 'REVIEW_REQUIRED') {
+          return;
+        }
+        const plan = await this.buildReversalPlan({ signal, candidate });
+        await this.applyImportPlan(signal, plan);
+      },
+      {
+        timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+        maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+      },
+    );
   }
 
   private pendingSignal(

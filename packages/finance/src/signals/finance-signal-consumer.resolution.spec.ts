@@ -138,22 +138,43 @@ function setup({
   accounts = [bhdAccount],
   cards = [visaPremia],
   chosenOriginal = confirmedPurchase,
+  pendingReversals = [],
+  pendingReversalStatus = 'REVIEW_REQUIRED',
 }: {
-  priorStatus?: string;
+  priorStatus?: string | null;
   accounts?: Array<Record<string, unknown>>;
   cards?: Array<Record<string, unknown>>;
   chosenOriginal?: Record<string, unknown> | null;
+  pendingReversals?: Array<Record<string, unknown>>;
+  pendingReversalStatus?: string;
 } = {}) {
+  const executeRaw = jest.fn().mockResolvedValue(undefined);
   const prisma = {
+    $executeRaw: executeRaw,
+    $transaction: jest.fn((handler: (tx: never) => unknown) => {
+      const tx = {
+        $executeRaw: executeRaw,
+        finSignalImport: {
+          findFirst: jest
+            .fn()
+            .mockResolvedValue({ status: pendingReversalStatus }),
+        },
+      };
+      return handler(tx as never);
+    }),
     finSignalImport: {
-      findUnique: jest.fn().mockResolvedValue({
-        status: priorStatus,
-        reviewReason: 'TRANSACTION_DATE_SUGGESTED',
-        transactionId: null,
-        duplicateOfTransactionId: null,
-        candidate: {},
-      }),
-      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue(
+        priorStatus === null
+          ? null
+          : {
+              status: priorStatus,
+              reviewReason: 'TRANSACTION_DATE_SUGGESTED',
+              transactionId: null,
+              duplicateOfTransactionId: null,
+              candidate: {},
+            },
+      ),
+      findMany: jest.fn().mockResolvedValue(pendingReversals),
       upsert: jest.fn(),
     },
     finTransaction: {
@@ -218,6 +239,7 @@ function setup({
     ledger,
     reverseTransaction,
     cardPaymentImport,
+    executeRaw,
   };
 }
 
@@ -440,6 +462,48 @@ describe('FinanceSignalConsumer con decisión humana', () => {
     ).resolves.toMatchObject({
       outcome: 'REVIEW_REQUIRED',
       reason: 'REVERSAL_ORIGINAL_NOT_FOUND',
+    });
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('no reaplica un reverso si el import ya se descartó', async () => {
+    const pendingRow = {
+      signalId: 'email-message-4',
+      sourceEmailMessageId: 'message-4',
+      createdAt: new Date('2026-11-02T10:00:00.000Z'),
+      candidate: reversalSignal.payload,
+    };
+    const { consumer, reverseTransaction, executeRaw } = setup({
+      priorStatus: null,
+      pendingReversals: [pendingRow],
+      pendingReversalStatus: 'DISMISSED',
+    });
+
+    await expect(consumer.consume(purchaseSignal)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+
+    expect(executeRaw).toHaveBeenCalled();
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('no acepta un original ya compensado que no encaja', async () => {
+    const { consumer, reverseTransaction } = setup({
+      chosenOriginal: {
+        ...confirmedPurchase,
+        status: 'REVERSED',
+        currency: 'USD',
+      },
+    });
+
+    await expect(
+      consumer.consumeResolved({
+        signal: reversalSignal,
+        override: { originalTransactionId: 'purchase-1' },
+      }),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_CURRENCY_MISMATCH',
     });
     expect(reverseTransaction.execute).not.toHaveBeenCalled();
   });

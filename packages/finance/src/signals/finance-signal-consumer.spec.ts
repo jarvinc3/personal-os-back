@@ -34,7 +34,17 @@ const signal: RoutedSignal = {
 };
 
 function setup(overrides: Record<string, unknown> = {}) {
+  const executeRaw = jest.fn().mockResolvedValue(undefined);
   const prisma = {
+    $executeRaw: executeRaw,
+    $transaction: jest.fn((handler: (tx: never) => unknown) =>
+      handler({
+        $executeRaw: executeRaw,
+        finSignalImport: {
+          findFirst: jest.fn().mockResolvedValue({ status: 'REVIEW_REQUIRED' }),
+        },
+      } as never),
+    ),
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),

@@ -603,5 +603,5 @@ Reglas:
 - La resolución y el descarte toman un bloqueo por usuario, así que un descarte no puede cruzarse con una resolución en curso ni reabrir un import descartado.
 - El original elegido se revalida: mismo usuario, `CONFIRMED`, `DEBIT`, sin `transferGroupId`, misma moneda y monto devuelto no mayor al original. La evidencia conserva el paso `HUMAN`.
 - `DISMISSED` es terminal: no se reabre ni se reimporta.
-- Cada decisión agrega una fila append-only en `fin_signal_import_resolutions` con actor, fecha, acción, resultado, motivo y campos cambiados.
+- Cada decisión agrega una fila en `fin_signal_import_resolutions` con actor, fecha, acción y campos cambiados. La fila se escribe con resultado `PENDING` antes de tocar el ledger y se completa con el resultado y el motivo; si el proceso cae entre la escritura del movimiento y su cierre, la fila queda `PENDING` y el movimiento sigue siendo rastreable.
 - Si al aplicar la decisión el import sigue en revisión, la respuesta es 422 con el motivo y el ledger no cambia.

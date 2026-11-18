@@ -16,18 +16,16 @@ import {
   IMPORT_REVIEW_ACTION,
   type ImportReviewAction,
 } from './import-review-actions';
+import {
+  lockSignalImports,
+  SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+  SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+} from './signal-import-lock';
 
 const FINANCE_TRANSACTION_SIGNAL = 'FINANCE.TRANSACTION_DETECTED';
 const EMAIL_SIGNAL_SOURCE = 'EMAIL_MESSAGE';
 const REVIEW_IMPORT_LIMIT = 100;
-const IMPORT_LOCK_KEY = 'signal_import';
-/**
- * El consumidor escribe con su propio cliente y puede pedir una tasa FX al
- * importar moneda distinta (hasta 10 s). La transacción del bloqueo debe
- * sobrevivir a esa escritura para que la auditoría se guarde después.
- */
-const RESOLUTION_TRANSACTION_TIMEOUT_MS = 30_000;
-const RESOLUTION_TRANSACTION_MAX_WAIT_MS = 10_000;
+const PENDING_RESOLUTION_OUTCOME = 'PENDING';
 
 export type ResolveImportReviewInput = {
   action: ImportReviewAction;
@@ -120,7 +118,7 @@ export class ImportReviewResolutionService {
   }): Promise<ImportReviewResolution> {
     const attempt = await this.prisma.$transaction(
       async (tx) => {
-        await this.lockUserImports({ tx, userId });
+        await lockSignalImports({ tx, userId });
         const reviewImport = await this.loadReviewImport({
           userId,
           importId,
@@ -145,8 +143,8 @@ export class ImportReviewResolutionService {
         });
       },
       {
-        timeout: RESOLUTION_TRANSACTION_TIMEOUT_MS,
-        maxWait: RESOLUTION_TRANSACTION_MAX_WAIT_MS,
+        timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+        maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
       },
     );
     if (attempt.kind === 'unresolved') {
@@ -157,16 +155,6 @@ export class ImportReviewResolutionService {
       });
     }
     return attempt.resolution;
-  }
-
-  private async lockUserImports({
-    tx,
-    userId,
-  }: {
-    tx: Prisma.TransactionClient;
-    userId: string;
-  }): Promise<void> {
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${IMPORT_LOCK_KEY}:${userId}`}))`;
   }
 
   private async loadReviewImport({
@@ -381,6 +369,12 @@ export class ImportReviewResolutionService {
     prepared: PreparedResolution;
     tx: Prisma.TransactionClient;
   }): Promise<ResolutionAttempt> {
+    const resolutionId = await this.recordResolutionStart({
+      userId,
+      signalImportId: reviewImport.id,
+      action,
+      changes: prepared.changes,
+    });
     const consumeResult = await this.signals.consumeResolved({
       signal: this.toRoutedSignal(reviewImport),
       override: prepared.override,
@@ -390,6 +384,12 @@ export class ImportReviewResolutionService {
       select: { status: true, transactionId: true, reviewReason: true },
     });
     if (!updated) {
+      await this.completeResolution({
+        userId,
+        resolutionId,
+        outcome: 'REJECTED',
+        reason: 'IMPORT_NOT_FOUND',
+      });
       throw new NotFoundException('Import en revisión no encontrado');
     }
     const outcome = this.outcomeOf({
@@ -397,16 +397,11 @@ export class ImportReviewResolutionService {
       status: updated.status,
     });
     const reviewReason = consumeResult.reason ?? updated.reviewReason ?? null;
-    await tx.finSignalImportResolution.create({
-      data: {
-        userId,
-        signalImportId: reviewImport.id,
-        actorUserId: userId,
-        action,
-        outcome,
-        reason: reviewReason,
-        changes: prepared.changes,
-      },
+    await this.completeResolution({
+      userId,
+      resolutionId,
+      outcome,
+      reason: reviewReason,
     });
     if (outcome === 'REVIEW_REQUIRED' || outcome === 'REJECTED') {
       return {
@@ -425,6 +420,53 @@ export class ImportReviewResolutionService {
         reviewReason: updated.reviewReason,
       },
     };
+  }
+
+  /**
+   * La fila se escribe antes de tocar el ledger y se completa al terminar. Si
+   * el proceso cae entre la escritura del movimiento y su resultado, la fila
+   * queda en `PENDING` y el movimiento sigue siendo rastreable.
+   */
+  private async recordResolutionStart({
+    userId,
+    signalImportId,
+    action,
+    changes,
+  }: {
+    userId: string;
+    signalImportId: string;
+    action: ImportReviewAction;
+    changes: Prisma.InputJsonObject;
+  }): Promise<string> {
+    const resolution = await this.prisma.finSignalImportResolution.create({
+      data: {
+        userId,
+        signalImportId,
+        actorUserId: userId,
+        action,
+        outcome: PENDING_RESOLUTION_OUTCOME,
+        changes,
+      },
+      select: { id: true },
+    });
+    return resolution.id;
+  }
+
+  private async completeResolution({
+    userId,
+    resolutionId,
+    outcome,
+    reason,
+  }: {
+    userId: string;
+    resolutionId: string;
+    outcome: ImportReviewResolutionOutcome;
+    reason: string | null;
+  }): Promise<void> {
+    await this.prisma.finSignalImportResolution.updateMany({
+      where: { id: resolutionId, userId },
+      data: { outcome, reason },
+    });
   }
 
   private async discard({

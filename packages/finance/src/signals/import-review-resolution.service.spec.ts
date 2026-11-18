@@ -68,7 +68,8 @@ function setup({
       updateMany: jest.fn().mockResolvedValue({ count: dismissedCount }),
     },
     finSignalImportResolution: {
-      create: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({ id: 'resolution-1' }),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     finAccount: { findFirst: jest.fn().mockResolvedValue(account) },
     finCard: { findFirst: jest.fn().mockResolvedValue(card) },
@@ -150,15 +151,21 @@ describe('ImportReviewResolutionService', () => {
       }),
       override: { transactionDate: new Date('2026-10-30T12:00:00Z') },
     });
-    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        userId: 'user-1',
-        signalImportId: 'import-1',
-        actorUserId: 'user-1',
-        action: 'SET_DATE',
-        outcome: 'IMPORTED',
-        changes: { transactionDate: '2026-10-30T12:00:00.000Z' },
+    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          signalImportId: 'import-1',
+          actorUserId: 'user-1',
+          action: 'SET_DATE',
+          outcome: 'PENDING',
+          changes: { transactionDate: '2026-10-30T12:00:00.000Z' },
+        }),
       }),
+    );
+    expect(prisma.finSignalImportResolution.updateMany).toHaveBeenCalledWith({
+      where: { id: 'resolution-1', userId: 'user-1' },
+      data: { outcome: 'IMPORTED', reason: null },
     });
   });
 
@@ -315,11 +322,18 @@ describe('ImportReviewResolutionService', () => {
         override: { destination: { accountId: 'account-bhd' } },
       }),
     );
-    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        action: 'SET_DESTINATION',
-        changes: { accountId: 'account-bhd' },
+    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'SET_DESTINATION',
+          outcome: 'PENDING',
+          changes: { accountId: 'account-bhd' },
+        }),
       }),
+    );
+    expect(prisma.finSignalImportResolution.updateMany).toHaveBeenCalledWith({
+      where: { id: 'resolution-1', userId: 'user-1' },
+      data: { outcome: 'IMPORTED', reason: null },
     });
   });
 
@@ -403,12 +417,20 @@ describe('ImportReviewResolutionService', () => {
       }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
 
-    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        action: 'LINK_REVERSAL',
+    expect(prisma.finSignalImportResolution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'LINK_REVERSAL',
+          outcome: 'PENDING',
+        }),
+      }),
+    );
+    expect(prisma.finSignalImportResolution.updateMany).toHaveBeenCalledWith({
+      where: { id: 'resolution-1', userId: 'user-1' },
+      data: {
         outcome: 'REVIEW_REQUIRED',
         reason: 'REVERSAL_CURRENCY_MISMATCH',
-      }),
+      },
     });
   });
 
