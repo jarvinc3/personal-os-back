@@ -5,7 +5,7 @@
   "author": "jarvinc3",
   "private": true,
   "license": "MIT",
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@12.21.0",
   "scripts": {
     "build:packages": "pnpm -r --filter \"@personal-os/*\" run build",
     "build": "pnpm db:generate && pnpm build:packages && nest build && pnpm sentry:sourcemaps",
