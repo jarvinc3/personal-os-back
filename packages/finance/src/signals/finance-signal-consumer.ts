@@ -56,6 +56,11 @@ import {
   financeValidationReviewReasons,
   orderFinanceReviewReasons,
 } from './finance-review-reasons';
+import {
+  lockSignalImports,
+  SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+  SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+} from './signal-import-lock';
 import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
 import {
   ImportFinancialTransactionUseCase,
@@ -138,7 +143,12 @@ const payloadSchema = z
 
 type Candidate = z.infer<typeof transactionSchema>;
 type ImportStatus =
-  'IMPORTED' | 'DUPLICATE' | 'REVERSED' | 'REVIEW_REQUIRED' | 'FAILED';
+  | 'IMPORTED'
+  | 'DUPLICATE'
+  | 'REVERSED'
+  | 'REVIEW_REQUIRED'
+  | 'FAILED'
+  | 'DISMISSED';
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
@@ -191,6 +201,29 @@ type ImportPlan =
   | { kind: 'CARD_PAYMENT'; payment: ImportCardPaymentInput }
   | { kind: 'IMPORT'; draft: ImportDraft };
 
+/**
+ * Decisión humana sobre un import en revisión. La fecha, el destino o el
+ * original elegidos sustituyen lo que el correo no permitía decidir; el resto
+ * del plan se calcula igual que en la importación automática.
+ */
+export type ImportResolutionOverride = {
+  transactionDate?: Date;
+  destination?: { accountId?: string; cardId?: string };
+  originalTransactionId?: string;
+};
+
+type ImportResolution = {
+  signal: RoutedSignal;
+  override: ImportResolutionOverride;
+};
+
+type PendingReversalRow = {
+  signalId: string;
+  sourceEmailMessageId: string;
+  createdAt: Date;
+  candidate: Prisma.JsonValue;
+};
+
 const pairingInstrumentInclude = {
   account: { select: { institutionId: true, type: true } },
   card: { select: { institutionId: true } },
@@ -216,8 +249,59 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   ) {}
 
   async consume(signal: RoutedSignal) {
-    const plan = await this.buildImportPlan(signal);
-    const consumeResult = await this.applyImportPlan(signal, plan);
+    return this.runImportPlan({ signal });
+  }
+
+  /**
+   * Reaplica un import en revisión con la decisión de una persona. El override
+   * no salta validaciones: el plan vuelve a comprobar destino, referencia,
+   * moneda y monto, y si algo no cuadra el import sigue en revisión. Quien
+   * llama ya tiene el bloqueo por usuario del import.
+   */
+  async consumeResolved({ signal, override }: ImportResolution) {
+    return this.runImportPlan({ signal, override });
+  }
+
+  private async runImportPlan({
+    signal,
+    override,
+  }: {
+    signal: RoutedSignal;
+    override?: ImportResolutionOverride;
+  }) {
+    if (override || !(await this.isRetryableReviewPending(signal))) {
+      return this.importSignal({
+        signal,
+        override,
+        lockHeld: Boolean(override),
+      });
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockSignalImports({ tx, userId: signal.userId });
+        return this.importSignal({ signal, lockHeld: true });
+      },
+      {
+        timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+        maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+      },
+    );
+  }
+
+  private async importSignal({
+    signal,
+    override,
+    lockHeld,
+  }: {
+    signal: RoutedSignal;
+    override?: ImportResolutionOverride;
+    /** La resolución y los reintentos ya tienen el bloqueo por usuario. */
+    lockHeld: boolean;
+  }) {
+    const plan = await this.buildImportPlan({ signal, override });
+    const consumeResult = await this.applyImportPlan(signal, plan, {
+      lockHeld,
+    });
     if (
       consumeResult.outcome === 'ALREADY_APPLIED' &&
       this.isTransferSignal(signal)
@@ -230,6 +314,23 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return consumeResult;
   }
 
+  /**
+   * Un import en revisión se puede reaplicar cuando aparece el destino. La
+   * lectura compite con un descarte humano, así que ese caso toma el bloqueo
+   * por usuario antes de escribir.
+   */
+  private async isRetryableReviewPending(
+    signal: RoutedSignal,
+  ): Promise<boolean> {
+    const prior = await this.prisma.finSignalImport.findUnique({
+      where: {
+        userId_signalId: { userId: signal.userId, signalId: signal.signalId },
+      },
+      select: { status: true, reviewReason: true },
+    });
+    return prior !== null && isRetryableTargetReview(prior);
+  }
+
   private isTransferSignal(signal: RoutedSignal): boolean {
     const parsed = payloadSchema.safeParse(signal.payload);
     if (!parsed.success) {
@@ -240,7 +341,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
 
   /** Igual que `consume`, pero sin escribir ni señales ni ledger. */
   async preview(signal: RoutedSignal): Promise<SignalImportPreview> {
-    const plan = await this.buildImportPlan(signal);
+    const plan = await this.buildImportPlan({ signal });
     const preview = this.describeImportPlan(plan);
     if (preview.outcome !== 'REVIEW_REQUIRED') {
       return preview;
@@ -295,7 +396,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         candidate.currency &&
         canResolveReversalWithoutDate
       ) {
-        const reversalPlan = await this.buildReversalPlan(signal, candidate);
+        const reversalPlan = await this.buildReversalPlan({
+          signal,
+          candidate,
+        });
         if (
           reversalPlan.kind === 'RECORD' &&
           reversalPlan.status === 'REVIEW_REQUIRED' &&
@@ -399,7 +503,13 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return orderFinanceReviewReasons(reasons);
   }
 
-  private async buildImportPlan(signal: RoutedSignal): Promise<ImportPlan> {
+  private async buildImportPlan({
+    signal,
+    override,
+  }: {
+    signal: RoutedSignal;
+    override?: ImportResolutionOverride;
+  }): Promise<ImportPlan> {
     if (signal.signalType !== 'FINANCE.TRANSACTION_DETECTED') {
       return this.returnPlan({
         outcome: 'REJECTED',
@@ -413,7 +523,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         userId_signalId: { userId: signal.userId, signalId: signal.signalId },
       },
     });
-    if (prior && !isRetryableTargetReview(prior)) {
+    if (!override && prior && !isRetryableTargetReview(prior)) {
       return this.returnPlan(
         this.fromStored(
           prior.status,
@@ -437,7 +547,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return this.failedPlan('INVALID_SIGNAL_PAYLOAD');
     }
     const payload = parsed.data;
-    const candidate = payload.transaction;
+    const candidate = withResolvedTransactionDate({
+      candidate: payload.transaction,
+      transactionDate: override?.transactionDate,
+    });
     if (!candidate || candidate.kind === 'NOT_TRANSACTION') {
       return this.failedPlan('NO_TRANSACTION_CANDIDATE');
     }
@@ -503,7 +616,11 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
               candidate.statusConfidence ?? payload.confidence ?? 0,
           });
     if (status === 'REVERSED') {
-      return this.buildReversalPlan(signal, candidate);
+      return this.buildReversalPlan({
+        signal,
+        candidate,
+        originalTransactionId: override?.originalTransactionId,
+      });
     }
 
     if (isCardPaymentMovementClass(movementClass)) {
@@ -513,13 +630,30 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         candidate,
         accounts: activeAccounts,
         status,
+        cardId: override?.destination?.cardId,
+        sourceAccountId: override?.destination?.accountId,
       });
     }
 
     const transfer = isTransferMovementClass(movementClass);
     let target: { accountId?: string; cardId?: string };
     let transferLeg: TransferLegIdentity | null = null;
-    if (transfer) {
+    if (override?.destination) {
+      if (transfer) {
+        if (!override.destination.accountId) {
+          return this.reviewPlan(
+            TRANSFER_REVIEW_REASON.ACCOUNT_HINT_UNSUPPORTED,
+          );
+        }
+        target = { accountId: override.destination.accountId };
+        transferLeg = transferLegIdentity(movementClass);
+      } else {
+        if (override.destination.accountId && override.destination.cardId) {
+          return this.reviewPlan('AMBIGUOUS_LEDGER_TARGET');
+        }
+        target = override.destination;
+      }
+    } else if (transfer) {
       const transferTarget = this.resolveTransferTarget({
         candidate,
         movementClass,
@@ -698,6 +832,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   private async applyImportPlan(
     signal: RoutedSignal,
     plan: ImportPlan,
+    { lockHeld }: { lockHeld: boolean },
   ): Promise<SignalConsumeResult> {
     switch (plan.kind) {
       case 'RETURN':
@@ -717,7 +852,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       case 'CARD_PAYMENT':
         return this.applyCardPayment(signal, plan.payment);
       case 'IMPORT':
-        return this.applyImport(signal, plan.draft);
+        return this.applyImport(signal, plan.draft, { lockHeld });
     }
   }
 
@@ -786,6 +921,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   private async applyImport(
     signal: RoutedSignal,
     draft: ImportDraft,
+    { lockHeld }: { lockHeld: boolean },
   ): Promise<SignalConsumeResult> {
     try {
       let transactionId: string;
@@ -809,7 +945,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       await this.persist(signal, 'IMPORTED', transactionId);
       if (!draft.input.linkedTransactionId && !draft.transfer) {
-        await this.retryPendingReversals(signal.userId);
+        await this.retryPendingReversals(signal.userId, { lockHeld });
       }
       if (draft.transfer) {
         await this.tryPairTransfer(signal.userId, transactionId);
@@ -987,11 +1123,20 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return classifyTransferImport({ incoming, existing: referenceMatches });
   }
 
-  private async buildReversalPlan(
-    signal: RoutedSignal,
-    candidate: Candidate,
-  ): Promise<ImportPlan> {
-    const decision = await this.resolveReversal(signal.userId, candidate);
+  private async buildReversalPlan({
+    signal,
+    candidate,
+    originalTransactionId,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    originalTransactionId?: string;
+  }): Promise<ImportPlan> {
+    const decision = await this.resolveReversal({
+      userId: signal.userId,
+      candidate,
+      originalTransactionId,
+    });
     if (decision.kind === 'review') {
       return this.reviewPlan(
         decision.reason,
@@ -1141,12 +1286,25 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return this.result('APPLIED', originalId);
   }
 
-  private async resolveReversal(
-    userId: string,
-    candidate: Candidate,
-  ): Promise<ReversalTargetDecision> {
+  private async resolveReversal({
+    userId,
+    candidate,
+    originalTransactionId,
+  }: {
+    userId: string;
+    candidate: Candidate;
+    originalTransactionId?: string;
+  }): Promise<ReversalTargetDecision> {
     const reversalAmount = candidate.amount!;
     const reversalCurrency = candidate.currency!;
+    if (originalTransactionId) {
+      return this.resolveChosenReversalOriginal({
+        userId,
+        originalTransactionId,
+        reversalAmount,
+        reversalCurrency,
+      });
+    }
     const reference = candidate.reverseOfBankReference?.trim() || null;
     if (reference) {
       const originals = await this.ledger.findTransactionsByExternalReference(
@@ -1200,6 +1358,51 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       reversalAmount,
       reversalCurrency,
       step: 'CANDIDATE',
+    });
+  }
+
+  /**
+   * Un original elegido por una persona se valida con las mismas reglas que un
+   * candidato automático: confirmado, gasto propio, misma moneda y monto
+   * suficiente. Si no cuadra, el import sigue en revisión.
+   */
+  private async resolveChosenReversalOriginal({
+    userId,
+    originalTransactionId,
+    reversalAmount,
+    reversalCurrency,
+  }: {
+    userId: string;
+    originalTransactionId: string;
+    reversalAmount: number;
+    reversalCurrency: string;
+  }): Promise<ReversalTargetDecision> {
+    const original = await this.prisma.finTransaction.findFirst({
+      where: { id: originalTransactionId, userId },
+      select: {
+        id: true,
+        status: true,
+        type: true,
+        transferGroupId: true,
+        amount: true,
+        currency: true,
+        accountId: true,
+        cardId: true,
+        categoryId: true,
+        aiMetadata: true,
+      },
+    });
+    if (!original) {
+      return this.reversalReview(
+        'HUMAN',
+        REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      );
+    }
+    return evaluateReversalOriginal({
+      original: { ...original, amount: Number(original.amount) },
+      reversalAmount,
+      reversalCurrency,
+      step: 'HUMAN',
     });
   }
 
@@ -1298,7 +1501,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   }
 
   /** Retries reversals after an imported email makes a missing original available. */
-  private async retryPendingReversals(userId: string): Promise<void> {
+  private async retryPendingReversals(
+    userId: string,
+    { lockHeld }: { lockHeld: boolean },
+  ): Promise<void> {
     const pending = await this.prisma.finSignalImport.findMany({
       where: {
         userId,
@@ -1321,21 +1527,72 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       take: PENDING_REVERSAL_RETRY_LIMIT,
     });
     for (const row of pending) {
-      const parsed = payloadSchema.safeParse(row.candidate);
-      const candidate = parsed.success ? parsed.data.transaction : null;
-      if (!candidate) {
-        continue;
-      }
-      const signal = this.pendingSignal(userId, row);
       try {
-        const plan = await this.buildReversalPlan(signal, candidate);
-        await this.applyImportPlan(signal, plan);
+        await this.applyPendingReversal({ userId, row, lockHeld });
       } catch (error) {
         this.logger.warn(
           `Reversal retry failed for signal ${row.signalId}: ${(error as { code?: string }).code ?? 'UNKNOWN'}`,
         );
       }
     }
+  }
+
+  /**
+   * El reintento comparte el bloqueo por usuario con la resolución humana y el
+   * descarte. Si el import ya salió de revisión, no se aplica ningún cambio.
+   * Cuando quien llama ya tiene el bloqueo, no se vuelve a pedir: pedirlo en
+   * otra conexión dentro de la misma transacción lo dejaría esperándose a sí
+   * mismo.
+   */
+  private async applyPendingReversal({
+    userId,
+    row,
+    lockHeld,
+  }: {
+    userId: string;
+    row: PendingReversalRow;
+    lockHeld: boolean;
+  }): Promise<void> {
+    const parsed = payloadSchema.safeParse(row.candidate);
+    const candidate = parsed.success ? parsed.data.transaction : null;
+    if (!candidate) {
+      return;
+    }
+    const signal = this.pendingSignal(userId, row);
+    if (lockHeld) {
+      await this.applyReversalRetry({ userId, signal, candidate });
+      return;
+    }
+    await this.prisma.$transaction(
+      async (tx) => {
+        await lockSignalImports({ tx, userId });
+        await this.applyReversalRetry({ userId, signal, candidate });
+      },
+      {
+        timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+        maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+      },
+    );
+  }
+
+  private async applyReversalRetry({
+    userId,
+    signal,
+    candidate,
+  }: {
+    userId: string;
+    signal: RoutedSignal;
+    candidate: Candidate;
+  }): Promise<void> {
+    const current = await this.prisma.finSignalImport.findFirst({
+      where: { userId, signalId: signal.signalId },
+      select: { status: true },
+    });
+    if (current?.status !== 'REVIEW_REQUIRED') {
+      return;
+    }
+    const plan = await this.buildReversalPlan({ signal, candidate });
+    await this.applyImportPlan(signal, plan, { lockHeld: true });
   }
 
   private pendingSignal(
@@ -1453,6 +1710,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     candidate,
     accounts,
     status,
+    cardId,
+    sourceAccountId,
   }: {
     signal: RoutedSignal;
     payload: z.infer<typeof payloadSchema>;
@@ -1463,6 +1722,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       currency: string;
     }[];
     status: FinTransactionStatusValue;
+    cardId?: string;
+    sourceAccountId?: string;
   }): Promise<ImportPlan> {
     if (status !== 'CONFIRMED') {
       return this.reviewPlan('CARD_PAYMENT_NOT_CONFIRMED');
@@ -1471,17 +1732,27 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     const currency = candidate.currency!;
     const transactionDate = new Date(candidate.transactionDate!);
 
-    const card = await this.resolveCardPaymentCard({
-      userId: signal.userId,
-      lastFour: candidate.last4 ?? null,
-    });
+    const card = cardId
+      ? await this.resolveChosenCardPaymentCard({
+          userId: signal.userId,
+          cardId,
+        })
+      : await this.resolveCardPaymentCard({
+          userId: signal.userId,
+          lastFour: candidate.last4 ?? null,
+        });
     if (card.kind === 'review') {
       return this.reviewPlan(card.reason);
     }
-    const account = this.resolveCardPaymentAccount({
-      accounts,
-      accountNumberLast4: candidate.accountNumberLast4 ?? null,
-    });
+    const account = sourceAccountId
+      ? this.resolveChosenCardPaymentAccount({
+          accounts,
+          accountId: sourceAccountId,
+        })
+      : this.resolveCardPaymentAccount({
+          accounts,
+          accountNumberLast4: candidate.accountNumberLast4 ?? null,
+        });
     if (account.kind === 'review') {
       return this.reviewPlan(account.reason);
     }
@@ -1600,6 +1871,63 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     };
   }
 
+  private async resolveChosenCardPaymentCard({
+    userId,
+    cardId,
+  }: {
+    userId: string;
+    cardId: string;
+  }): Promise<
+    | { kind: 'resolved'; cardId: string; currencies: string[] }
+    | { kind: 'review'; reason: string }
+  > {
+    const card = await this.prisma.finCard.findFirst({
+      where: { id: cardId, userId, isActive: true },
+      select: {
+        id: true,
+        type: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    if (!card) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_FOUND' };
+    }
+    if (card.type !== 'CREDIT') {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_CREDIT' };
+    }
+    return {
+      kind: 'resolved',
+      cardId: card.id,
+      currencies: card.balances.map(({ currency }) => currency),
+    };
+  }
+
+  private resolveChosenCardPaymentAccount({
+    accounts,
+    accountId,
+  }: {
+    accounts: readonly {
+      id: string;
+      currency: string;
+    }[];
+    accountId: string;
+  }):
+    | { kind: 'resolved'; accountId: string; currency: string }
+    | { kind: 'review'; reason: string } {
+    const account = accounts.find((row) => row.id === accountId);
+    if (!account) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+      };
+    }
+    return {
+      kind: 'resolved',
+      accountId: account.id,
+      currency: account.currency,
+    };
+  }
+
   private resolveCardPaymentAccount({
     accounts,
     accountNumberLast4,
@@ -1715,6 +2043,13 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         outcome: 'REJECTED',
         domainReferences: [],
         reason: reason ?? 'SIGNAL_IMPORT_FAILED',
+      };
+    }
+    if (status === 'DISMISSED') {
+      return {
+        outcome: 'REJECTED',
+        domainReferences: [],
+        reason: 'IMPORT_DISMISSED_BY_USER',
       };
     }
     return this.result('ALREADY_APPLIED', transactionId);
@@ -1885,6 +2220,23 @@ function isRetryableTargetReview(prior: {
     prior.reviewReason !== null &&
     RETRYABLE_TARGET_REVIEW_REASONS.has(prior.reviewReason)
   );
+}
+
+/**
+ * La fecha elegida por una persona manda sobre la del correo y sobre la
+ * sugerencia del encabezado, sin tocar el resto del candidato.
+ */
+function withResolvedTransactionDate({
+  candidate,
+  transactionDate,
+}: {
+  candidate: Candidate | null | undefined;
+  transactionDate?: Date;
+}): Candidate | null | undefined {
+  if (!candidate || !transactionDate) {
+    return candidate;
+  }
+  return { ...candidate, transactionDate: transactionDate.toISOString() };
 }
 
 function toReversalOriginal(row: LedgerTransactionRow): ReversalOriginal {

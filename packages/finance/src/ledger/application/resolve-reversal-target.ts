@@ -12,7 +12,8 @@ export const REVERSAL_REVIEW_REASON = {
 export type ReversalReviewReason =
   (typeof REVERSAL_REVIEW_REASON)[keyof typeof REVERSAL_REVIEW_REASON];
 
-export type ReversalStep = 'REFERENCE' | 'EMAIL' | 'CANDIDATE' | 'CARD_ACCOUNT';
+export type ReversalStep =
+  'REFERENCE' | 'EMAIL' | 'CANDIDATE' | 'CARD_ACCOUNT' | 'HUMAN';
 
 /** A card reversal without merchant matches a purchase on the same card up to 3 days before. */
 export const REVERSAL_CARD_ACCOUNT_WINDOW_DAYS = 3;
@@ -61,16 +62,6 @@ export function evaluateReversalOriginal({
   reversalCurrency: string;
   step: ReversalStep;
 }): ReversalTargetDecision {
-  if (original.status === 'REVERSED') {
-    return { kind: 'already_reversed', step, original };
-  }
-  if (original.status !== 'CONFIRMED') {
-    return review({
-      step,
-      reason: REVERSAL_REVIEW_REASON.ORIGINAL_NOT_CONFIRMED,
-      candidateIds: [original.id],
-    });
-  }
   if (original.type !== 'DEBIT' || original.transferGroupId !== null) {
     return review({
       step,
@@ -89,6 +80,18 @@ export function evaluateReversalOriginal({
     return review({
       step,
       reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+      candidateIds: [original.id],
+    });
+  }
+  // Un original ya compensado solo cuenta como repetido si además encaja en
+  // tipo, moneda y monto; si no, la elección es inválida y sigue en revisión.
+  if (original.status === 'REVERSED') {
+    return { kind: 'already_reversed', step, original };
+  }
+  if (original.status !== 'CONFIRMED') {
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.ORIGINAL_NOT_CONFIRMED,
       candidateIds: [original.id],
     });
   }

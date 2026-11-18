@@ -12,6 +12,7 @@ Envelope `{ data, meta }`.
 | Catalog            | Institutions, Accounts, Cards, Categories                                              |
 | Statements         | `CardStatementsController`                                                             |
 | Import de estados  | `StatementImportsController`                                                           |
+| Import de correo   | `ImportReviewController`                                                               |
 | Planning           | Budgets, Savings, Loans, Receivables                                                   |
 | Cobros compartidos | `ReceivableSharesController` (auth) y `PublicReceivableSharesController` (`@Public()`) |
 | Analytics          | `AnalyticsController`                                                                  |
@@ -37,6 +38,26 @@ Cada recurso vive bajo `finance/<recurso>` (por ejemplo `finance/bank-charges`, 
 ## Rutas (resumen)
 
 Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST /api/finance/transactions/:id/reverse` y `/unconfirm`, `GET /api/finance/accounts/:id/history` + `/cards/:id/history`, `POST /api/finance/transfers` + `PATCH /api/finance/transfers/:id` + `POST /api/finance/transfers/:id/unconfirm` + `/confirm` + `/reverse` + `DELETE /api/finance/transfers/:id`, `GET /api/finance/balance-sheet`, `POST /api/finance/entities/lookup`, `GET /api/finance/cards/:id/statements`, `POST /api/finance/cards/:id/statements/import` + `POST /api/finance/accounts/:id/statements/import` + `GET`/`DELETE /api/finance/statement-imports/:id` + `PATCH /api/finance/statement-imports/:id/lines/:lineId` + `POST /api/finance/statement-imports/:id/apply`, `GET /api/finance/loans/:id` + `/installments`, `POST /api/finance/loans/:id/pay-next-installment`, `POST` + `DELETE /api/finance/savings-goals/:id/contributions[/:contributionId]`.
+
+## Resolución de importaciones en revisión
+
+| Método y ruta                                  | Qué hace                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------- |
+| `GET /api/finance/imports/review`              | Lista hasta 100 imports en `REVIEW_REQUIRED` con motivo y candidato. |
+| `POST /api/finance/imports/review/:id/resolve` | Aplica una decisión humana al import.                                |
+
+Cuerpo de `resolve`:
+
+| `action`          | Campos                           | Resultado                                                                                       |
+| ----------------- | -------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `SET_DATE`        | `transactionDate` (ISO)          | Registra el movimiento con esa fecha.                                                           |
+| `SET_DESTINATION` | `accountId`, `cardId` o ambos    | Registra contra el producto elegido; en un pago de tarjeta, `accountId` es la cuenta de origen. |
+| `LINK_REVERSAL`   | `originalTransactionId`          | Enlaza el reverso sin duplicar el movimiento.                                                   |
+| `DISCARD`         | `reason` (obligatorio, 500 máx.) | Pasa a `DISMISSED` sin crear movimiento.                                                        |
+
+Una misma petición puede incluir varias correcciones (por ejemplo `transactionDate` y `accountId`); se aplican juntas. La resolución y el descarte se serializan con un bloqueo por usuario.
+
+Errores: 400 dato faltante o inválido, 404 import o producto inexistente, 409 el import ya no está en revisión, 422 la decisión no resuelve el import (el motivo vuelve en el cuerpo y el ledger no cambia).
 
 ## Edición y transferencias
 

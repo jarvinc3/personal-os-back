@@ -63,6 +63,44 @@ describe('Reversal target', () => {
     ).toMatchObject({ kind: 'already_reversed' });
   });
 
+  it('reviews a reversed original that does not match the reversal', () => {
+    expect(
+      evaluateReversalOriginal({
+        original: { ...original, status: 'REVERSED', currency: 'USD' },
+        reversalAmount: 100,
+        reversalCurrency,
+        step: 'HUMAN',
+      }),
+    ).toMatchObject({
+      kind: 'review',
+      reason: 'REVERSAL_CURRENCY_MISMATCH',
+    });
+
+    expect(
+      evaluateReversalOriginal({
+        original: { ...original, status: 'REVERSED', type: 'CREDIT' },
+        reversalAmount: 100,
+        reversalCurrency,
+        step: 'HUMAN',
+      }),
+    ).toMatchObject({
+      kind: 'review',
+      reason: 'REVERSAL_TARGET_NOT_SUPPORTED',
+    });
+
+    expect(
+      evaluateReversalOriginal({
+        original: { ...original, status: 'REVERSED' },
+        reversalAmount: 150,
+        reversalCurrency,
+        step: 'HUMAN',
+      }),
+    ).toMatchObject({
+      kind: 'review',
+      reason: 'REVERSAL_EXCEEDS_ORIGINAL',
+    });
+  });
+
   it('reviews an original that is not confirmed', () => {
     expect(
       evaluateReversalOriginal({
