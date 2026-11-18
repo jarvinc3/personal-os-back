@@ -175,6 +175,7 @@ function setup({
             },
       ),
       findMany: jest.fn().mockResolvedValue(pendingReversals),
+      findFirst: jest.fn().mockResolvedValue({ status: pendingReversalStatus }),
       upsert: jest.fn(),
     },
     finTransaction: {
@@ -506,6 +507,34 @@ describe('FinanceSignalConsumer con decisión humana', () => {
       reason: 'REVERSAL_CURRENCY_MISMATCH',
     });
     expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('no vuelve a pedir el bloqueo al reintentar un reverso durante una resolución', async () => {
+    const pendingRow = {
+      signalId: 'email-message-4',
+      sourceEmailMessageId: 'message-4',
+      createdAt: new Date('2026-11-02T10:00:00.000Z'),
+      candidate: reversalSignal.payload,
+    };
+    const { consumer, reverseTransaction, executeRaw, ledger } = setup({
+      priorStatus: null,
+      pendingReversals: [pendingRow],
+    });
+    ledger.findReverseCandidates.mockResolvedValue([confirmedPurchase]);
+
+    await expect(
+      consumer.consumeResolved({
+        signal: purchaseSignal,
+        override: { destination: { accountId: 'account-bhd' } },
+      }),
+    ).resolves.toMatchObject({ outcome: 'APPLIED' });
+
+    expect(reverseTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      'purchase-1',
+      expect.objectContaining({ reversalSignalId: 'email-message-4' }),
+    );
+    expect(executeRaw).not.toHaveBeenCalled();
   });
 
   it('no reimporta un import descartado por una persona', async () => {

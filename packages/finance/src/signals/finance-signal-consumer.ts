@@ -255,7 +255,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   /**
    * Reaplica un import en revisión con la decisión de una persona. El override
    * no salta validaciones: el plan vuelve a comprobar destino, referencia,
-   * moneda y monto, y si algo no cuadra el import sigue en revisión.
+   * moneda y monto, y si algo no cuadra el import sigue en revisión. Quien
+   * llama ya tiene el bloqueo por usuario del import.
    */
   async consumeResolved({ signal, override }: ImportResolution) {
     return this.runImportPlan({ signal, override });
@@ -268,8 +269,39 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     signal: RoutedSignal;
     override?: ImportResolutionOverride;
   }) {
+    if (override || !(await this.isRetryableReviewPending(signal))) {
+      return this.importSignal({
+        signal,
+        override,
+        lockHeld: Boolean(override),
+      });
+    }
+    return this.prisma.$transaction(
+      async (tx) => {
+        await lockSignalImports({ tx, userId: signal.userId });
+        return this.importSignal({ signal, lockHeld: true });
+      },
+      {
+        timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
+        maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
+      },
+    );
+  }
+
+  private async importSignal({
+    signal,
+    override,
+    lockHeld,
+  }: {
+    signal: RoutedSignal;
+    override?: ImportResolutionOverride;
+    /** La resolución y los reintentos ya tienen el bloqueo por usuario. */
+    lockHeld: boolean;
+  }) {
     const plan = await this.buildImportPlan({ signal, override });
-    const consumeResult = await this.applyImportPlan(signal, plan);
+    const consumeResult = await this.applyImportPlan(signal, plan, {
+      lockHeld,
+    });
     if (
       consumeResult.outcome === 'ALREADY_APPLIED' &&
       this.isTransferSignal(signal)
@@ -280,6 +312,23 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
     }
     return consumeResult;
+  }
+
+  /**
+   * Un import en revisión se puede reaplicar cuando aparece el destino. La
+   * lectura compite con un descarte humano, así que ese caso toma el bloqueo
+   * por usuario antes de escribir.
+   */
+  private async isRetryableReviewPending(
+    signal: RoutedSignal,
+  ): Promise<boolean> {
+    const prior = await this.prisma.finSignalImport.findUnique({
+      where: {
+        userId_signalId: { userId: signal.userId, signalId: signal.signalId },
+      },
+      select: { status: true, reviewReason: true },
+    });
+    return prior !== null && isRetryableTargetReview(prior);
   }
 
   private isTransferSignal(signal: RoutedSignal): boolean {
@@ -783,6 +832,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   private async applyImportPlan(
     signal: RoutedSignal,
     plan: ImportPlan,
+    { lockHeld }: { lockHeld: boolean },
   ): Promise<SignalConsumeResult> {
     switch (plan.kind) {
       case 'RETURN':
@@ -802,7 +852,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       case 'CARD_PAYMENT':
         return this.applyCardPayment(signal, plan.payment);
       case 'IMPORT':
-        return this.applyImport(signal, plan.draft);
+        return this.applyImport(signal, plan.draft, { lockHeld });
     }
   }
 
@@ -871,6 +921,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   private async applyImport(
     signal: RoutedSignal,
     draft: ImportDraft,
+    { lockHeld }: { lockHeld: boolean },
   ): Promise<SignalConsumeResult> {
     try {
       let transactionId: string;
@@ -894,7 +945,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       await this.persist(signal, 'IMPORTED', transactionId);
       if (!draft.input.linkedTransactionId && !draft.transfer) {
-        await this.retryPendingReversals(signal.userId);
+        await this.retryPendingReversals(signal.userId, { lockHeld });
       }
       if (draft.transfer) {
         await this.tryPairTransfer(signal.userId, transactionId);
@@ -1450,7 +1501,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   }
 
   /** Retries reversals after an imported email makes a missing original available. */
-  private async retryPendingReversals(userId: string): Promise<void> {
+  private async retryPendingReversals(
+    userId: string,
+    { lockHeld }: { lockHeld: boolean },
+  ): Promise<void> {
     const pending = await this.prisma.finSignalImport.findMany({
       where: {
         userId,
@@ -1474,7 +1528,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     });
     for (const row of pending) {
       try {
-        await this.applyPendingReversal({ userId, row });
+        await this.applyPendingReversal({ userId, row, lockHeld });
       } catch (error) {
         this.logger.warn(
           `Reversal retry failed for signal ${row.signalId}: ${(error as { code?: string }).code ?? 'UNKNOWN'}`,
@@ -1486,13 +1540,18 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   /**
    * El reintento comparte el bloqueo por usuario con la resolución humana y el
    * descarte. Si el import ya salió de revisión, no se aplica ningún cambio.
+   * Cuando quien llama ya tiene el bloqueo, no se vuelve a pedir: pedirlo en
+   * otra conexión dentro de la misma transacción lo dejaría esperándose a sí
+   * mismo.
    */
   private async applyPendingReversal({
     userId,
     row,
+    lockHeld,
   }: {
     userId: string;
     row: PendingReversalRow;
+    lockHeld: boolean;
   }): Promise<void> {
     const parsed = payloadSchema.safeParse(row.candidate);
     const candidate = parsed.success ? parsed.data.transaction : null;
@@ -1500,24 +1559,40 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return;
     }
     const signal = this.pendingSignal(userId, row);
+    if (lockHeld) {
+      await this.applyReversalRetry({ userId, signal, candidate });
+      return;
+    }
     await this.prisma.$transaction(
       async (tx) => {
         await lockSignalImports({ tx, userId });
-        const current = await tx.finSignalImport.findFirst({
-          where: { userId, signalId: row.signalId },
-          select: { status: true },
-        });
-        if (current?.status !== 'REVIEW_REQUIRED') {
-          return;
-        }
-        const plan = await this.buildReversalPlan({ signal, candidate });
-        await this.applyImportPlan(signal, plan);
+        await this.applyReversalRetry({ userId, signal, candidate });
       },
       {
         timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
         maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
       },
     );
+  }
+
+  private async applyReversalRetry({
+    userId,
+    signal,
+    candidate,
+  }: {
+    userId: string;
+    signal: RoutedSignal;
+    candidate: Candidate;
+  }): Promise<void> {
+    const current = await this.prisma.finSignalImport.findFirst({
+      where: { userId, signalId: signal.signalId },
+      select: { status: true },
+    });
+    if (current?.status !== 'REVIEW_REQUIRED') {
+      return;
+    }
+    const plan = await this.buildReversalPlan({ signal, candidate });
+    await this.applyImportPlan(signal, plan, { lockHeld: true });
   }
 
   private pendingSignal(

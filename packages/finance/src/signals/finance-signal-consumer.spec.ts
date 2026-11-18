@@ -47,6 +47,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     ),
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue({ status: 'REVIEW_REQUIRED' }),
       findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),
     },
@@ -940,6 +941,7 @@ function setupReversal(
   };
   const finSignalImport = {
     findUnique: jest.fn().mockResolvedValue(null),
+    findFirst: jest.fn().mockResolvedValue({ status: 'REVIEW_REQUIRED' }),
     findMany: jest.fn().mockResolvedValue(options.pending ?? []),
     upsert: jest.fn(),
   };

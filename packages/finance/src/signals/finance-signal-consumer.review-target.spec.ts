@@ -120,9 +120,15 @@ function setup({
   cards = [],
   importedTransaction = null,
 }: SetupOptions = {}) {
+  const executeRaw = jest.fn().mockResolvedValue(undefined);
   const prisma = {
+    $executeRaw: executeRaw,
+    $transaction: jest.fn((handler: (tx: never) => unknown) =>
+      handler({ $executeRaw: executeRaw } as never),
+    ),
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(prior),
+      findFirst: jest.fn().mockResolvedValue({ status: 'REVIEW_REQUIRED' }),
       findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),
     },
