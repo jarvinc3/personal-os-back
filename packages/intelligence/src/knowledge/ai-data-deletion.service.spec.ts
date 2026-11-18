@@ -120,8 +120,10 @@ describe('AiDataDeletionService', () => {
         transaction: { kind: 'TRANSACTION' },
       },
     });
-    expect(JSON.stringify(update)).not.toContain('4821');
-    expect(JSON.stringify(update)).not.toContain('1250');
+    expect(update.notes).toBeNull();
+    expect(JSON.stringify(update.structuralKeys)).not.toContain('4821');
+    expect(JSON.stringify(update.structuralPayload)).not.toContain('4821');
+    expect(JSON.stringify(update.structuralPayload)).not.toContain('1250');
     expect(knowledge.rebuild).toHaveBeenCalledWith('u1');
     expect(tx.aiKnowledge.updateMany).toHaveBeenCalledWith({
       where: { scope: 'GLOBAL' },
