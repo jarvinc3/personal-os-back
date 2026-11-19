@@ -232,4 +232,93 @@ describe('AiService', () => {
       });
     });
   });
+
+  describe('chatStream', () => {
+    it('falls back to a single chunk when no provider streams', async () => {
+      const service = new AiService([
+        createProvider('groq', {
+          chatComplete: () => Promise.resolve(completion('completo')),
+        }),
+      ]);
+      const chunks: string[] = [];
+
+      await expect(
+        service.chatStream({
+          messages: MESSAGES,
+          onContent: (chunk) => chunks.push(chunk),
+        }),
+      ).resolves.toMatchObject({ content: 'completo', provider: 'groq' });
+      expect(chunks).toEqual(['completo']);
+    });
+
+    it('streams chunks and returns the provider metadata', async () => {
+      const service = new AiService([
+        createProvider('groq', {
+          chatStream: ({ onContent }) => {
+            onContent('Hola');
+            onContent(' mundo');
+            return Promise.resolve(completion('Hola mundo'));
+          },
+        }),
+      ]);
+      const chunks: string[] = [];
+
+      await expect(
+        service.chatStream({
+          messages: MESSAGES,
+          onContent: (chunk) => chunks.push(chunk),
+        }),
+      ).resolves.toMatchObject({
+        content: 'Hola mundo',
+        provider: 'groq',
+        model: 'groq-model',
+      });
+      expect(chunks).toEqual(['Hola', ' mundo']);
+    });
+
+    it('resets the client and falls back after a retryable partial failure', async () => {
+      const service = new AiService([
+        createProvider('groq', {
+          chatStream: ({ onContent }) => {
+            onContent('parcial');
+            return Promise.reject(providerError(RETRYABLE_STATUS));
+          },
+        }),
+        createProvider('fallback', {
+          chatStream: ({ onContent }) => {
+            onContent('segundo');
+            return Promise.resolve(completion('segundo'));
+          },
+        }),
+      ]);
+      const chunks: string[] = [];
+      const resets: boolean[] = [];
+
+      await expect(
+        service.chatStream({
+          messages: MESSAGES,
+          onContent: (chunk) => chunks.push(chunk),
+          onReset: () => resets.push(true),
+        }),
+      ).resolves.toMatchObject({ content: 'segundo', provider: 'fallback' });
+      expect(chunks).toEqual(['parcial', 'segundo']);
+      expect(resets).toEqual([true]);
+    });
+
+    it('rethrows a non-retryable stream failure', async () => {
+      const failure = providerError(NON_RETRYABLE_STATUS);
+      const service = new AiService([
+        createProvider('groq', {
+          chatStream: () => Promise.reject(failure),
+        }),
+      ]);
+
+      await expect(
+        service.chatStream({
+          messages: MESSAGES,
+          onContent: () => undefined,
+        }),
+      ).rejects.toBe(failure);
+    });
+  });
 });

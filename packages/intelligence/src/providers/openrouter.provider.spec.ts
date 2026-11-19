@@ -51,4 +51,59 @@ describe('OpenRouter provider', () => {
       usage: { inputTokens: 9, outputTokens: 2 },
     });
   });
+
+  it('streams content and joins tool call chunks', async () => {
+    function* chunks() {
+      yield { choices: [{ delta: { content: 'Hola' } }] };
+      yield { choices: [{ delta: { content: '!' } }] };
+      yield {
+        choices: [
+          {
+            delta: {
+              toolCalls: [
+                {
+                  index: 0,
+                  id: 'call-1',
+                  function: { name: 'buscar', arguments: '{"q":' },
+                },
+              ],
+            },
+          },
+        ],
+      };
+      yield {
+        choices: [
+          {
+            delta: {
+              toolCalls: [{ index: 0, function: { arguments: '"uno"}' } }],
+            },
+          },
+        ],
+      };
+    }
+    sdk.__send.mockResolvedValue(chunks());
+    const provider = createOpenRouterProvider('test-key');
+    const onContent = jest.fn();
+
+    await expect(
+      provider.chatStream!({
+        messages: [{ role: 'user', content: 'Hola' }],
+        onContent,
+      }),
+    ).resolves.toEqual({
+      content: 'Hola!',
+      toolCalls: [{ id: 'call-1', name: 'buscar', arguments: { q: 'uno' } }],
+    });
+    expect(onContent.mock.calls).toEqual([['Hola'], ['!']]);
+    expect(sdk.__send).toHaveBeenCalledWith(
+      {
+        chatRequest: expect.objectContaining({
+          model: 'deepseek/deepseek-v4-flash',
+          maxTokens: 4096,
+          stream: true,
+        }),
+      },
+      expect.any(Object),
+    );
+  });
 });

@@ -4,6 +4,7 @@ import type {
   AIService,
   ChatCompletionResult,
   ChatMessage,
+  ChatStreamInput,
   ToolCallRequest,
 } from '../shared/ai.types';
 import { mapMessagesToOpenRouter } from '../shared/map-messages-to-openrouter';
@@ -11,6 +12,7 @@ import {
   parseToolCallArguments,
   toolsToOpenAiFormat,
 } from '../shared/provider-tool-codec';
+import { StreamedToolCallAccumulator } from '../shared/streamed-tool-call-accumulator';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 /**
@@ -80,6 +82,41 @@ export function createOpenRouterProvider(apiKey: string): AIService {
             : undefined;
         })(),
       };
+    },
+    async chatStream({
+      messages,
+      tools,
+      signal,
+      onContent,
+    }: ChatStreamInput): Promise<ChatCompletionResult> {
+      const stream = await openrouter.chat.send(
+        {
+          chatRequest: {
+            model: OPENROUTER_MODEL,
+            messages: mapMessagesToOpenRouter(messages),
+            stream: true,
+            tools: tools?.length ? toolsToOpenAiFormat(tools) : undefined,
+            toolChoice: tools?.length ? 'auto' : undefined,
+            maxTokens: OPENROUTER_MAX_TOKENS,
+          },
+        },
+        { signal },
+      );
+
+      let content = '';
+      const toolCalls = new StreamedToolCallAccumulator();
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta;
+        if (delta?.content) {
+          content += delta.content;
+          onContent(delta.content);
+        }
+        if (delta?.toolCalls?.length) {
+          toolCalls.add(delta.toolCalls);
+        }
+      }
+
+      return { content, toolCalls: toolCalls.finish() };
     },
   };
 }

@@ -23,6 +23,15 @@ import {
   sanitizeProviderErrorMessage,
 } from '../../shared/provider-failure';
 
+type ChatStreamOptions = {
+  messages: ChatMessage[];
+  tools?: AiToolDefinition[];
+  preferredProvider?: string | null;
+  signal?: AbortSignal;
+  onContent: (chunk: string) => void;
+  onReset?: () => void;
+};
+
 @Injectable()
 export class AiService implements OnModuleInit {
   private readonly logger = new Logger(AiService.name);
@@ -91,25 +100,146 @@ export class AiService implements OnModuleInit {
       } catch (error) {
         lastError = error;
         const retryable = isRetryableProviderError(error);
-        const failure = buildProviderFailureLogDetails({
+        this.logProviderFailure({
           error,
-          provider: provider.name,
-          model: provider.model,
+          provider,
           retryable,
           fallback: retryable && attempts < capableProviderCount,
         });
-        this.logger.warn(providerFailureLogMessage(failure));
         if (!retryable) {
           throw error;
         }
       }
     }
 
+    throw this.allProvidersFailed(lastError);
+  }
+
+  /**
+   * Transmite la respuesta del proveedor. Si un proveedor falla después de
+   * emitir texto, el cliente recibe un reset antes de probar el siguiente.
+   */
+  async chatStream({
+    messages,
+    tools,
+    preferredProvider,
+    signal,
+    onContent,
+    onReset,
+  }: ChatStreamOptions): Promise<
+    ChatCompletionResult & { provider: string; model: string }
+  > {
+    if (this.providers.length === 0) {
+      throw new ServiceUnavailableException(
+        'No hay proveedores de IA disponibles',
+      );
+    }
+
+    const ordered = this.getOrderedProviders(preferredProvider);
+    const capableProviders = ordered.filter((provider) =>
+      Boolean(provider.chatStream),
+    );
+    if (capableProviders.length === 0) {
+      return this.streamViaComplete({
+        messages,
+        tools,
+        preferredProvider,
+        onContent,
+      });
+    }
+
+    let attempts = 0;
+    let lastError: unknown;
+    for (const provider of capableProviders) {
+      attempts += 1;
+      let emitted = false;
+      try {
+        this.logger.debug(`Trying AI provider (stream): ${provider.name}`);
+        const completion = await provider.chatStream!({
+          messages,
+          tools,
+          signal,
+          onContent: (chunk) => {
+            emitted = true;
+            onContent(chunk);
+          },
+        });
+        return {
+          ...completion,
+          provider: provider.name,
+          model: provider.model,
+        };
+      } catch (error) {
+        if (signal?.aborted) {
+          throw error;
+        }
+        if (emitted) {
+          onReset?.();
+        }
+        lastError = error;
+        const retryable = isRetryableProviderError(error);
+        this.logProviderFailure({
+          error,
+          provider,
+          retryable,
+          fallback: retryable && attempts < capableProviders.length,
+        });
+        if (!retryable) {
+          throw error;
+        }
+      }
+    }
+
+    throw this.allProvidersFailed(lastError);
+  }
+
+  private async streamViaComplete({
+    messages,
+    tools,
+    preferredProvider,
+    onContent,
+  }: Pick<
+    ChatStreamOptions,
+    'messages' | 'tools' | 'preferredProvider' | 'onContent'
+  >): Promise<ChatCompletionResult & { provider: string; model: string }> {
+    const completion = await this.chatComplete(
+      [...messages],
+      preferredProvider,
+      tools,
+    );
+    if (completion.content) {
+      onContent(completion.content);
+    }
+    return completion;
+  }
+
+  private logProviderFailure({
+    error,
+    provider,
+    retryable,
+    fallback,
+  }: {
+    error: unknown;
+    provider: AIProviderClient;
+    retryable: boolean;
+    fallback: boolean;
+  }): void {
+    const failure = buildProviderFailureLogDetails({
+      error,
+      provider: provider.name,
+      model: provider.model,
+      retryable,
+      fallback,
+    });
+    this.logger.warn(providerFailureLogMessage(failure));
+  }
+
+  private allProvidersFailed(lastError: unknown): ServiceUnavailableException {
     const message =
       lastError instanceof Error
         ? (sanitizeProviderErrorMessage(lastError) ?? 'Unknown error')
         : 'Unknown error';
-    throw new ServiceUnavailableException(
+    return new ServiceUnavailableException(
       `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );
   }

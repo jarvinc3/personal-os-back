@@ -342,11 +342,47 @@ describe('Intelligence API (e2e)', () => {
       .send({ content: '¿Cuánto gasté?' })
       .expect(201);
     expect(orchestrator.sendMessage).toHaveBeenCalledWith(
-      'user-123',
-      'conversation-1',
-      '¿Cuánto gasté?',
-      undefined,
+      expect.objectContaining({
+        userId: 'user-123',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+        context: undefined,
+        clientMessageId: undefined,
+      }),
     );
+
+    orchestrator.sendMessage.mockImplementationOnce(
+      async (input: {
+        onEvent?: (event: { type: string; [key: string]: unknown }) => void;
+      }) => {
+        const answer = {
+          conversationId: 'conversation-1',
+          answer: 'Gastaste RD$1,250.',
+          provider: 'Groq',
+          model: 'test-model',
+          actions: [],
+        };
+        input.onEvent?.({ type: 'start', conversationId: 'conversation-1' });
+        input.onEvent?.({ type: 'chunk', content: 'Gastaste RD$1,250.' });
+        input.onEvent?.({ type: 'done', ...answer });
+        return Promise.resolve(answer);
+      },
+    );
+    await request(app.getHttpServer())
+      .post('/api/intelligence/conversations/conversation-1/messages')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: '¿Cuánto gasté?',
+        stream: true,
+        clientMessageId: '00000000-0000-4000-8000-000000000010',
+      })
+      .expect(200)
+      .expect('Content-Type', /text\/event-stream/)
+      .expect(({ text }) => {
+        expect(text).toContain('event: start');
+        expect(text).toContain('event: chunk');
+        expect(text).toContain('event: done');
+      });
 
     const anotherUserToken = createTestJwt({ sub: 'user-B' });
     await request(app.getHttpServer())
