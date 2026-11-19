@@ -140,7 +140,10 @@ export const envSchema = z
           .map((domain) => domain.trim().toLowerCase())
           .filter(Boolean),
       )
-      .pipe(z.array(z.string()).min(1)),
+      .refine(
+        (domains) => domains.length > 0,
+        'AI_EMAIL_BANK_SENDER_DOMAINS needs at least one domain',
+      ),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 
