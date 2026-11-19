@@ -41,6 +41,8 @@ function setup() {
     findOwned: jest.fn().mockResolvedValue(conversation),
     append: jest.fn().mockResolvedValue(undefined),
     setTitleFromFirstMessage: jest.fn().mockResolvedValue(undefined),
+    setInvocationContext: jest.fn().mockResolvedValue(undefined),
+    create: jest.fn().mockResolvedValue({ id: 'conversation-1' }),
     saveSummary: jest.fn().mockResolvedValue(undefined),
   };
   const assembler = {
@@ -57,6 +59,7 @@ function setup() {
       .fn()
       .mockResolvedValue({ expenses: '1250.00', currency: 'DOP' }),
     readContext: jest.fn().mockResolvedValue({ available: true }),
+    resolveEntity: jest.fn().mockResolvedValue({ id: 'entity-1' }),
     register: jest.fn(),
   };
   const actions = {
@@ -81,6 +84,47 @@ function setup() {
 }
 
 describe('AiOrchestrator', () => {
+  it('persiste el contexto validado antes de añadir el mensaje', async () => {
+    const { service, store, inference } = setup();
+    inference.complete.mockResolvedValue({
+      content: 'Listo',
+      toolCalls: [],
+      provider: 'Groq',
+      model: 'model-1',
+    });
+    const context = {
+      route: '/finance/products/transactions',
+      view: 'transactions',
+      entityRef: {
+        type: 'transaction',
+        id: '00000000-0000-4000-8000-000000000001',
+      },
+      filters: { month: '2026-11' },
+    };
+    await service.sendMessage('user-1', 'conversation-1', 'contexto', context);
+    expect(store.setInvocationContext).toHaveBeenCalledWith(
+      'user-1',
+      'conversation-1',
+      context,
+    );
+  });
+
+  it('rechaza una entidad no resuelta antes de persistir contexto o mensaje', async () => {
+    const { service, store, capabilities } = setup();
+    capabilities.resolveEntity!.mockResolvedValue(null);
+    await expect(
+      service.sendMessage('user-1', 'conversation-1', 'contexto', {
+        route: '/finance',
+        entityRef: {
+          type: 'account',
+          id: '00000000-0000-4000-8000-000000000002',
+        },
+      }),
+    ).rejects.toThrow('no existe o no pertenece');
+    expect(store.setInvocationContext).not.toHaveBeenCalled();
+    expect(store.append).not.toHaveBeenCalled();
+  });
+
   it('descubre capacidades READ, ejecuta una herramienta y devuelve datos reales', async () => {
     const { service, store, inference, capabilities } = setup();
     inference.complete

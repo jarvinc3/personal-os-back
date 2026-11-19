@@ -8,6 +8,11 @@ import { PrismaService } from '@personal-os/database';
 import { z } from 'zod';
 import { AnalyticsService } from '../analytics/application/analytics.service';
 import type { FinanceAiCapabilitiesPort } from '../contracts';
+import { FinanceEntityLookupService } from '../entities/application/finance-entity-lookup.service';
+import {
+  FINANCE_ENTITY_TYPES,
+  type FinanceEntityType,
+} from '../entities/domain/entity-reference';
 
 const monthlySummaryInput = z
   .object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) })
@@ -62,6 +67,7 @@ export class FinanceAiCapabilities implements FinanceAiCapabilitiesPort {
   constructor(
     private readonly analytics: AnalyticsService,
     private readonly prisma: PrismaService,
+    private readonly entities: FinanceEntityLookupService,
   ) {}
 
   describe(): readonly AiCapabilityDefinition[] {
@@ -149,6 +155,21 @@ export class FinanceAiCapabilities implements FinanceAiCapabilitiesPort {
       month: '2-digit',
     }).format(new Date());
     return { available: true, timeZone, currentMonth };
+  }
+
+  async resolveEntity(
+    ctx: AiExecutionContext,
+    ref: { type: string; id: string },
+  ): Promise<JsonObject | null> {
+    if (!FINANCE_ENTITY_TYPES.includes(ref.type as FinanceEntityType)) {
+      return null;
+    }
+    const [entity] = await this.entities.lookup(ctx.userId, [
+      { type: ref.type as FinanceEntityType, id: ref.id },
+    ]);
+    return entity && typeof entity === 'object' && !Array.isArray(entity)
+      ? (entity as JsonObject)
+      : null;
   }
 
   async execute(

@@ -26,6 +26,15 @@ export type ChatContext = {
   entityRef?: EntityRef;
 };
 
+/** Context supplied by the active web route when opening or invoking the agent. */
+export type AiInvocationContext = {
+  route: string;
+  view?: string;
+  sheet?: string;
+  entityRef?: EntityRef;
+  filters?: Record<string, unknown>;
+};
+
 /**
  * Short, user-scoped snapshot of the entity a chat session refers to. Null when
  * the entity does not exist or belongs to another user.

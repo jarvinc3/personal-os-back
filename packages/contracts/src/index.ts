@@ -283,7 +283,7 @@ export interface AiCapabilityProvider {
   resolveEntity?(
     ctx: AiExecutionContext,
     ref: { type: string; id: string },
-  ): Promise<JsonValue>;
+  ): Promise<JsonValue | null>;
   readContext?(ctx: AiExecutionContext): Promise<JsonObject>;
 }
 
@@ -324,6 +324,10 @@ export interface AiCapabilityRegistryPort {
   ): Promise<JsonValue>;
   validateInput(capabilityId: string, args: unknown): JsonObject;
   readContext(ctx: AiExecutionContext, moduleSlug: string): Promise<JsonObject>;
+  resolveEntity?(
+    ctx: AiExecutionContext,
+    ref: { type: string; id: string },
+  ): Promise<JsonValue | null>;
 }
 
 // A signal remains an intelligence record, not a domain event or intent.

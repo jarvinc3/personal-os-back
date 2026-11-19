@@ -310,6 +310,24 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
     );
   }
 
+  async resolveEntity(
+    ctx: AiExecutionContext,
+    ref: { type: string; id: string },
+  ): Promise<JsonValue | null> {
+    for (const provider of this.providers.values()) {
+      for (const candidate of provider) {
+        if (
+          !candidate.resolveEntity ||
+          !(await this.isAvailable(candidate, ctx))
+        )
+          {continue;}
+        const resolved = await candidate.resolveEntity(ctx, ref);
+        if (resolved !== null) {return resolved;}
+      }
+    }
+    return null;
+  }
+
   private async assertAvailable(
     provider: AiCapabilityProvider,
     ctx: AiExecutionContext,

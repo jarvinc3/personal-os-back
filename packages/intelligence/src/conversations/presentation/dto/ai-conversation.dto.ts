@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, Length, Matches } from 'class-validator';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  ValidateNested,
+  IsUUID,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 import type { AiActionPolicy } from '@personal-os/contracts';
 
 export class SendAiConversationMessageDto {
@@ -8,6 +17,61 @@ export class SendAiConversationMessageDto {
   @Length(1, 4000)
   @Matches(/\S/)
   content!: string;
+
+  @ApiPropertyOptional({ type: () => AiInvocationContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AiInvocationContextDto)
+  context?: AiInvocationContextDto;
+}
+
+export class AiInvocationEntityRefDto {
+  @ApiProperty()
+  @IsString()
+  @Length(1, 80)
+  type!: string;
+
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID()
+  id!: string;
+}
+
+export class AiInvocationContextDto {
+  @ApiProperty({ example: '/finance/products/transactions' })
+  @IsString()
+  @Length(1, 300)
+  route!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(1, 120)
+  view?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(1, 120)
+  sheet?: string;
+
+  @ApiPropertyOptional({ type: () => AiInvocationEntityRefDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AiInvocationEntityRefDto)
+  entityRef?: AiInvocationEntityRefDto;
+
+  @ApiPropertyOptional({ type: 'object', additionalProperties: true })
+  @IsOptional()
+  @IsObject()
+  filters?: Record<string, unknown>;
+}
+
+export class CreateAiConversationDto {
+  @ApiPropertyOptional({ type: () => AiInvocationContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AiInvocationContextDto)
+  context?: AiInvocationContextDto;
 }
 
 export class AiConversationMessageDto {
@@ -44,6 +108,9 @@ export class AiConversationDetailDto {
 
   @ApiProperty()
   title!: string;
+
+  @ApiPropertyOptional({ type: () => AiInvocationContextDto, nullable: true })
+  context!: AiInvocationContextDto | null;
 
   @ApiProperty({ type: [AiConversationMessageDto] })
   messages!: AiConversationMessageDto[];

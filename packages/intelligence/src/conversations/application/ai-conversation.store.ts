@@ -6,9 +6,9 @@ import { Prisma, PrismaService } from '@personal-os/database';
 export class AiConversationStore {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(userId: string) {
+  create(userId: string, invocationContext?: Prisma.InputJsonValue) {
     return this.prisma.aiConversation.create({
-      data: { userId },
+      data: { userId, ...(invocationContext ? { invocationContext } : {}) },
       select: { id: true, title: true, createdAt: true, updatedAt: true },
     });
   }
@@ -35,6 +35,7 @@ export class AiConversationStore {
         title: true,
         summary: true,
         summaryUpdatedAt: true,
+        invocationContext: true,
         createdAt: true,
         updatedAt: true,
         messages: {
@@ -69,6 +70,17 @@ export class AiConversationStore {
         createdAt: message.createdAt,
       })),
     };
+  }
+
+  async setInvocationContext(
+    userId: string,
+    conversationId: string,
+    invocationContext: Prisma.InputJsonValue,
+  ): Promise<void> {
+    await this.prisma.aiConversation.updateMany({
+      where: { id: conversationId, userId },
+      data: { invocationContext },
+    });
   }
 
   async append(

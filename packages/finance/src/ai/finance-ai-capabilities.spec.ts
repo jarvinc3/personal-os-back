@@ -22,7 +22,11 @@ describe('FinanceAiCapabilities', () => {
       user: { findUnique: jest.fn().mockResolvedValue({ timezone }) },
     };
     return {
-      service: new FinanceAiCapabilities(analytics as never, prisma as never),
+      service: new FinanceAiCapabilities(
+        analytics as never,
+        prisma as never,
+        {} as never,
+      ),
       analytics,
       prisma,
     };
