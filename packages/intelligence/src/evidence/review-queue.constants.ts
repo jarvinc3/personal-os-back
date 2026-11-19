@@ -19,8 +19,15 @@ export type ReviewQueueStatus = (typeof REVIEW_QUEUE_STATUSES)[number];
 
 export const REVIEW_QUEUE_PENDING_STATUS: ReviewQueueStatus = 'PENDING';
 
-/** Un correo PROCESSED ya no requiere revisión y sale de la cola pendiente. */
-export const REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS = 'PROCESSED';
+/**
+ * Un correo PROCESSED o DISCARDED ya no requiere revisión y sale de la cola
+ * pendiente: el primero tiene clasificación y el segundo quedó fuera del
+ * piloto porque su remitente no es bancario.
+ */
+export const REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES = [
+  'PROCESSED',
+  'DISCARDED',
+] as const;
 
 export const REVIEW_QUEUE_ORDERS = ['OLDEST', 'NEWEST', 'IMPACT'] as const;
 

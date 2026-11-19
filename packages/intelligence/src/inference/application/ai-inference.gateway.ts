@@ -13,6 +13,7 @@ import {
 import { PrismaService } from '@personal-os/database';
 import { createHmac } from 'node:crypto';
 import { AI_PROVIDER } from '../../shared/ai-provider.token';
+import { inferenceCostUsd } from '../inference-pricing';
 import type {
   AIService as AIProviderClient,
   ChatMessage,
@@ -199,6 +200,10 @@ export class AiInferenceGateway {
     ).length;
     const messages = toProviderMessages(request.messages, request.jsonSchema);
     let attempts = 0;
+    let billedInputTokens: number | null = null;
+    let billedOutputTokens: number | null = null;
+    let billedCostUsd = 0;
+    let billedUsageKnown = true;
     let lastProvider: AIProviderClient | undefined;
     let lastHttpStatus: number | null = null;
     let lastErrorCode = 'NO_PROVIDER';
@@ -213,6 +218,18 @@ export class AiInferenceGateway {
         lastProvider = provider;
         try {
           const completion = await provider.chatComplete(messages);
+          const usage = completion.usage;
+          if (usage?.inputTokens != null && usage.outputTokens != null) {
+            billedInputTokens = (billedInputTokens ?? 0) + usage.inputTokens;
+            billedOutputTokens = (billedOutputTokens ?? 0) + usage.outputTokens;
+            billedCostUsd += inferenceCostUsd({
+              model: provider.model,
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+            });
+          } else {
+            billedUsageKnown = false;
+          }
           const json = extractJson(completion.content);
           if (!json) {
             throw new InvalidOutputError('INVALID_JSON');
@@ -242,8 +259,11 @@ export class AiInferenceGateway {
             model: provider.model,
             latencyMs,
             fallbackCount: Math.max(0, attempts - 1),
-            inputTokens: completion.usage?.inputTokens,
-            outputTokens: completion.usage?.outputTokens,
+            inputTokens: billedInputTokens ?? undefined,
+            outputTokens: billedOutputTokens ?? undefined,
+            costUsd: billedUsageKnown
+              ? Number(billedCostUsd.toFixed(6))
+              : undefined,
           });
           return {
             value,
@@ -251,8 +271,9 @@ export class AiInferenceGateway {
             model: provider.model,
             latencyMs,
             fallbackCount: Math.max(0, attempts - 1),
-            inputTokens: completion.usage?.inputTokens ?? null,
-            outputTokens: completion.usage?.outputTokens ?? null,
+            inputTokens: billedInputTokens,
+            outputTokens: billedOutputTokens,
+            costUsd: billedUsageKnown ? Number(billedCostUsd.toFixed(6)) : null,
           };
         } catch (error) {
           if (error instanceof InvalidOutputError) {
@@ -260,6 +281,7 @@ export class AiInferenceGateway {
             lastOutputDetail = error.detail;
             continue;
           }
+          billedUsageKnown = false;
           const retryable = isRetryableProviderError(error);
           const httpStatus = getProviderHttpStatus(error);
           const fallback = retryable && attempts < capableProviderCount;
@@ -302,6 +324,7 @@ export class AiInferenceGateway {
           lastProvider?.model ?? null,
           attempts,
           lastOutputDetail,
+          billedUsageKnown ? Number(billedCostUsd.toFixed(6)) : null,
         );
       }
       throw new StructuredInferenceProviderError(
@@ -320,6 +343,11 @@ export class AiInferenceGateway {
         latencyMs: Date.now() - startedAt,
         fallbackCount: Math.max(0, attempts - 1),
         errorCode: lastOutputDetail ?? lastErrorCode,
+        inputTokens: billedInputTokens ?? undefined,
+        outputTokens: billedOutputTokens ?? undefined,
+        costUsd: billedUsageKnown
+          ? Number(billedCostUsd.toFixed(6))
+          : undefined,
       });
       throw error;
     }
@@ -390,6 +418,7 @@ export class AiInferenceGateway {
       errorCode?: string;
       inputTokens?: number;
       outputTokens?: number;
+      costUsd?: number;
     },
   ): Promise<void> {
     if (!request.userId || request.recordTelemetry === false) {
@@ -415,6 +444,7 @@ export class AiInferenceGateway {
           latencyMs: record.latencyMs,
           inputTokens: record.inputTokens,
           outputTokens: record.outputTokens,
+          costUsd: record.costUsd,
           createdAt,
           expiresAt: addDays(createdAt, RETENTION_DAYS),
         },

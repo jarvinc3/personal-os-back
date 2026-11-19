@@ -11,7 +11,7 @@ import {
 } from './human-verification.constants';
 import {
   REVIEW_QUEUE_PENDING_STATUS,
-  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES,
   type ReviewQueueOrder,
   type ReviewQueuePartition,
   type ReviewQueueStatus,
@@ -428,7 +428,7 @@ function reviewQueueStatusFilter({
   );
   const reviewedMessageIds = [...latestByMessageId.keys()];
   const pendingFilter: Prisma.AiEmailMessageWhereInput = {
-    processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+    processingStatus: { notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES] },
     ...(reviewedMessageIds.length ? { id: { notIn: reviewedMessageIds } } : {}),
   };
   if (!verdicts.length) {

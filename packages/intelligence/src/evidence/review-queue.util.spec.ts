@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } from './review-queue.constants';
+import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
   assertReviewQueueConfidenceRange,
@@ -361,7 +361,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
             id: { notIn: ['message-1', 'message-2'] },
           },
         ],
@@ -381,7 +383,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
           {
             OR: [
@@ -409,7 +413,7 @@ describe('review queue utilities', () => {
         AND: [
           {
             processingStatus: {
-              not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
             },
           },
           {
@@ -444,7 +448,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
           {
             classifications: {
@@ -470,7 +476,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
         ],
       });
@@ -505,7 +513,7 @@ describe('review queue utilities', () => {
             OR: [
               {
                 processingStatus: {
-                  not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+                  notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
                 },
                 id: { notIn: ['message-1', 'message-2'] },
               },
@@ -531,7 +539,7 @@ describe('review queue utilities', () => {
             OR: [
               {
                 processingStatus: {
-                  not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+                  notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
                 },
                 id: { notIn: ['message-1', 'message-2'] },
               },
@@ -564,7 +572,9 @@ describe('review queue utilities', () => {
         receivedAt: { gte: new Date('2026-10-01T04:00:00.000Z') },
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
         ],
       });
@@ -583,7 +593,9 @@ describe('review queue utilities', () => {
         id: { in: [] },
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
         ],
       });
@@ -606,7 +618,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
           {
             OR: [
@@ -630,7 +644,9 @@ describe('review queue utilities', () => {
         userId: 'user-1',
         AND: [
           {
-            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            processingStatus: {
+              notIn: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
           {
             OR: [

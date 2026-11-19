@@ -35,7 +35,7 @@ import {
 import {
   REVIEW_QUEUE_DEFAULT_ORDER,
   REVIEW_QUEUE_PAGE_SIZE,
-  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES,
 } from './review-queue.constants';
 import {
   assertReviewQueueConfidenceRange,
@@ -158,7 +158,9 @@ export class AiEvidenceService {
         this.prisma.aiEmailMessage.findMany({
           where: {
             userId,
-            processingStatus: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+            processingStatus: {
+              in: [...REVIEW_QUEUE_RESOLVED_PROCESSING_STATUSES],
+            },
           },
           select: { id: true },
         }),

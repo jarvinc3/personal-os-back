@@ -259,8 +259,17 @@ const matchesProcessingStatus = (actual: string, filter: unknown): boolean => {
   if (typeof filter === 'string') {
     return actual === filter;
   }
-  const { not } = asQuery(filter);
-  return typeof not !== 'string' || actual !== not;
+  const { not, notIn, in: included } = asQuery(filter);
+  if (typeof not === 'string' && actual === not) {
+    return false;
+  }
+  if (Array.isArray(notIn) && notIn.includes(actual)) {
+    return false;
+  }
+  if (Array.isArray(included)) {
+    return included.includes(actual);
+  }
+  return true;
 };
 
 const matchesMessage = ({

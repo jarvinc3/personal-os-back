@@ -119,7 +119,7 @@ describe('AiEvidenceService review and analysis flows', () => {
           id: { in: ['email-1'] },
           AND: [
             {
-              processingStatus: { not: 'PROCESSED' },
+              processingStatus: { notIn: ['PROCESSED', 'DISCARDED'] },
               id: { notIn: ['reviewed'] },
             },
           ],
@@ -169,7 +169,7 @@ describe('AiEvidenceService review and analysis flows', () => {
         where: {
           userId: 'user-1',
           AND: [
-            { processingStatus: { not: 'PROCESSED' } },
+            { processingStatus: { notIn: ['PROCESSED', 'DISCARDED'] } },
             {
               OR: [
                 {

@@ -192,7 +192,7 @@ describe('AiEvidenceService review queue filters', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
-          AND: [{ processingStatus: { not: 'PROCESSED' } }],
+          AND: [{ processingStatus: { notIn: ['PROCESSED', 'DISCARDED'] } }],
         },
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
         take: 51,
@@ -585,7 +585,10 @@ describe('AiEvidenceService review queue filters', () => {
       all: 1,
     });
     expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
-      where: { userId: 'user-1', processingStatus: 'PROCESSED' },
+      where: {
+        userId: 'user-1',
+        processingStatus: { in: ['PROCESSED', 'DISCARDED'] },
+      },
       select: { id: true },
     });
   });

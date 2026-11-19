@@ -141,6 +141,7 @@ function buildService({
       provider: 'integration',
       model: 'integration-model',
       value: financeLabel,
+      costUsd: null,
     }),
   };
   const classification = new AiEmailClassificationService(
@@ -168,6 +169,14 @@ function readMessage(messageId: string) {
 
 describe('Selección acotada de muestra por lista explícita', () => {
   afterAll(async () => {
+    const now = new Date();
+    await prisma.aiEmailDailyCost.deleteMany({
+      where: {
+        date: new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+        ),
+      },
+    });
     const userIds = [...createdUserIds];
     if (userIds.length) {
       await prisma.aiSignalEvidence.deleteMany({
@@ -203,7 +212,7 @@ describe('Selección acotada de muestra por lista explícita', () => {
 
   it('no escribe nada en vista previa y no toca el correo vecino de la misma plantilla', async () => {
     const { userId, connectionId } = await createUser();
-    const sender = 'alertas@synthetic-bank.test';
+    const sender = 'alertas@bhd.com.do';
     const template = `sample-${randomUUID()}`;
     const selectedId = await createMessage({
       userId,
@@ -250,7 +259,7 @@ describe('Selección acotada de muestra por lista explícita', () => {
 
   it('ejecuta solo el id pedido y repetir no duplica señal ni clasificación', async () => {
     const { userId, connectionId } = await createUser();
-    const sender = 'alertas@synthetic-bank.test';
+    const sender = 'alertas@bhd.com.do';
     const template = `sample-${randomUUID()}`;
     const selectedId = await createMessage({
       userId,
