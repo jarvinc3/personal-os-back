@@ -184,4 +184,103 @@ describe('AiConversationStore', () => {
       }),
     );
   });
+
+  it('finds the user and assistant of a turn by client message id', async () => {
+    const createdAt = new Date('2026-11-19T10:00:00Z');
+    const prisma = {
+      aiConversationMessage: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'message-user',
+            role: 'USER',
+            content: '¿Cuánto gasté?',
+            clientMessageId: 'turn-1',
+            provider: null,
+            model: null,
+            createdAt,
+          },
+          {
+            id: 'message-assistant',
+            role: 'ASSISTANT',
+            content: 'Gastaste RD$1,250.',
+            clientMessageId: 'turn-1',
+            provider: 'Groq',
+            model: 'model-1',
+            createdAt,
+          },
+        ]),
+      },
+    };
+    const store = new AiConversationStore(prisma as never);
+
+    await expect(
+      store.findTurn({
+        userId: 'user-A',
+        conversationId: 'conversation-1',
+        clientMessageId: 'turn-1',
+      }),
+    ).resolves.toMatchObject({
+      user: { content: '¿Cuánto gasté?', role: 'user' },
+      assistant: {
+        content: 'Gastaste RD$1,250.',
+        role: 'assistant',
+        provider: 'Groq',
+      },
+    });
+    expect(prisma.aiConversationMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-A',
+          conversationId: 'conversation-1',
+          clientMessageId: 'turn-1',
+          role: { in: ['USER', 'ASSISTANT'] },
+        },
+      }),
+    );
+  });
+
+  it('saves a full turn and touches the conversation in one transaction', async () => {
+    const transaction = {
+      aiConversationMessage: { create: jest.fn().mockResolvedValue({}) },
+      aiConversation: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    };
+    const prisma = {
+      $transaction: jest.fn(
+        (callback: (value: typeof transaction) => unknown) =>
+          callback(transaction),
+      ),
+    };
+    const store = new AiConversationStore(prisma as never);
+
+    await store.appendTurn({
+      userId: 'user-A',
+      conversationId: 'conversation-1',
+      messages: [
+        {
+          message: { role: 'assistant', content: 'Gastaste RD$1,250.' },
+          clientMessageId: 'turn-1',
+          provider: 'Groq',
+          model: 'model-1',
+        },
+      ],
+    });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(transaction.aiConversationMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-A',
+        conversationId: 'conversation-1',
+        role: 'ASSISTANT',
+        content: 'Gastaste RD$1,250.',
+        clientMessageId: 'turn-1',
+        provider: 'Groq',
+        model: 'model-1',
+      }),
+    });
+    expect(transaction.aiConversation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'conversation-1', userId: 'user-A' },
+      }),
+    );
+  });
 });

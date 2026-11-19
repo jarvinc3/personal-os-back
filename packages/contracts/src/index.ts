@@ -72,10 +72,22 @@ export interface AiConversationCompletion {
   model: string;
 }
 
+export interface AiConversationStreamRequest {
+  messages: readonly AiConversationMessage[];
+  tools?: readonly AiToolSpec[];
+  signal?: AbortSignal;
+  onContent: (chunk: string) => void;
+  /** El proveedor anterior falló después de emitir texto; limpia lo mostrado. */
+  onReset?: () => void;
+}
+
 export interface AiConversationInferencePort {
   complete(
     messages: readonly AiConversationMessage[],
     tools?: readonly AiToolSpec[],
+  ): Promise<AiConversationCompletion>;
+  stream?(
+    request: AiConversationStreamRequest,
   ): Promise<AiConversationCompletion>;
   summarize(messages: readonly AiConversationMessage[]): Promise<string>;
 }

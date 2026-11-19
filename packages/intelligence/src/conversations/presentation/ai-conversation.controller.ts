@@ -3,9 +3,13 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Post,
   Query,
+  Req,
+  Res,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -17,8 +21,12 @@ import {
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '@personal-os/core';
-import { AiOrchestrator } from '../application/ai.orchestrator';
+import {
+  AiOrchestrator,
+  type AiConversationStreamEvent,
+} from '../application/ai.orchestrator';
 import { AiConversationStore } from '../application/ai-conversation.store';
 import {
   AiConversationAnswerDto,
@@ -131,23 +139,110 @@ export class AiConversationController {
 
   @Post(':conversationId/messages')
   @ApiOperation({
-    summary: 'Enviar un mensaje y ejecutar capacidades de lectura disponibles',
+    summary:
+      'Enviar un mensaje, ejecutar capacidades y responder JSON o text/event-stream',
   })
   @ApiCreatedResponse({ type: AiConversationAnswerDto })
+  @ApiOkResponse({
+    description:
+      'Flujo text/event-stream con start, status, chunk, reset, done y error cuando stream=true',
+  })
   @ApiBadRequestResponse({ description: 'Mensaje vacío o demasiado largo' })
   @ApiNotFoundResponse({ description: 'Conversación no encontrada' })
   @ApiServiceUnavailableResponse({ description: 'Inferencia no disponible' })
-  sendMessage(
+  async sendMessage(
     @CurrentUser('sub') userId: string,
     @Param('conversationId') conversationId: string,
     @Body() dto: SendAiConversationMessageDto,
-  ) {
-    return this.orchestrator.sendMessage(
+    @Req() request: Request,
+    @Res() response: Response,
+  ): Promise<void> {
+    const input = {
       userId,
       conversationId,
-      dto.content.trim(),
-      dto.context,
-    );
+      content: dto.content.trim(),
+      context: dto.context,
+      clientMessageId: dto.clientMessageId,
+    };
+    if (dto.stream === true) {
+      await this.streamMessage({ input, response });
+      return;
+    }
+    const answer = await this.orchestrator.sendMessage(input);
+    response.status(HttpStatus.CREATED).json({
+      data: answer,
+      meta: {
+        timestamp: new Date().toISOString(),
+        path: request.url,
+        requestId: (request as Request & { id?: string }).id,
+      },
+    });
+  }
+
+  private async streamMessage({
+    input,
+    response,
+  }: {
+    input: Parameters<AiOrchestrator['sendMessage']>[0];
+    response: Response;
+  }): Promise<void> {
+    const abortController = new AbortController();
+    let started = false;
+    const write = (event: AiConversationStreamEvent) => {
+      if (!started) {
+        started = true;
+        this.startEventStream(response);
+      }
+      if (response.writableEnded) {
+        return;
+      }
+      response.write(
+        `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`,
+      );
+    };
+    response.on('close', () => {
+      if (!response.writableEnded) {
+        abortController.abort();
+      }
+    });
+
+    try {
+      await this.orchestrator.sendMessage({
+        ...input,
+        onEvent: write,
+        signal: abortController.signal,
+      });
+    } catch (error) {
+      if (!started) {
+        throw error;
+      }
+      if (!abortController.signal.aborted) {
+        write({
+          type: 'error',
+          message: this.safeStreamErrorMessage(error),
+        });
+      }
+    } finally {
+      if (started && !response.writableEnded) {
+        response.end();
+      }
+    }
+  }
+
+  private startEventStream(response: Response): void {
+    response.status(HttpStatus.OK);
+    response.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-cache, no-transform');
+    response.setHeader('Connection', 'keep-alive');
+    response.setHeader('X-Accel-Buffering', 'no');
+    response.flushHeaders();
+  }
+
+  private safeStreamErrorMessage(error: unknown): string {
+    if (error instanceof HttpException) {
+      return error.message;
+    }
+    return 'No se pudo completar la respuesta';
   }
 
   @Delete(':conversationId')
