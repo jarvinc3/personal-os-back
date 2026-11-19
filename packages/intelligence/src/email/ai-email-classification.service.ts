@@ -61,6 +61,7 @@ import {
   INITIAL_CLASSIFICATION_BUDGET,
   isBankSenderDomain,
   MAX_CLASSIFICATION_COST_USD,
+  MAX_EMAIL_CONTENT_CHARS,
   startOfUtcDay,
   utcDayKey,
 } from './email-classification-limits';
@@ -76,7 +77,6 @@ const CLASSIFICATION_SYSTEM_PROMPT = [
   'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Set accountNumberLast4 from the last four digits of the owner account and set last4 only from the last four digits of a card. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. A confirmed credit card payment from an owned account uses movementClass CARD_PAYMENT with the card last4 and the source account accountNumberLast4; a reminder, a due date, a minimum payment or a statement cutoff is a notice with no transaction: use FIN_ACCOUNT_NOTICE or FIN_STATEMENT_NOTICE without a transaction. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated, and reverseOfEmailMessageId only when the original message id is stated. Never use the header date as transactionDate and never guess it: omit transactionDate when the operation date is not in the message; suggestedTransactionDate and its source are filled outside the model. Never invent missing values; omit uncertain fields and use low confidence.',
   'Use low confidence when evidence is incomplete or ambiguous.',
 ].join(' ');
-const MAX_EMAIL_CONTENT_CHARS = 24_000;
 const MODEL_REPAIR_INSTRUCTION = [
   'Your previous answer was rejected by the classifier validator.',
   'Return the same classification again as exactly one JSON object that fixes the rejection and still follows every rule.',
@@ -510,7 +510,12 @@ export class AiEmailClassificationService {
     let model: string | null = null;
     // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
     // clasificación, la llamada no puede cambiarla ni impedir que se guarde.
-    if (auditSample && classification) {
+    // La medición respeta el filtro de remitentes bancarios del piloto.
+    if (
+      auditSample &&
+      classification &&
+      isBankSenderDomain(message.fromDomain)
+    ) {
       await this.measureWithModel({
         userId,
         message,
@@ -1314,11 +1319,12 @@ export class AiEmailClassificationService {
     if (paused.count === 0) {
       return;
     }
+    const pending = await this.countUnclassified(userId);
     await this.notifyLimit({
       userId,
       key: 'COST_PAUSED',
       title: 'Clasificación en pausa',
-      body: `Se alcanzó el tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; la clasificación sigue mañana.`,
+      body: `Se alcanzó el tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
     });
   }
 
@@ -1343,11 +1349,12 @@ export class AiEmailClassificationService {
     if (alerted.count === 0) {
       return;
     }
+    const pending = await this.countUnclassified(userId);
     await this.notifyLimit({
       userId,
       key: 'COST_ALERT',
       title: `Uso de clasificación al ${GLOBAL_COST_ALERT_RATIO * 100} %`,
-      body: `El piloto alcanzó el ${GLOBAL_COST_ALERT_RATIO * 100} % del tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD.`,
+      body: `El piloto alcanzó el ${GLOBAL_COST_ALERT_RATIO * 100} % del tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola.`,
     });
   }
 

@@ -167,6 +167,44 @@ describe('AiInferenceGateway', () => {
     });
   });
 
+  it('reports an unknown cost when a failed attempt never returned usage', async () => {
+    const failing = {
+      name: 'primary',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('unavailable'), { status: 503 }),
+        ),
+    };
+    const valid = {
+      name: 'fallback',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+        usage: { inputTokens: 12, outputTokens: 3 },
+      }),
+    };
+    const { gateway, create } = build([failing, valid]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      value: { value: 'ok' },
+      fallbackCount: 1,
+      inputTokens: 12,
+      outputTokens: 3,
+      costUsd: null,
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        status: 'SUCCEEDED',
+        costUsd: undefined,
+      }),
+    });
+  });
+
   it('keeps the tokens of rejected completions when no attempt succeeds', async () => {
     const rejectedTwice = {
       content: '{"value":4}',

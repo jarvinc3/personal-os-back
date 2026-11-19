@@ -1,4 +1,4 @@
-import { summarizeEmailUsage } from './email-usage.service';
+import { EmailUsageService, summarizeEmailUsage } from './email-usage.service';
 
 const day = new Date('2026-11-18T10:00:00.000Z');
 
@@ -72,5 +72,22 @@ describe('summarizeEmailUsage', () => {
       expect.objectContaining({ type: 'FIN_TRANSACTION', calls: 1 }),
       expect.objectContaining({ type: 'SIN_CLASIFICACION', calls: 1 }),
     ]);
+  });
+});
+
+describe('EmailUsageService', () => {
+  it('informa el tope diario configurado aunque no exista la fila de presupuesto', async () => {
+    const prisma = {
+      aiInference: { findMany: jest.fn().mockResolvedValue([]) },
+      aiEmailModelBudget: { findFirst: jest.fn().mockResolvedValue(null) },
+      aiEmailConnection: { findUnique: jest.fn().mockResolvedValue(null) },
+      aiEmailDailyCost: { findUnique: jest.fn().mockResolvedValue(null) },
+    };
+    const config = { get: jest.fn().mockReturnValue(100) };
+    const service = new EmailUsageService(prisma as never, config as never);
+
+    const usage = await service.getUsage({ userId: 'user-1', days: 7 });
+
+    expect(usage.caps.daily).toEqual({ limit: 100, used: 0 });
   });
 });

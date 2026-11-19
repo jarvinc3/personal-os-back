@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import {
   CLASSIFICATIONS_PER_MINUTE,
@@ -118,7 +120,10 @@ export function summarizeEmailUsage({
 
 @Injectable()
 export class EmailUsageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
 
   async getUsage({ userId, days }: { userId: string; days: number }) {
     const today = startOfUtcDay(new Date());
@@ -199,7 +204,9 @@ export class EmailUsageService {
           remaining: connection?.initialBudgetRemaining ?? 0,
         },
         daily: {
-          limit: budget?.dailyLimit ?? 0,
+          limit:
+            budget?.dailyLimit ??
+            this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', { infer: true }),
           used: budget?.calls ?? 0,
         },
         globalCost: {

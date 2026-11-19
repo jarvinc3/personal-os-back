@@ -281,6 +281,7 @@ export class AiInferenceGateway {
             lastOutputDetail = error.detail;
             continue;
           }
+          billedUsageKnown = false;
           const retryable = isRetryableProviderError(error);
           const httpStatus = getProviderHttpStatus(error);
           const fallback = retryable && attempts < capableProviderCount;

@@ -782,6 +782,44 @@ describe('AiEmailClassificationService direct message operations', () => {
     });
   });
 
+  it('does not measure an audit sample outside the bank sender list', async () => {
+    const sender = 'noticias@example.com';
+    const subject = 'BHD Notificación de Transacciones';
+    const templateKey = knowledgeKeys(sender, subject).find(
+      ({ knowledgeType }) => knowledgeType === 'EMAIL_TEMPLATE',
+    )?.knowledgeKey;
+    if (!templateKey) {
+      throw new Error('Expected a normalized template knowledge key');
+    }
+    const knowledge = [
+      {
+        id: 'k-step',
+        knowledgeType: 'EMAIL_TEMPLATE',
+        knowledgeKey: templateKey,
+        scope: 'USER',
+        payload: {
+          label: { relevance: false, semanticType: 'MARKETING', routes: [] },
+        },
+      },
+    ];
+    const base = {
+      messageId: AUDIT_SAMPLE_MESSAGE_ID,
+      role: 'ADMIN',
+      fromAddress: sender,
+      subject,
+      body: auditSampleFixture().body,
+      knowledge,
+    };
+
+    const nonBank = fixture({ ...base, fromDomain: 'example.com' });
+    await nonBank.service.processPendingForUser('user-1');
+    expect(nonBank.inference.infer).not.toHaveBeenCalled();
+
+    const bank = fixture({ ...base, fromDomain: 'bhd.com.do' });
+    await bank.service.processPendingForUser('user-1');
+    expect(bank.inference.infer).toHaveBeenCalledTimes(1);
+  });
+
   it('reports a missing budget in the preview without calling the model', async () => {
     const { service, inference, prisma } = fixture();
     prisma.aiEmailModelBudget.updateMany = jest
@@ -953,7 +991,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { costUsd: { decrement: 0.04968 } },
+        data: { costUsd: { decrement: 0.08968 } },
       }),
     );
   });
@@ -1004,7 +1042,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { costUsd: { decrement: 0.0496 } },
+        data: { costUsd: { decrement: 0.0896 } },
       }),
     );
   });

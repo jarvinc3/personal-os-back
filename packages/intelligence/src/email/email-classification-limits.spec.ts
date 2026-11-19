@@ -1,11 +1,23 @@
 import {
   globalCostStatus,
   isBankSenderDomain,
+  MAX_CLASSIFICATION_COST_USD,
+  MAX_EMAIL_CONTENT_CHARS,
   startOfUtcDay,
   utcDayKey,
 } from './email-classification-limits';
 
 describe('Email classification limits', () => {
+  it('reserva al menos el costo de los cuatro intentos con la salida máxima', () => {
+    // Contenido en el peor caso UTF-8, sobre del prompt, salida que limitan los
+    // proveedores y el precio más alto de la tabla.
+    const worstCaseUsd =
+      (4 * ((MAX_EMAIL_CONTENT_CHARS * 4 + 4_000) * 0.2 + 4_096 * 0.6)) /
+      1_000_000;
+
+    expect(MAX_CLASSIFICATION_COST_USD).toBeGreaterThanOrEqual(worstCaseUsd);
+  });
+
   it('marca la alerta al 80 % y la pausa al 100 %', () => {
     expect(globalCostStatus({ costUsd: 3.99 })).toBe('OK');
     expect(globalCostStatus({ costUsd: 4 })).toBe('ALERT');
