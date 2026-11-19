@@ -4,6 +4,7 @@ import {
   AiActionsRepository,
   AiConversationDataService,
   AiInferenceDataService,
+  ViewSuggestionDataService,
 } from '@personal-os/intelligence';
 import { FinanceFacade, isFinanceDataBranch } from '@personal-os/finance';
 import {
@@ -22,6 +23,7 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     private readonly ai: AiInferenceDataService,
     private readonly aiConversations: AiConversationDataService,
     private readonly aiActions: AiActionsRepository,
+    private readonly aiViewSuggestions: ViewSuggestionDataService,
   ) {}
   dataBranches(): readonly DataBranchDescriptor[] {
     return [
@@ -61,6 +63,10 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     if (branchIds.includes('ai.actions')) {
       counts['ai.actions'] = await this.aiActions.countForUser(userId);
     }
+    if (branchIds.includes('ai.viewSuggestions')) {
+      counts['ai.viewSuggestions'] =
+        await this.aiViewSuggestions.countForUser(userId);
+    }
     return counts;
   }
   async wipeDataBranches(
@@ -96,6 +102,10 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     }
     if (branchIds.includes('ai.actions')) {
       counts['ai.actions'] = await this.aiActions.wipeForUser(userId);
+    }
+    if (branchIds.includes('ai.viewSuggestions')) {
+      counts['ai.viewSuggestions'] =
+        await this.aiViewSuggestions.wipeForUser(userId);
     }
     return counts;
   }

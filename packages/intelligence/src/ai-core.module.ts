@@ -58,6 +58,7 @@ import { AiSignalConsumerRegistry } from './signals/ai-signal-consumer.registry'
 import { AiSignalRoutingProcessor } from './signals/ai-signal-routing.processor';
 import { ViewSuggestionsController } from './suggestions/presentation/view-suggestions.controller';
 import { ViewSuggestionsService } from './suggestions/application/view-suggestions.service';
+import { ViewSuggestionDataService } from './suggestions/application/view-suggestion-data.service';
 import { ViewSuggestionGenerator } from './suggestions/application/view-suggestion.generator';
 import { ViewSuggestionBudgetService } from './suggestions/application/view-suggestion-budget.service';
 import { ViewSuggestionStore } from './suggestions/infrastructure/view-suggestion.store';
@@ -121,6 +122,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     ViewSuggestionBudgetService,
     ViewSuggestionGenerator,
     ViewSuggestionsService,
+    ViewSuggestionDataService,
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,
@@ -154,6 +156,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiConversationStore,
     AiSignalsService,
     ViewSuggestionsService,
+    ViewSuggestionDataService,
     ViewSuggestionStore,
     AiSignalConsumerRegistry,
     AiRolesService,

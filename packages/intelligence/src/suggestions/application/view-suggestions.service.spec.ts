@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { StructuredInferenceOutputError } from '@personal-os/contracts';
 import { ViewSuggestionsService } from './view-suggestions.service';
 import { viewSuggestionKey } from './view-suggestion-scope';
 
@@ -239,6 +240,28 @@ describe('ViewSuggestionsService', () => {
       actualCostUsd: 0,
     });
     expect(budget.releaseDailyCall).toHaveBeenCalledWith('user-A');
+  });
+
+  it('settles the known cost and keeps the daily call when the output is invalid', async () => {
+    const { service, budget, generator } = fixture();
+    generator.generate.mockRejectedValue(
+      new StructuredInferenceOutputError(
+        'groq',
+        'model-one',
+        2,
+        'INVALID_JSON',
+        0.002,
+      ),
+    );
+
+    await expect(
+      service.resolveForView({ userId: 'user-A', route: '/finance' }),
+    ).resolves.toEqual([]);
+    expect(budget.settle).toHaveBeenCalledWith({
+      costDate: expect.anything(),
+      actualCostUsd: 0.002,
+    });
+    expect(budget.releaseDailyCall).not.toHaveBeenCalled();
   });
 
   it('deduplica etiquetas repetidas dentro del mismo lote', async () => {

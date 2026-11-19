@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
   AI_CAPABILITY_REGISTRY,
+  StructuredInferenceOutputError,
   type AiCapabilityDescriptor,
   type AiCapabilityRegistryPort,
 } from '@personal-os/contracts';
@@ -47,6 +48,10 @@ export type ViewSuggestionView = {
 };
 
 type PendingSuggestion = GeneratedSuggestion & { suggestionKey: string };
+
+type GenerationAttempt =
+  | { outcome: 'GENERATED'; generated: GeneratedSuggestions }
+  | { outcome: 'FAILED'; knownCostUsd: number | null };
 
 /**
  * Lista las sugerencias activas de una vista. Si la caché venció, pide al
@@ -97,21 +102,26 @@ export class ViewSuggestionsService {
     if (!costDate) {
       return [];
     }
-    const generated = await this.requestGeneration({ userId, scope });
-    if (!generated) {
-      // Sin consumo conocido se libera la reserva completa y el cupo diario.
-      await this.budget.settle({ costDate, actualCostUsd: 0 });
-      await this.budget.releaseDailyCall(userId);
+    const generation = await this.requestGeneration({ userId, scope });
+    if (generation.outcome === 'FAILED') {
+      // Con costo conocido se ajusta la reserva; sin consumo conocido se libera.
+      await this.budget.settle({
+        costDate,
+        actualCostUsd: generation.knownCostUsd ?? 0,
+      });
+      if (generation.knownCostUsd === null) {
+        await this.budget.releaseDailyCall(userId);
+      }
       return [];
     }
     await this.budget.settle({
       costDate,
-      actualCostUsd: generated.costUsd,
+      actualCostUsd: generation.generated.costUsd,
     });
     return this.persist({
       userId,
       scope,
-      candidates: generated.suggestions,
+      candidates: generation.generated.suggestions,
       now,
     });
   }
@@ -146,13 +156,22 @@ export class ViewSuggestionsService {
   }: {
     userId: string;
     scope: ViewSuggestionScope;
-  }): Promise<GeneratedSuggestions | null> {
+  }): Promise<GenerationAttempt> {
     try {
-      return await this.generator.generate({ userId, ...scope });
+      return {
+        outcome: 'GENERATED',
+        generated: await this.generator.generate({ userId, ...scope }),
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
       this.logger.warn(`View suggestion generation failed: ${message}`);
-      return null;
+      return {
+        outcome: 'FAILED',
+        knownCostUsd:
+          error instanceof StructuredInferenceOutputError
+            ? error.costUsd
+            : null,
+      };
     }
   }
 

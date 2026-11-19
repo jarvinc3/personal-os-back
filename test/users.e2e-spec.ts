@@ -713,6 +713,22 @@ describe('Users (e2e)', () => {
       });
     });
 
+    it('POST /api/users/me/data/wipe deletes the users view suggestions', async () => {
+      prismaMock.aiViewSuggestion.deleteMany.mockResolvedValue({ count: 5 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.viewSuggestions'] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.data.counts).toEqual({ 'ai.viewSuggestions': 5 });
+        });
+      expect(prismaMock.aiViewSuggestion.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
     it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {
       await request(app.getHttpServer())
         .post('/api/users/me/data/wipe')
