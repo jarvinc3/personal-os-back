@@ -47,14 +47,56 @@ export class AiActionsService {
     rawArguments: JsonObject,
     originReference: string,
   ): Promise<AiActionResult> {
+    return this.createProposal({
+      ctx,
+      capability,
+      rawArguments,
+      origin: { type: 'AGENT_CONVERSATION', reference: originReference },
+    });
+  }
+
+  /**
+   * Propuesta originada en una sugerencia de vista. La acción sigue la misma
+   * política AI-10 y nunca se aplica sin confirmación.
+   */
+  async proposeFromSuggestion({
+    ctx,
+    capability,
+    rawArguments,
+    suggestionId,
+  }: {
+    ctx: AiExecutionContext;
+    capability: AiCapabilityDescriptor;
+    rawArguments: JsonObject;
+    suggestionId: string;
+  }): Promise<AiActionResult> {
+    return this.createProposal({
+      ctx,
+      capability,
+      rawArguments,
+      origin: { type: 'AGENT_SUGGESTION', reference: suggestionId },
+    });
+  }
+
+  private async createProposal({
+    ctx,
+    capability,
+    rawArguments,
+    origin,
+  }: {
+    ctx: AiExecutionContext;
+    capability: AiCapabilityDescriptor;
+    rawArguments: JsonObject;
+    origin: { type: string; reference: string };
+  }): Promise<AiActionResult> {
     const decision = this.policy.decide(capability);
     let payload: JsonObject;
     try {
       payload = this.capabilities.validateInput(capability.id, rawArguments);
     } catch (error) {
       const action = await this.actions.create({
-        originType: 'AGENT_CONVERSATION',
-        originReference,
+        originType: origin.type,
+        originReference: origin.reference,
         userId: ctx.userId,
         actionType: capability.id,
         targetModule: capability.moduleSlug,
@@ -71,8 +113,8 @@ export class AiActionsService {
     const argumentDigest = aiActionArgumentDigest(payload);
     if (decision === 'FORBIDDEN') {
       const action = await this.actions.create({
-        originType: 'AGENT_CONVERSATION',
-        originReference,
+        originType: origin.type,
+        originReference: origin.reference,
         userId: ctx.userId,
         actionType: capability.id,
         targetModule: capability.moduleSlug,
@@ -87,8 +129,8 @@ export class AiActionsService {
     }
 
     const action = await this.actions.create({
-      originType: 'AGENT_CONVERSATION',
-      originReference,
+      originType: origin.type,
+      originReference: origin.reference,
       userId: ctx.userId,
       actionType: capability.id,
       targetModule: capability.moduleSlug,

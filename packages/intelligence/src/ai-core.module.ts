@@ -56,6 +56,12 @@ import { AiActionPolicyService } from './actions/application/ai-action-policy.se
 import { AiActionsService } from './actions/application/ai-actions.service';
 import { AiSignalConsumerRegistry } from './signals/ai-signal-consumer.registry';
 import { AiSignalRoutingProcessor } from './signals/ai-signal-routing.processor';
+import { ViewSuggestionsController } from './suggestions/presentation/view-suggestions.controller';
+import { ViewSuggestionsService } from './suggestions/application/view-suggestions.service';
+import { ViewSuggestionDataService } from './suggestions/application/view-suggestion-data.service';
+import { ViewSuggestionGenerator } from './suggestions/application/view-suggestion.generator';
+import { ViewSuggestionBudgetService } from './suggestions/application/view-suggestion-budget.service';
+import { ViewSuggestionStore } from './suggestions/infrastructure/view-suggestion.store';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -81,6 +87,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiSignalsController,
     AiConversationController,
     AiActionsController,
+    ViewSuggestionsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -111,6 +118,11 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiInferenceAdapter,
     { provide: AI_CONVERSATION_INFERENCE, useExisting: AiInferenceAdapter },
     AiConversationDataService,
+    ViewSuggestionStore,
+    ViewSuggestionBudgetService,
+    ViewSuggestionGenerator,
+    ViewSuggestionsService,
+    ViewSuggestionDataService,
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,
@@ -143,6 +155,9 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiConversationDataService,
     AiConversationStore,
     AiSignalsService,
+    ViewSuggestionsService,
+    ViewSuggestionDataService,
+    ViewSuggestionStore,
     AiSignalConsumerRegistry,
     AiRolesService,
     AiConsentService,

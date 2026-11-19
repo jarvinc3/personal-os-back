@@ -15,6 +15,7 @@ import {
   AiConversationStore,
   AiOrchestrator,
   AiActionsService,
+  ViewSuggestionsService,
   REVIEW_GROUP_VERDICTS,
   REVIEW_QUEUE_ORDERS,
   REVIEW_QUEUE_PARTITIONS,
@@ -83,6 +84,17 @@ describe('Intelligence API (e2e)', () => {
       .fn()
       .mockResolvedValue({ deleted: true, deletedMessages: 0 }),
   };
+  const viewSuggestions = {
+    resolveForView: jest.fn().mockResolvedValue([
+      {
+        id: 'suggestion-1',
+        label: 'Revisá el presupuesto',
+        prompt: '¿Cómo va el presupuesto del mes?',
+        action: null,
+      },
+    ]),
+    dismiss: jest.fn().mockResolvedValue(undefined),
+  };
   const userRole = { findUnique: jest.fn().mockResolvedValue(null) };
 
   beforeEach(async () => {
@@ -103,7 +115,9 @@ describe('Intelligence API (e2e)', () => {
         .overrideProvider(AiOrchestrator)
         .useValue(orchestrator)
         .overrideProvider(AiActionsService)
-        .useValue(actions),
+        .useValue(actions)
+        .overrideProvider(ViewSuggestionsService)
+        .useValue(viewSuggestions),
     ).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -396,6 +410,47 @@ describe('Intelligence API (e2e)', () => {
 
     await request(app.getHttpServer())
       .post('/api/intelligence/actions/action-1/confirm')
+      .expect(401);
+  });
+
+  it('lists and dismisses view suggestions for the authenticated owner', async () => {
+    await request(app.getHttpServer())
+      .get(
+        '/api/intelligence/view-suggestions?route=/finance/transactions&view=transactions',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.suggestions).toHaveLength(1);
+        expect(body.data.suggestions[0]).toMatchObject({
+          id: 'suggestion-1',
+          label: 'Revisá el presupuesto',
+        });
+      });
+    expect(viewSuggestions.resolveForView).toHaveBeenCalledWith({
+      userId: 'user-123',
+      route: '/finance/transactions',
+      view: 'transactions',
+      sheet: undefined,
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/intelligence/view-suggestions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/view-suggestions/suggestion-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => expect(body.data.dismissed).toBe(true));
+    expect(viewSuggestions.dismiss).toHaveBeenCalledWith({
+      userId: 'user-123',
+      suggestionId: 'suggestion-1',
+    });
+
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/view-suggestions/suggestion-1')
       .expect(401);
   });
 
