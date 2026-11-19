@@ -13,6 +13,7 @@ import {
   ViewSuggestionGenerator,
   type GeneratedSuggestion,
   type GeneratedSuggestionAction,
+  type GeneratedSuggestions,
 } from './view-suggestion.generator';
 import {
   resolveViewSuggestionScope,
@@ -60,7 +61,11 @@ export class ViewSuggestionsService {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  async list({
+  /**
+   * Devuelve la caché vigente de la vista o la genera y la guarda: el GET solo
+   * escribe cuando no hay sugerencias activas.
+   */
+  async resolveForView({
     userId,
     route,
     view,
@@ -82,7 +87,7 @@ export class ViewSuggestionsService {
     if (!costDate) {
       return [];
     }
-    const generated = await this.generate({ userId, scope });
+    const generated = await this.requestGeneration({ userId, scope });
     if (!generated) {
       return [];
     }
@@ -122,13 +127,13 @@ export class ViewSuggestionsService {
     await this.cancelAction(userId, suggestion.actionId);
   }
 
-  private async generate({
+  private async requestGeneration({
     userId,
     scope,
   }: {
     userId: string;
     scope: ViewSuggestionScope;
-  }): Promise<Awaited<ReturnType<ViewSuggestionGenerator['generate']>> | null> {
+  }): Promise<GeneratedSuggestions | null> {
     try {
       return await this.generator.generate({ userId, ...scope });
     } catch (error) {

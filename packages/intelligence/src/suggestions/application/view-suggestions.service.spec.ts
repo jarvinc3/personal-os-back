@@ -95,7 +95,11 @@ describe('ViewSuggestionsService', () => {
     store.findActions.mockResolvedValue([actionRow]);
 
     await expect(
-      service.list({ userId: 'user-A', route: '/finance', view: 'budget' }),
+      service.resolveForView({
+        userId: 'user-A',
+        route: '/finance',
+        view: 'budget',
+      }),
     ).resolves.toEqual([
       {
         id: 'suggestion-1',
@@ -141,7 +145,7 @@ describe('ViewSuggestionsService', () => {
       costUsd: 0.0004,
     });
 
-    const suggestions = await service.list({
+    const suggestions = await service.resolveForView({
       userId: 'user-A',
       route: '/finance',
       view: 'budget',
@@ -183,7 +187,7 @@ describe('ViewSuggestionsService', () => {
     budget.reserve.mockResolvedValue(null);
 
     await expect(
-      service.list({ userId: 'user-A', route: '/finance' }),
+      service.resolveForView({ userId: 'user-A', route: '/finance' }),
     ).resolves.toEqual([]);
     expect(generator.generate).not.toHaveBeenCalled();
   });
@@ -193,7 +197,7 @@ describe('ViewSuggestionsService', () => {
     generator.generate.mockRejectedValue(new Error('provider down'));
 
     await expect(
-      service.list({ userId: 'user-A', route: '/finance' }),
+      service.resolveForView({ userId: 'user-A', route: '/finance' }),
     ).resolves.toEqual([]);
     expect(budget.settle).not.toHaveBeenCalled();
   });
@@ -207,7 +211,7 @@ describe('ViewSuggestionsService', () => {
     });
     store.findKnownKeys.mockResolvedValue([viewSuggestionKey(label)]);
 
-    const suggestions = await service.list({
+    const suggestions = await service.resolveForView({
       userId: 'user-A',
       route: '/finance',
     });
@@ -233,7 +237,7 @@ describe('ViewSuggestionsService', () => {
       costUsd: 0.0004,
     });
 
-    const suggestions = await service.list({
+    const suggestions = await service.resolveForView({
       userId: 'user-A',
       route: '/finance',
     });
@@ -262,7 +266,7 @@ describe('ViewSuggestionsService', () => {
       costUsd: 0.0004,
     });
 
-    await service.list({ userId: 'user-A', route: '/finance' });
+    await service.resolveForView({ userId: 'user-A', route: '/finance' });
 
     expect(actions.proposeFromSuggestion).not.toHaveBeenCalled();
     expect(store.setActionId).not.toHaveBeenCalled();
@@ -274,7 +278,7 @@ describe('ViewSuggestionsService', () => {
       { id: 'old-1', actionId: 'action-old' },
     ]);
 
-    await service.list({ userId: 'user-A', route: '/finance' });
+    await service.resolveForView({ userId: 'user-A', route: '/finance' });
 
     expect(actions.cancel).toHaveBeenCalledWith('user-A', 'action-old');
     expect(store.deleteByIds).toHaveBeenCalledWith({

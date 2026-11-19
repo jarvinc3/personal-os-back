@@ -29,12 +29,12 @@ export class ViewSuggestionsController {
   @ApiBadRequestResponse({
     description: 'Ruta o vista inválida, o vista y sheet a la vez',
   })
-  async list(
+  async resolveForView(
     @CurrentUser('sub') userId: string,
     @Query() query: ViewSuggestionsQueryDto,
   ) {
     return {
-      suggestions: await this.suggestions.list({
+      suggestions: await this.suggestions.resolveForView({
         userId,
         route: query.route,
         view: query.view,

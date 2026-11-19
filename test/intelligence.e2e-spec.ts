@@ -85,7 +85,7 @@ describe('Intelligence API (e2e)', () => {
       .mockResolvedValue({ deleted: true, deletedMessages: 0 }),
   };
   const viewSuggestions = {
-    list: jest.fn().mockResolvedValue([
+    resolveForView: jest.fn().mockResolvedValue([
       {
         id: 'suggestion-1',
         label: 'Revisá el presupuesto',
@@ -402,7 +402,7 @@ describe('Intelligence API (e2e)', () => {
           label: 'Revisá el presupuesto',
         });
       });
-    expect(viewSuggestions.list).toHaveBeenCalledWith({
+    expect(viewSuggestions.resolveForView).toHaveBeenCalledWith({
       userId: 'user-123',
       route: '/finance/transactions',
       view: 'transactions',
