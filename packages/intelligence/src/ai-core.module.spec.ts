@@ -14,7 +14,23 @@ import { InferenceCompletionAdapter } from './inference/application/inference-co
   providers: [
     {
       provide: ConfigService,
-      useValue: { getOrThrow: () => 'test-data-encryption-key-long-enough' },
+      useValue: {
+        getOrThrow: () => 'test-data-encryption-key-long-enough',
+        get: (key: string) =>
+          ({
+            AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: 20,
+            AI_EMAIL_INITIAL_BUDGET: 500,
+            AI_EMAIL_DAILY_TOKEN_BUDGET: 320_000,
+            AI_EMAIL_DAILY_COST_LIMIT_USD: 5,
+            AI_EMAIL_COST_ALERT_RATIO: 0.8,
+            AI_EMAIL_MAX_CONTENT_CHARS: 24_000,
+            AI_EMAIL_MAX_SUBJECT_CHARS: 1_000,
+            AI_EMAIL_MAX_SENDER_CHARS: 320,
+            AI_EMAIL_BANK_SENDER_DOMAINS: ['bhd.com.do'],
+            AI_PROVIDER_RPM_GROQ: 30,
+            AI_PROVIDER_RPM_OPENROUTER: 20,
+          })[key],
+      },
     },
     {
       provide: PrismaService,

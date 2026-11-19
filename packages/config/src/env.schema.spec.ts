@@ -72,24 +72,74 @@ describe('envSchema AI limits', () => {
     const parsed = parseEnv(validBaseEnv);
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
-    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(100);
+    expect(parsed.AI_EMAIL_DAILY_TOKEN_BUDGET).toBe(320_000);
+    expect(parsed.AI_EMAIL_CLASSIFICATIONS_PER_MINUTE).toBe(20);
+    expect(parsed.AI_EMAIL_INITIAL_BUDGET).toBe(500);
+    expect(parsed.AI_EMAIL_DAILY_COST_LIMIT_USD).toBe(5);
+    expect(parsed.AI_EMAIL_COST_ALERT_RATIO).toBe(0.8);
+    expect(parsed.AI_EMAIL_MAX_CONTENT_CHARS).toBe(24_000);
+    expect(parsed.AI_EMAIL_MAX_SUBJECT_CHARS).toBe(1_000);
+    expect(parsed.AI_EMAIL_MAX_SENDER_CHARS).toBe(320);
+    expect(parsed.AI_PROVIDER_RPM_GROQ).toBe(30);
+    expect(parsed.AI_PROVIDER_RPM_OPENROUTER).toBe(20);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
     expect(parsed.AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES).toBe(5);
     expect(parsed.AI_EMAIL_SYNC_STALL_MINUTES).toBe(15);
+  });
+
+  it('defaults the pilot bank sender list', () => {
+    const parsed = parseEnv(validBaseEnv);
+
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('bhd.com.do');
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(12);
+  });
+
+  it('parses the bank sender list and normalizes each domain', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      AI_EMAIL_BANK_SENDER_DOMAINS: ' BHD.com.do, popular.com.do ,,',
+    });
+
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toEqual([
+      'bhd.com.do',
+      'popular.com.do',
+    ]);
+  });
+
+  it('treats a blank bank sender list as the default', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      AI_EMAIL_BANK_SENDER_DOMAINS: '   ',
+    });
+
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('bhd.com.do');
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(12);
   });
 
   it('parses numeric strings', () => {
     const parsed = parseEnv({
       ...validBaseEnv,
       MAX_EMAIL_LLM_EXTRACTS: '10',
-      AI_EMAIL_DAILY_MODEL_BUDGET: '40',
+      AI_EMAIL_DAILY_TOKEN_BUDGET: '250000',
+      AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: '5',
+      AI_EMAIL_INITIAL_BUDGET: '50',
+      AI_EMAIL_DAILY_COST_LIMIT_USD: '2.5',
+      AI_EMAIL_COST_ALERT_RATIO: '0.5',
+      AI_PROVIDER_RPM_GROQ: '60',
+      AI_PROVIDER_RPM_OPENROUTER: '40',
       AI_DAILY_INSIGHT_QUOTA: '5',
       AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES: '3',
       AI_EMAIL_SYNC_STALL_MINUTES: '20',
     });
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(10);
-    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(40);
+    expect(parsed.AI_EMAIL_DAILY_TOKEN_BUDGET).toBe(250_000);
+    expect(parsed.AI_EMAIL_CLASSIFICATIONS_PER_MINUTE).toBe(5);
+    expect(parsed.AI_EMAIL_INITIAL_BUDGET).toBe(50);
+    expect(parsed.AI_EMAIL_DAILY_COST_LIMIT_USD).toBe(2.5);
+    expect(parsed.AI_EMAIL_COST_ALERT_RATIO).toBe(0.5);
+    expect(parsed.AI_PROVIDER_RPM_GROQ).toBe(60);
+    expect(parsed.AI_PROVIDER_RPM_OPENROUTER).toBe(40);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(5);
     expect(parsed.AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES).toBe(3);
     expect(parsed.AI_EMAIL_SYNC_STALL_MINUTES).toBe(20);
@@ -100,7 +150,13 @@ describe('envSchema AI limits', () => {
       parseEnv({ ...validBaseEnv, MAX_EMAIL_LLM_EXTRACTS: '0' }),
     ).toThrow();
     expect(() =>
-      parseEnv({ ...validBaseEnv, AI_EMAIL_DAILY_MODEL_BUDGET: '0' }),
+      parseEnv({ ...validBaseEnv, AI_EMAIL_DAILY_TOKEN_BUDGET: '0' }),
+    ).toThrow();
+    expect(() =>
+      parseEnv({ ...validBaseEnv, AI_EMAIL_DAILY_COST_LIMIT_USD: '0' }),
+    ).toThrow();
+    expect(() =>
+      parseEnv({ ...validBaseEnv, AI_EMAIL_BANK_SENDER_DOMAINS: ' , ' }),
     ).toThrow();
   });
 
@@ -108,12 +164,16 @@ describe('envSchema AI limits', () => {
     const parsed = parseEnv({
       ...validBaseEnv,
       MAX_EMAIL_LLM_EXTRACTS: '',
-      AI_EMAIL_DAILY_MODEL_BUDGET: ' ',
+      AI_EMAIL_DAILY_TOKEN_BUDGET: ' ',
+      AI_EMAIL_DAILY_COST_LIMIT_USD: '  ',
+      AI_EMAIL_COST_ALERT_RATIO: '',
       AI_DAILY_INSIGHT_QUOTA: '   ',
     });
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
-    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(100);
+    expect(parsed.AI_EMAIL_DAILY_TOKEN_BUDGET).toBe(320_000);
+    expect(parsed.AI_EMAIL_DAILY_COST_LIMIT_USD).toBe(5);
+    expect(parsed.AI_EMAIL_COST_ALERT_RATIO).toBe(0.8);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
   });
 });

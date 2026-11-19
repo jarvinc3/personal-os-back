@@ -5,8 +5,24 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { getPrismaClientClass } from '@personal-os/database';
 // eslint-disable-next-line no-restricted-imports -- El barrel no expone el servicio interno.
 import { AiEmailClassificationService } from '../../packages/intelligence/src/email/ai-email-classification.service';
-// eslint-disable-next-line no-restricted-imports -- El barrel no expone la constante interna.
-import { MAX_CLASSIFICATION_COST_USD } from '../../packages/intelligence/src/email/email-classification-limits';
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone el helper interno.
+import {
+  maxClassificationCostUsd,
+  type EmailClassificationLimits,
+} from '../../packages/intelligence/src/email/email-classification-limits';
+
+const LIMITS: EmailClassificationLimits = {
+  classificationsPerMinute: 20,
+  initialBudget: 500,
+  dailyTokenBudget: 320_000,
+  dailyCostLimitUsd: 5,
+  costAlertRatio: 0.8,
+  maxContentChars: 24_000,
+  maxSubjectChars: 1_000,
+  maxSenderChars: 320,
+  bankSenderDomains: ['bhd.com.do', 'popular.com.do'],
+};
+const MAX_CLASSIFICATION_COST_USD = maxClassificationCostUsd(LIMITS);
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) {
@@ -101,7 +117,22 @@ function buildService() {
   const service = new AiEmailClassificationService(
     prisma,
     inference as never,
-    { get: () => 100 } as never,
+    {
+      get: (key: string) => {
+        const values: Record<string, unknown> = {
+          AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: LIMITS.classificationsPerMinute,
+          AI_EMAIL_INITIAL_BUDGET: LIMITS.initialBudget,
+          AI_EMAIL_DAILY_TOKEN_BUDGET: LIMITS.dailyTokenBudget,
+          AI_EMAIL_DAILY_COST_LIMIT_USD: LIMITS.dailyCostLimitUsd,
+          AI_EMAIL_COST_ALERT_RATIO: LIMITS.costAlertRatio,
+          AI_EMAIL_MAX_CONTENT_CHARS: LIMITS.maxContentChars,
+          AI_EMAIL_MAX_SUBJECT_CHARS: LIMITS.maxSubjectChars,
+          AI_EMAIL_MAX_SENDER_CHARS: LIMITS.maxSenderChars,
+          AI_EMAIL_BANK_SENDER_DOMAINS: LIMITS.bankSenderDomains,
+        };
+        return values[key];
+      },
+    } as never,
   );
   return { service, inference };
 }
@@ -180,7 +211,7 @@ describe('Límites compartidos de clasificación sobre PostgreSQL', () => {
     });
     expect(Number(dailyCost.costUsd)).toBe(MAX_CLASSIFICATION_COST_USD);
     await expect(
-      prisma.aiEmailModelBudget.findUnique({ where: { userId } }),
+      prisma.aiEmailTokenBudget.findUnique({ where: { userId } }),
     ).resolves.toBeNull();
   });
 
@@ -203,8 +234,8 @@ describe('Límites compartidos de clasificación sobre PostgreSQL', () => {
     });
     expect(message.processingStatus).toBe('QUEUED');
     await expect(
-      prisma.aiEmailModelBudget.findUnique({ where: { userId } }),
-    ).resolves.toMatchObject({ calls: 0 });
+      prisma.aiEmailTokenBudget.findUnique({ where: { userId } }),
+    ).resolves.toMatchObject({ tokens: 0 });
     const dailyCost = await prisma.aiEmailDailyCost.findUniqueOrThrow({
       where: { date },
     });

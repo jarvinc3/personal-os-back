@@ -137,6 +137,13 @@ export class StructuredInferenceOutputError extends Error {
      * reserva aunque la salida se haya rechazado. Null si no se conoce.
      */
     readonly costUsd: number | null = null,
+    /**
+     * Tokens de entrada de los intentos ya cobrados, para que el ajuste del
+     * tope diario no los devuelva. Null si algún intento no los informó.
+     */
+    readonly inputTokens: number | null = null,
+    /** Tokens de salida de los intentos ya cobrados. Null si no se conocen. */
+    readonly outputTokens: number | null = null,
   ) {
     super('The model output did not match the required structured schema');
     this.name = 'StructuredInferenceOutputError';

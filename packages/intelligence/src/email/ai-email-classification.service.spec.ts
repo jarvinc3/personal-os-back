@@ -10,6 +10,22 @@ import {
 import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiEmailClassificationService } from './ai-email-classification.service';
 import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
+import {
+  estimateClassificationTokens,
+  type EmailClassificationLimits,
+} from './email-classification-limits';
+
+const LIMITS: EmailClassificationLimits = {
+  classificationsPerMinute: 20,
+  initialBudget: 500,
+  dailyTokenBudget: 320_000,
+  dailyCostLimitUsd: 5,
+  costAlertRatio: 0.8,
+  maxContentChars: 24_000,
+  maxSubjectChars: 1_000,
+  maxSenderChars: 320,
+  bankSenderDomains: ['bhd.com.do', 'popular.com.do'],
+};
 
 function fixture(
   options: {
@@ -90,9 +106,8 @@ function fixture(
         .fn()
         .mockResolvedValue({ contributeToGlobalKnowledge: true }),
     },
-    aiEmailModelBudget: {
+    aiEmailTokenBudget: {
       upsert: jest.fn().mockResolvedValue({}),
-      findFirst: jest.fn().mockResolvedValue(null),
       updateMany: jest
         .fn()
         .mockResolvedValueOnce({ count: 0 })
@@ -148,7 +163,22 @@ function fixture(
       costUsd: options.inferenceCostUsd ?? null,
     }),
   };
-  const config = { get: jest.fn(() => 100) };
+  const config = {
+    get: jest.fn((key: string) => {
+      const values: Record<string, unknown> = {
+        AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: LIMITS.classificationsPerMinute,
+        AI_EMAIL_INITIAL_BUDGET: LIMITS.initialBudget,
+        AI_EMAIL_DAILY_TOKEN_BUDGET: LIMITS.dailyTokenBudget,
+        AI_EMAIL_DAILY_COST_LIMIT_USD: LIMITS.dailyCostLimitUsd,
+        AI_EMAIL_COST_ALERT_RATIO: LIMITS.costAlertRatio,
+        AI_EMAIL_MAX_CONTENT_CHARS: LIMITS.maxContentChars,
+        AI_EMAIL_MAX_SUBJECT_CHARS: LIMITS.maxSubjectChars,
+        AI_EMAIL_MAX_SENDER_CHARS: LIMITS.maxSenderChars,
+        AI_EMAIL_BANK_SENDER_DOMAINS: LIMITS.bankSenderDomains,
+      };
+      return values[key];
+    }),
+  };
   const moduleSettings = options.reviewSettings
     ? {
         read: jest.fn().mockResolvedValue({
@@ -503,6 +533,16 @@ describe('AiEmailClassificationService', () => {
     });
   });
 
+  it('prefers Groq and leaves OpenRouter as the fallback', async () => {
+    const { service, inference } = fixture();
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledWith(
+      expect.objectContaining({ preferredProvider: 'Groq' }),
+    );
+  });
+
   it('leaves a message queued and avoids inference when the daily budget is exhausted', async () => {
     const { service, inference, prisma } = fixture({ budgetAvailable: false });
     await service.processPendingForUser('user-1');
@@ -621,8 +661,8 @@ describe('AiEmailClassificationService direct message operations', () => {
     expect(prisma.aiDatasetItem.upsert).not.toHaveBeenCalled();
     expect(prisma.aiAnalysisRun.create).not.toHaveBeenCalled();
     expect(prisma.aiKnowledgeObservation.createMany).not.toHaveBeenCalled();
-    expect(prisma.aiEmailModelBudget.upsert).not.toHaveBeenCalled();
-    expect(prisma.aiEmailModelBudget.updateMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailTokenBudget.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiEmailTokenBudget.updateMany).not.toHaveBeenCalled();
   }
 
   it('previews a classification with the model and writes no classification rows', async () => {
@@ -841,14 +881,11 @@ describe('AiEmailClassificationService direct message operations', () => {
     expect(bank.inference.infer).toHaveBeenCalledTimes(1);
   });
 
-  it('reports a missing budget in the preview without calling the model', async () => {
+  it('reports a paused global cap in the preview without calling the model', async () => {
     const { service, inference, prisma } = fixture();
-    prisma.aiEmailModelBudget.updateMany = jest
+    prisma.aiEmailDailyCost.findUnique = jest
       .fn()
-      .mockResolvedValue({ count: 0 });
-    prisma.aiEmailModelBudget.findFirst = jest
-      .fn()
-      .mockResolvedValue({ calls: 100, dailyLimit: 100 });
+      .mockResolvedValue({ costUsd: 5 });
 
     const preview = await service.previewClassification({
       userId: 'user-1',
@@ -992,8 +1029,17 @@ describe('AiEmailClassificationService shared limits', () => {
         data: { processingStatus: 'QUEUED', classificationStartedAt: null },
       }),
     );
-    expect(prisma.aiEmailModelBudget.updateMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({ data: { calls: { decrement: 1 } } }),
+    expect(prisma.aiEmailTokenBudget.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          tokens: {
+            decrement: estimateClassificationTokens({
+              limits: LIMITS,
+              contentChars: 'A regular email.'.length,
+            }),
+          },
+        },
+      }),
     );
     expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1034,7 +1080,49 @@ describe('AiEmailClassificationService shared limits', () => {
     });
 
     expect(rawQueries(prisma, 'ai_email_daily_costs')).toHaveLength(1);
-    expect(prisma.aiEmailModelBudget.updateMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailTokenBudget.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('settles the reserved tokens down to the tokens the gateway reported', async () => {
+    const { service, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceCostUsd: 0.00032,
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailTokenBudget.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          tokens: {
+            decrement:
+              estimateClassificationTokens({
+                limits: LIMITS,
+                contentChars: 'A regular email.'.length,
+              }) - 1200,
+          },
+        },
+      }),
+    );
+  });
+
+  it('does not reserve tokens when the call comes from the initial budget', async () => {
+    const { service, prisma } = fixture();
+    prisma.aiEmailConnection.findUnique = jest
+      .fn()
+      .mockResolvedValue({ initialBudgetRemaining: 2 });
+    prisma.aiEmailConnection.updateMany = jest
+      .fn()
+      .mockResolvedValue({ count: 1 });
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailTokenBudget.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiEmailConnection.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { initialBudgetRemaining: { decrement: 1 } },
+      }),
+    );
   });
 
   it('notifies the exhausted daily cap with the pending count', async () => {
@@ -1088,6 +1176,41 @@ describe('AiEmailClassificationService shared limits', () => {
     expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { costUsd: { decrement: 0.1293 } },
+      }),
+    );
+  });
+
+  it('settles the tokens of the rejected attempt together with the repaired one', async () => {
+    const { service, inference, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceCostUsd: 0.0004,
+    });
+    inference.infer.mockRejectedValueOnce(
+      new StructuredInferenceOutputError(
+        'Groq',
+        'qwen/qwen3.8-27b',
+        1,
+        'SCHEMA_VALIDATION:transaction:invalid_type',
+        0.0003,
+        800,
+        150,
+      ),
+    );
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailTokenBudget.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          tokens: {
+            decrement:
+              estimateClassificationTokens({
+                limits: LIMITS,
+                contentChars: 'A regular email.'.length,
+              }) - 2_150,
+          },
+        },
       }),
     );
   });
