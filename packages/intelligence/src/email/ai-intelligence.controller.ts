@@ -39,12 +39,10 @@ import {
   AiEmailMessagePageResponseDto,
   AiEmailMessageResponseDto,
   AiEmailResetResponseDto,
-  AiEmailSampleImportResponseDto,
+  AiEmailSampleImportJobResponseDto,
   AiEmailSyncResponseDto,
   SyncBhdResponseDto,
 } from './ai-intelligence-response.dto';
-
-const SAMPLE_IMPORT_TIMEOUT_MS = 480_000;
 
 @ApiTags('intelligence')
 @ApiBearerAuth('access-token')
@@ -100,14 +98,14 @@ export class AiIntelligenceController {
   }
 
   @Post('email/sample-import')
-  @Timeout(SAMPLE_IMPORT_TIMEOUT_MS)
-  @ApiCreatedResponse({ type: AiEmailSampleImportResponseDto })
+  @HttpCode(202)
+  @ApiAcceptedResponse({ type: AiEmailSampleImportJobResponseDto })
   sampleImportRun(
     @CurrentUser() user: { sub: string },
     @Body() dto: EmailSampleImportDto,
   ) {
     this.assertDevOperationAllowed();
-    return this.sampleImport.run({
+    return this.sampleImport.start({
       userId: user.sub,
       dryRun: dto.dryRun,
       selection: {
@@ -121,6 +119,20 @@ export class AiIntelligenceController {
           : undefined,
       },
     });
+  }
+
+  /**
+   * Estado, avance y resultado del trabajo. Sin esperar a que termine, así el
+   * proxy puede cerrar la petición inicial sin perder la corrida.
+   */
+  @Get('email/sample-import/:jobId')
+  @ApiOkResponse({ type: AiEmailSampleImportJobResponseDto })
+  sampleImportStatus(
+    @CurrentUser() user: { sub: string },
+    @Param('jobId') jobId: string,
+  ) {
+    this.assertDevOperationAllowed();
+    return this.sampleImport.getForUser(user.sub, jobId);
   }
 
   /** Operación de piloto: fuera de producción la ruta no existe. */

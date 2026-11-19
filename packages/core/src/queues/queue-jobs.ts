@@ -19,3 +19,7 @@ export type StatementImportJob = {
   importId: string;
   password?: string;
 };
+export type AiEmailSampleImportJob = {
+  userId: string;
+  sampleImportId: string;
+};

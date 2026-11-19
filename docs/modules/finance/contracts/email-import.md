@@ -485,7 +485,8 @@ Las pruebas de esta unidad cubren la cadena de reverso, el reverso parcial con s
   las secciones 3 a 6 tienen estado independiente en la sección 8.3.
 - Fecha: 2026-11-11.
 - Issue: [#342](https://github.com/jarvinc3/personal-os-back/issues/342).
-- Ruta: `POST /api/intelligence/email/sample-import`.
+- Ruta: `POST /api/intelligence/email/sample-import` para iniciar la corrida y
+  `GET /api/intelligence/email/sample-import/:jobId` para consultar su estado.
 
 ### 11.1 Selección
 
@@ -567,20 +568,42 @@ Un fallo de clasificación no se confunde con un correo sin transacción. El pri
 - La operación usa los flujos que figuran implementados en la sección 8.3. La
   revisión y confirmación de la fecha sugerida del issue #337 siguen pendientes.
 
-### 11.7 Tiempo de respuesta
+### 11.7 Trabajo asíncrono con avance
 
-- La selección está limitada a 50 correos en `dryRun: true` y a 20 en la ejecución real. Se procesa en serie. La vista previa y la ejecución usan un timeout de ruta de 480 segundos para dar margen al modelo en una muestra completa. El interceptor global conserva sus 5 segundos por defecto en las demás rutas.
-- Si vence el límite de 480 segundos, el cliente recibe 408. El timeout corta la
-  respuesta, pero no cancela una operación que ya esté ejecutándose. La vista
-  previa no escribe; la ejecución es idempotente por correo, así que el cliente
-  debe consultar el estado antes de repetirla.
-- Railway cierra una petición HTTP tras 5 minutos sin datos, aunque permite hasta
-  15 minutos si siguen transfiriéndose datos ([límites de networking](https://docs.railway.com/networking/public-networking/specs-and-limits)).
-  Esta ruta entrega el JSON al terminar y no envía progreso mientras procesa:
-  la medición sana de 261.8 segundos cabe en ese límite de inactividad, pero el
-  timeout de aplicación de 480 segundos no evita que Railway cierre antes una
-  corrida que supere los 5 minutos. Para aprovechar los 480 segundos completos
-  haría falta enviar progreso periódico o usar un trabajo asíncrono con polling.
+- `POST /api/intelligence/email/sample-import` valida la selección, resuelve los
+  correos (máximo 50 en vista previa y 20 al ejecutar), guarda el trabajo y
+  responde `202` con su referencia antes de llamar al modelo. El cuerpo es
+  `{ id, status, dryRun, progress, result, error, createdAt, startedAt,
+finishedAt }`; `result` es `null` hasta que el trabajo termina.
+- `GET /api/intelligence/email/sample-import/:jobId` devuelve el mismo cuerpo
+  con el estado actual. `progress` cuenta los correos ya procesados sobre el
+  total seleccionado, incluidos los ids pedidos que no existen (`NOT_FOUND`),
+  así que el avance llega siempre al total.
+- Estados: `QUEUED` (guardado, sin empezar), `RUNNING`, `COMPLETED` (con el
+  manifiesto en `result`) y `FAILED` (con el código `SAMPLE_IMPORT_FAILED` en
+  `error`, sin texto del correo ni del proveedor).
+- Con Redis activo la corrida la ejecuta un worker de la cola
+  `ai-email-sample-import`; sin Redis continúa en el mismo proceso después de
+  enviar la respuesta. En los dos casos el proxy puede cerrar la petición
+  inicial sin perder el trabajo: el estado vive en la fila y se consulta
+  después.
+- El trabajo se procesa una sola vez: el paso de `QUEUED` a `RUNNING` es
+  condicional, así que una consulta o un reenvío no repite la corrida. Repetir
+  la selección completa crea otro trabajo y sigue siendo idempotente por
+  correo: la señal `email-{messageId}` y la clave del import no duplican
+  movimientos ni eventos. Si el proceso muere a mitad de la corrida, el trabajo
+  queda en `RUNNING` y el dueño repite la selección sin duplicar nada.
+- Solo el dueño lee el trabajo; otro usuario recibe 404. El estado no incluye
+  cuerpos de correo, tokens ni credenciales.
+- `NODE_ENV=production` responde 404 en las dos rutas. La fila del trabajo entra
+  en la exportación de datos de IA y se elimina con el borrado total.
+- El motivo es el proxy: Railway cierra una petición HTTP tras 5 minutos sin
+  datos y esta ruta no envía progreso mientras procesa ([límites de
+  networking](https://docs.railway.com/networking/public-networking/specs-and-limits)).
+  Una corrida sana de 20 correos midió 261.8 segundos y puede superar ese
+  límite, así que la respuesta ya no depende de que la petición siga abierta. La
+  ruta ya no usa el timeout de 480 segundos: el interceptor global conserva su
+  valor por defecto.
 
 ## 12. Resolución humana de la cola de revisión
 

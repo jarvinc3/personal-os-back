@@ -3,15 +3,30 @@ import { TIMEOUT_MS_KEY } from '@personal-os/core';
 import { AiIntelligenceController } from './ai-intelligence.controller';
 import type { EmailSampleImportService } from './email-sample-import.service';
 
+const startedJob = {
+  id: 'job-1',
+  status: 'QUEUED',
+  dryRun: true,
+  progress: { processed: 0, total: 1 },
+  result: null,
+  error: null,
+  createdAt: '2026-11-19T10:00:00.000Z',
+  startedAt: null,
+  finishedAt: null,
+};
+
 function makeController({
   nodeEnv,
-  runResult = { dryRun: true },
+  startResult = startedJob,
+  statusResult = startedJob,
 }: {
   nodeEnv: string;
-  runResult?: Record<string, unknown>;
+  startResult?: Record<string, unknown>;
+  statusResult?: Record<string, unknown>;
 }) {
   const sampleImport = {
-    run: jest.fn().mockResolvedValue(runResult),
+    start: jest.fn().mockResolvedValue(startResult),
+    getForUser: jest.fn().mockResolvedValue(statusResult),
   };
   const config = {
     get: jest.fn((key: string) => (key === 'NODE_ENV' ? nodeEnv : undefined)),
@@ -31,7 +46,7 @@ const previewRequest = {
 };
 
 describe('AiIntelligenceController sample import', () => {
-  it('gives only the sample import route an eight-minute timeout', () => {
+  it('does not hold the sample import request open while it runs', () => {
     const timeoutFor = (method: string) => {
       const handler: unknown = Object.getOwnPropertyDescriptor(
         AiIntelligenceController.prototype,
@@ -42,11 +57,12 @@ describe('AiIntelligenceController sample import', () => {
         : undefined;
     };
 
-    expect(timeoutFor('sampleImportRun')).toBe(480_000);
+    expect(timeoutFor('sampleImportRun')).toBeUndefined();
+    expect(timeoutFor('sampleImportStatus')).toBeUndefined();
     expect(timeoutFor('messages')).toBeUndefined();
   });
 
-  it('does not expose the pilot route in production', () => {
+  it('does not expose the pilot routes in production', () => {
     const { controller, sampleImport } = makeController({
       nodeEnv: 'production',
     });
@@ -54,13 +70,17 @@ describe('AiIntelligenceController sample import', () => {
     expect(() =>
       controller.sampleImportRun({ sub: 'user-1' }, previewRequest),
     ).toThrow(NotFoundException);
-    expect(sampleImport.run).not.toHaveBeenCalled();
+    expect(() =>
+      controller.sampleImportStatus({ sub: 'user-1' }, 'job-1'),
+    ).toThrow(NotFoundException);
+    expect(sampleImport.start).not.toHaveBeenCalled();
+    expect(sampleImport.getForUser).not.toHaveBeenCalled();
   });
 
-  it('delegates the selection and converts the dates', async () => {
+  it('starts the job with the selection and converts the dates', async () => {
     const { controller, sampleImport } = makeController({ nodeEnv: 'test' });
 
-    await controller.sampleImportRun(
+    const started = await controller.sampleImportRun(
       { sub: 'user-1' },
       {
         dryRun: false,
@@ -72,7 +92,7 @@ describe('AiIntelligenceController sample import', () => {
       },
     );
 
-    expect(sampleImport.run).toHaveBeenCalledWith({
+    expect(sampleImport.start).toHaveBeenCalledWith({
       userId: 'user-1',
       dryRun: false,
       selection: {
@@ -82,5 +102,21 @@ describe('AiIntelligenceController sample import', () => {
         dateTo: new Date('2026-11-02T23:59:59.999Z'),
       },
     });
+    expect(started).toMatchObject({ id: 'job-1', status: 'QUEUED' });
+  });
+
+  it('returns the state of a job for its owner', async () => {
+    const { controller, sampleImport } = makeController({
+      nodeEnv: 'test',
+      statusResult: { ...startedJob, status: 'RUNNING' },
+    });
+
+    const status = await controller.sampleImportStatus(
+      { sub: 'user-1' },
+      'job-1',
+    );
+
+    expect(sampleImport.getForUser).toHaveBeenCalledWith('user-1', 'job-1');
+    expect(status).toMatchObject({ id: 'job-1', status: 'RUNNING' });
   });
 });

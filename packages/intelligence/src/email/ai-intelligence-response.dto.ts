@@ -33,6 +33,12 @@ const SYNC_ERROR_CATEGORIES = [
   'unknown',
 ] as const;
 const SYNC_ATTEMPT_RESULTS = ['SUCCEEDED', 'FAILED', 'INTERRUPTED'] as const;
+const SAMPLE_IMPORT_STATUSES = [
+  'QUEUED',
+  'RUNNING',
+  'COMPLETED',
+  'FAILED',
+] as const;
 
 export class AiEmailSyncProgressResponseDto {
   @ApiProperty({ enum: SYNC_STATUSES })
@@ -741,4 +747,45 @@ export class AiEmailSampleImportResponseDto {
 
   @ApiProperty({ type: () => [AiEmailSampleItemDto] })
   items!: AiEmailSampleItemDto[];
+}
+
+export class AiEmailSampleImportProgressDto {
+  @ApiProperty()
+  processed!: number;
+
+  @ApiProperty()
+  total!: number;
+}
+
+/** Reference returned when the run starts and when its state is polled. */
+export class AiEmailSampleImportJobResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: SAMPLE_IMPORT_STATUSES })
+  status!: string;
+
+  @ApiProperty()
+  dryRun!: boolean;
+
+  @ApiProperty({ type: () => AiEmailSampleImportProgressDto })
+  progress!: AiEmailSampleImportProgressDto;
+
+  @ApiProperty({
+    type: () => AiEmailSampleImportResponseDto,
+    nullable: true,
+  })
+  result!: AiEmailSampleImportResponseDto | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  error!: string | null;
+
+  @ApiProperty()
+  createdAt!: string;
+
+  @ApiProperty({ type: String, nullable: true })
+  startedAt!: string | null;
+
+  @ApiProperty({ type: String, nullable: true })
+  finishedAt!: string | null;
 }

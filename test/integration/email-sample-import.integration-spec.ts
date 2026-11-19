@@ -10,6 +10,8 @@ import {
 // eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
 import { AiEmailClassificationService } from '../../packages/intelligence/src/email/ai-email-classification.service';
 // eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
+import { EmailSampleImportJobsRepository } from '../../packages/intelligence/src/email/email-sample-import-jobs.repository';
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
 import { AiSignalsService } from '../../packages/intelligence/src/signals/ai-signals.service';
 
 const connectionString = process.env.TEST_DATABASE_URL;
@@ -166,6 +168,7 @@ function buildService({
   registry.register({ domain: 'FINANCE', consume, preview });
   return new EmailSampleImportService(
     prisma,
+    new EmailSampleImportJobsRepository(prisma),
     classification,
     registry,
     new AiSignalsService(prisma),
@@ -174,6 +177,22 @@ function buildService({
 
 function countClassifications(messageId: string) {
   return prisma.aiEmailClassification.count({ where: { messageId } });
+}
+
+/** Sin Redis la corrida sigue en el mismo proceso: se espera a que cierre. */
+async function waitForTerminal(
+  service: EmailSampleImportService,
+  userId: string,
+  jobId: string,
+) {
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    const view = await service.getForUser(userId, jobId);
+    if (view.status === 'COMPLETED' || view.status === 'FAILED') {
+      return view;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`El trabajo ${jobId} no terminó a tiempo`);
 }
 
 function readMessage(messageId: string) {
@@ -209,6 +228,9 @@ describe('Selección acotada de muestra por lista explícita', () => {
         where: { userId: { in: userIds } },
       });
       await prisma.aiEmailTokenBudget.deleteMany({
+        where: { userId: { in: userIds } },
+      });
+      await prisma.aiEmailSampleImport.deleteMany({
         where: { userId: { in: userIds } },
       });
       await prisma.aiEmailMessage.deleteMany({
@@ -358,5 +380,77 @@ describe('Selección acotada de muestra por lista explícita', () => {
     });
     expect(consume).not.toHaveBeenCalled();
     await expect(prisma.aiSignal.count({ where: { userId } })).resolves.toBe(0);
+  });
+
+  it('guarda el trabajo, informa su avance y no lo repite al consultarlo', async () => {
+    const { userId, connectionId } = await createUser();
+    const template = `sample-${randomUUID()}`;
+    const selectedId = await createMessage({
+      userId,
+      connectionId,
+      sender: 'alertas@bhd.com.do',
+      templateFingerprint: template,
+      receivedAt: '2031-05-01T12:00:00.000Z',
+    });
+    const consume = jest.fn().mockResolvedValue({
+      outcome: 'APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'transaction-1' }],
+    });
+    const service = buildService({ consume });
+
+    const started = await service.start({
+      userId,
+      dryRun: false,
+      selection: { messageIds: [selectedId] },
+    });
+    expect(started).toMatchObject({
+      dryRun: false,
+      progress: { processed: 0, total: 1 },
+      result: null,
+    });
+
+    await service.process(started.id);
+
+    const finished = await waitForTerminal(service, userId, started.id);
+    expect(finished.status).toBe('COMPLETED');
+    expect(finished.progress).toEqual({ processed: 1, total: 1 });
+    expect(finished.result?.items[0]).toMatchObject({
+      messageId: selectedId,
+      status: 'INCLUDED',
+      execution: { outcome: 'APPLIED' },
+    });
+    expect(finished.error).toBeNull();
+
+    await service.process(started.id);
+    const stillFinished = await service.getForUser(userId, started.id);
+    expect(stillFinished.finishedAt).toEqual(finished.finishedAt);
+    await expect(
+      prisma.aiSignal.count({
+        where: { userId, sourceId: selectedId },
+      }),
+    ).resolves.toBe(1);
+  });
+
+  it('no entrega el trabajo a otro usuario', async () => {
+    const { userId, connectionId } = await createUser();
+    const other = await createUser();
+    const selectedId = await createMessage({
+      userId,
+      connectionId,
+      sender: 'alertas@bhd.com.do',
+      templateFingerprint: `sample-${randomUUID()}`,
+      receivedAt: '2031-05-01T12:00:00.000Z',
+    });
+    const service = buildService({ consume: jest.fn() });
+
+    const started = await service.start({
+      userId,
+      dryRun: true,
+      selection: { messageIds: [selectedId] },
+    });
+
+    await expect(service.getForUser(other.userId, started.id)).rejects.toThrow(
+      /no encontrado/i,
+    );
   });
 });

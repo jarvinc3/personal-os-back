@@ -29,6 +29,7 @@ model User {
   aiSignals                      AiSignal[]
   aiEmailProductProposals        AiEmailProductProposal[]
   aiEmailProductProposalEvidence AiEmailProductProposalEvidence[]
+  aiEmailSampleImports           AiEmailSampleImport[]
   aiConversations                AiConversation[]
   aiViewSuggestions              AiViewSuggestion[]
   aiViewSuggestionBudget          AiViewSuggestionBudget?
@@ -806,6 +807,52 @@ model AiEmailMessageContent {
 
   @@index([retentionExpiresAt], map: "ai_email_message_content_retention_idx")
   @@map("ai_email_message_content")
+}
+
+enum AiEmailSampleImportStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("ai_email_sample_import_status")
+}
+
+enum AiEmailSampleImportSelection {
+  IDS
+  SENDER_WINDOW
+
+  @@map("ai_email_sample_import_selection")
+}
+
+/// One asynchronous sample import. The request answers with its id and the
+/// owner polls status and progress; the terminal manifest is kept as JSON.
+/// Never stores message bodies or provider credentials.
+model AiEmailSampleImport {
+  id            String                        @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId        String                        @map("user_id")
+  dryRun        Boolean                       @map("dry_run")
+  status        AiEmailSampleImportStatus     @default(QUEUED)
+  selectionMode AiEmailSampleImportSelection  @map("selection_mode")
+  messageIds    String[]                      @map("message_ids")
+  sender        String?
+  dateFrom      DateTime?                     @map("date_from") @db.Timestamptz(6)
+  dateTo        DateTime?                     @map("date_to") @db.Timestamptz(6)
+  total         Int                           @default(0)
+  processed     Int                           @default(0)
+  /// Manifest per message built by the run; never a message body.
+  result        Json?
+  /// Sanitized failure code, never a message with content.
+  error         String?
+  startedAt     DateTime?                     @map("started_at") @db.Timestamptz(6)
+  finishedAt    DateTime?                     @map("finished_at") @db.Timestamptz(6)
+  createdAt     DateTime                      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user          User                          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, createdAt(sort: Desc)], map: "ai_email_sample_imports_user_created_idx")
+  @@index([userId, status], map: "ai_email_sample_imports_user_status_idx")
+  @@map("ai_email_sample_imports")
 }
 
 model Notification {

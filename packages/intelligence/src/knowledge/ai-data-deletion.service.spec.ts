@@ -89,6 +89,10 @@ describe('AiDataDeletionService', () => {
           ]),
         deleteMany: jest.fn().mockResolvedValue({ count: 4 }),
       },
+      aiEmailSampleImport: {
+        findMany: jest.fn().mockResolvedValue([{ id: 'sample-1' }]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 5 }),
+      },
       aiEmailConnection: {
         findUnique: jest.fn().mockResolvedValue(null),
       },
@@ -234,11 +238,15 @@ describe('AiDataDeletionService', () => {
       deletedConversations: 2,
       deletedActions: 3,
       deletedViewSuggestions: 4,
+      deletedSampleImports: 5,
     });
     expect(prisma.aiAction.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'u1' },
     });
     expect(prisma.aiViewSuggestion.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+    });
+    expect(prisma.aiEmailSampleImport.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'u1' },
     });
     expect(
@@ -261,6 +269,14 @@ describe('AiDataDeletionService', () => {
     expect(exported.viewSuggestions).toEqual([
       { id: 's1', label: 'Revisá', prompt: '¿Cómo va el presupuesto?' },
     ]);
+  });
+
+  it('incluye los trabajos de muestra en la exportación de datos de IA', async () => {
+    const { service } = fixture(true);
+
+    const exported = await service.exportForUser('u1');
+
+    expect(exported.sampleImports).toEqual([{ id: 'sample-1' }]);
   });
 
   it('marca INCOMPLETE solo los runs que cubrían la evidencia borrada', async () => {
