@@ -1,3 +1,4 @@
+import { Prisma } from '@personal-os/database';
 import { AiDataDeletionService } from './ai-data-deletion.service';
 
 describe('AiDataDeletionService', () => {
@@ -120,8 +121,11 @@ describe('AiDataDeletionService', () => {
         transaction: { kind: 'TRANSACTION' },
       },
     });
-    expect(JSON.stringify(update)).not.toContain('4821');
-    expect(JSON.stringify(update)).not.toContain('1250');
+    expect(update.notes).toBeNull();
+    expect(update.correctedPayload).toBe(Prisma.DbNull);
+    expect(JSON.stringify(update.structuralKeys)).not.toContain('4821');
+    expect(JSON.stringify(update.structuralPayload)).not.toContain('4821');
+    expect(JSON.stringify(update.structuralPayload)).not.toContain('1250');
     expect(knowledge.rebuild).toHaveBeenCalledWith('u1');
     expect(tx.aiKnowledge.updateMany).toHaveBeenCalledWith({
       where: { scope: 'GLOBAL' },
