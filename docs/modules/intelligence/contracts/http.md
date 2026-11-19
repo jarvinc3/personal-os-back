@@ -333,6 +333,17 @@ El runtime ofrece herramientas `READ` y `WRITE`. `finance_monthly_summary` recib
 
 El resumen interno de conversación se guarda en `ai_conversations.summary`. Solo vuelve al contexto de esa conversación y nunca se proyecta a Knowledge.
 
+# Sugerencias por vista (#358)
+
+Todas las rutas requieren JWT y operan con el `userId` autenticado. La vista se identifica por `route` más `view` o `sheet`, sin filtros ni entidad. La respuesta de la lista es `{ "suggestions": [...] }` y cada sugerencia trae `id`, `label`, `prompt` y `action` (`null` o la propuesta AI-10 con `id`, `actionType`, `targetModule`, `policy`, `status` y `payload`).
+
+| Método   | Ruta                                                           | Respuesta                                                                                                                                                                                                                              |
+| -------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/intelligence/view-suggestions?route=<ruta>&view=<vista>` | Sugerencias activas y no descartadas del usuario para esa vista. También acepta `sheet=<sheet>` en lugar de `view`. Si el modelo, el ritmo, el cupo o el presupuesto no están disponibles, devuelve `{ "suggestions": [] }` sin error. |
+| `DELETE` | `/api/intelligence/view-suggestions/:suggestionId`             | Descarta la sugerencia propia de forma persistente y cancela su acción pendiente; devuelve `{ "dismissed": true }`. Responde 404 si la sugerencia es de otro usuario o no existe.                                                      |
+
+El descarte es por usuario, vista y sugerencia: no oculta las sugerencias de otra vista ni afecta a otro usuario. El recurso no reutiliza `review-queue`, `knowledge` ni `signals`. Comportamiento y límites: [view-suggestions.md](../capabilities/view-suggestions.md).
+
 # Acciones (AI-10)
 
 | Método | Ruta                                          | Respuesta                                                                                          |

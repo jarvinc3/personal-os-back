@@ -1,0 +1,323 @@
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '@personal-os/config';
+import {
+  AI_CAPABILITY_REGISTRY,
+  type AiCapabilityDescriptor,
+  type AiCapabilityRegistryPort,
+} from '@personal-os/contracts';
+import { randomUUID } from 'node:crypto';
+import { AiActionsService } from '../../actions/application/ai-actions.service';
+import { ViewSuggestionBudgetService } from './view-suggestion-budget.service';
+import {
+  ViewSuggestionGenerator,
+  type GeneratedSuggestion,
+  type GeneratedSuggestionAction,
+} from './view-suggestion.generator';
+import {
+  resolveViewSuggestionScope,
+  viewSuggestionKey,
+  type ViewSuggestionScope,
+} from './view-suggestion-scope';
+import { MAX_VIEW_SUGGESTIONS } from './view-suggestion-limits';
+import {
+  ViewSuggestionStore,
+  type StoredViewSuggestion,
+  type StoredViewSuggestionAction,
+} from '../infrastructure/view-suggestion.store';
+
+export type ViewSuggestionActionView = {
+  id: string;
+  actionType: string;
+  targetModule: string;
+  policy: StoredViewSuggestionAction['policy'];
+  status: StoredViewSuggestionAction['status'];
+  payload: unknown;
+};
+
+export type ViewSuggestionView = {
+  id: string;
+  label: string;
+  prompt: string;
+  action: ViewSuggestionActionView | null;
+};
+
+/**
+ * Lista las sugerencias activas de una vista. Si la caché venció, pide al
+ * modelo; sin cupo, ritmo o presupuesto devuelve una fila vacía sin error.
+ */
+@Injectable()
+export class ViewSuggestionsService {
+  private readonly logger = new Logger(ViewSuggestionsService.name);
+
+  constructor(
+    private readonly suggestions: ViewSuggestionStore,
+    private readonly budget: ViewSuggestionBudgetService,
+    private readonly generator: ViewSuggestionGenerator,
+    private readonly actions: AiActionsService,
+    @Inject(AI_CAPABILITY_REGISTRY)
+    private readonly capabilities: AiCapabilityRegistryPort,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
+
+  async list({
+    userId,
+    route,
+    view,
+    sheet,
+  }: {
+    userId: string;
+    route: string;
+    view?: string;
+    sheet?: string;
+  }): Promise<ViewSuggestionView[]> {
+    const scope = resolveViewSuggestionScope({ route, view, sheet });
+    const now = new Date();
+    const cached = await this.suggestions.findActive({ userId, ...scope, now });
+    if (cached.length) {
+      return this.withActions(userId, cached);
+    }
+
+    const costDate = await this.budget.reserve(userId);
+    if (!costDate) {
+      return [];
+    }
+    const generated = await this.generate({ userId, scope });
+    if (!generated) {
+      return [];
+    }
+    await this.budget.settle({
+      costDate,
+      actualCostUsd: generated.costUsd,
+    });
+    return this.persist({
+      userId,
+      scope,
+      candidates: generated.suggestions,
+      now,
+    });
+  }
+
+  async dismiss({
+    userId,
+    suggestionId,
+  }: {
+    userId: string;
+    suggestionId: string;
+  }): Promise<void> {
+    const suggestion = await this.suggestions.findOwned({
+      userId,
+      suggestionId,
+    });
+    if (!suggestion) {
+      throw new NotFoundException('Sugerencia no encontrada');
+    }
+    if (suggestion.status === 'DISMISSED') {
+      return;
+    }
+    const dismissed = await this.suggestions.dismiss({ userId, suggestionId });
+    if (!dismissed) {
+      throw new NotFoundException('Sugerencia no encontrada');
+    }
+    await this.cancelAction(userId, suggestion.actionId);
+  }
+
+  private async generate({
+    userId,
+    scope,
+  }: {
+    userId: string;
+    scope: ViewSuggestionScope;
+  }): Promise<Awaited<ReturnType<ViewSuggestionGenerator['generate']>> | null> {
+    try {
+      return await this.generator.generate({ userId, ...scope });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      this.logger.warn(`View suggestion generation failed: ${message}`);
+      return null;
+    }
+  }
+
+  private async persist({
+    userId,
+    scope,
+    candidates,
+    now,
+  }: {
+    userId: string;
+    scope: ViewSuggestionScope;
+    candidates: GeneratedSuggestion[];
+    now: Date;
+  }): Promise<ViewSuggestionView[]> {
+    await this.expireCached({ userId, scope, now });
+    const knownKeys = new Set(
+      await this.suggestions.findKnownKeys({ userId, ...scope }),
+    );
+    const expiresAt = new Date(
+      now.getTime() +
+        this.config.get('AI_VIEW_SUGGESTION_TTL_MINUTES', { infer: true }) *
+          60_000,
+    );
+    const created: StoredViewSuggestion[] = [];
+    for (const candidate of candidates) {
+      if (created.length >= MAX_VIEW_SUGGESTIONS) {
+        break;
+      }
+      const suggestionKey = viewSuggestionKey(candidate.label);
+      if (knownKeys.has(suggestionKey)) {
+        continue;
+      }
+      knownKeys.add(suggestionKey);
+      const suggestion = await this.suggestions.create({
+        userId,
+        ...scope,
+        suggestionKey,
+        label: candidate.label,
+        prompt: candidate.prompt,
+        expiresAt,
+      });
+      const actionId = await this.proposeAction({
+        userId,
+        suggestionId: suggestion.id,
+        action: candidate.action,
+      });
+      if (actionId) {
+        await this.suggestions.setActionId({
+          userId,
+          suggestionId: suggestion.id,
+          actionId,
+        });
+      }
+      created.push({ ...suggestion, actionId });
+    }
+    return this.withActions(userId, created);
+  }
+
+  private async proposeAction({
+    userId,
+    suggestionId,
+    action,
+  }: {
+    userId: string;
+    suggestionId: string;
+    action: GeneratedSuggestionAction | undefined;
+  }): Promise<string | null> {
+    if (!action) {
+      return null;
+    }
+    const descriptor = this.capabilities
+      .discover()
+      .find(
+        (capability: AiCapabilityDescriptor) =>
+          capability.id === action.actionType,
+      );
+    if (
+      !descriptor ||
+      descriptor.effect !== 'WRITE' ||
+      descriptor.actionPolicy !== 'CONFIRM_REQUIRED'
+    ) {
+      this.logger.warn(
+        `Discarded suggestion action ${action.actionType}: not a confirmable write capability`,
+      );
+      return null;
+    }
+    try {
+      this.capabilities.validateInput(descriptor.id, action.arguments);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      this.logger.warn(
+        `Discarded suggestion action ${action.actionType}: ${message}`,
+      );
+      return null;
+    }
+    const proposal = await this.actions.proposeFromSuggestion({
+      ctx: {
+        userId,
+        invocationId: randomUUID(),
+        correlationId: suggestionId,
+      },
+      capability: descriptor,
+      rawArguments: action.arguments,
+      suggestionId,
+    });
+    return proposal.outcome === 'PENDING_CONFIRMATION'
+      ? proposal.action.id
+      : null;
+  }
+
+  private async expireCached({
+    userId,
+    scope,
+    now,
+  }: {
+    userId: string;
+    scope: ViewSuggestionScope;
+    now: Date;
+  }): Promise<void> {
+    const expired = await this.suggestions.findExpiredActive({
+      userId,
+      ...scope,
+      now,
+    });
+    if (!expired.length) {
+      return;
+    }
+    for (const suggestion of expired) {
+      await this.cancelAction(userId, suggestion.actionId);
+    }
+    await this.suggestions.deleteByIds({
+      userId,
+      suggestionIds: expired.map((suggestion) => suggestion.id),
+    });
+  }
+
+  private async cancelAction(
+    userId: string,
+    actionId: string | null,
+  ): Promise<void> {
+    if (!actionId) {
+      return;
+    }
+    try {
+      await this.actions.cancel(userId, actionId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      this.logger.warn(
+        `Could not cancel suggestion action ${actionId}: ${message}`,
+      );
+    }
+  }
+
+  private async withActions(
+    userId: string,
+    suggestions: StoredViewSuggestion[],
+  ): Promise<ViewSuggestionView[]> {
+    const actionIds = suggestions.flatMap((suggestion) =>
+      suggestion.actionId ? [suggestion.actionId] : [],
+    );
+    const actions = actionIds.length
+      ? await this.suggestions.findActions({ userId, actionIds })
+      : [];
+    const actionById = new Map(actions.map((action) => [action.id, action]));
+    return suggestions.map((suggestion) => {
+      const action = suggestion.actionId
+        ? actionById.get(suggestion.actionId)
+        : undefined;
+      return {
+        id: suggestion.id,
+        label: suggestion.label,
+        prompt: suggestion.prompt,
+        action: action
+          ? {
+              id: action.id,
+              actionType: action.actionType,
+              targetModule: action.targetModule,
+              policy: action.policy,
+              status: action.status,
+              payload: action.payload,
+            }
+          : null,
+      };
+    });
+  }
+}

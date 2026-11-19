@@ -11,6 +11,7 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `SUPABASE_SERVICE_ROLE_KEY`                                                         | Requerida                                                                               |
 | `GROQ_API_KEY` / `OPENROUTER_API_KEY`                                               | Al menos una, salvo `NODE_ENV=test`                                                     |
 | `MAX_EMAIL_LLM_EXTRACTS` / `AI_EMAIL_DAILY_MODEL_BUDGET` / `AI_DAILY_INSIGHT_QUOTA` | Enteros > 0; defaults 25, 100 y 20 respectivamente                                      |
+| `AI_VIEW_SUGGESTION_DAILY_MODEL_BUDGET` / `AI_VIEW_SUGGESTION_TTL_MINUTES`          | Enteros > 0; defaults 100 generaciones por día y 30 minutos de caché                    |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                 | Requeridas (Gmail OAuth)                                                                |
 | `ENCRYPTION_KEY`                                                                    | ≥32; solo tokens OAuth de Gmail                                                         |
 | `DATA_ENCRYPTION_KEY`                                                               | ≥32; cifra números de cuenta en reposo (distinta de `ENCRYPTION_KEY`)                   |

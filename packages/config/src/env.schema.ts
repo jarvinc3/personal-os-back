@@ -86,6 +86,10 @@ export const envSchema = z
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
     /** Maximum email classification gateway calls per user and UTC day. */
     AI_EMAIL_DAILY_MODEL_BUDGET: defaultedPositiveInt(100),
+    /** Maximum view suggestion gateway calls per user and UTC day. */
+    AI_VIEW_SUGGESTION_DAILY_MODEL_BUDGET: defaultedPositiveInt(100),
+    /** Minutes a generated set of view suggestions stays cached. */
+    AI_VIEW_SUGGESTION_TTL_MINUTES: defaultedPositiveInt(30),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 

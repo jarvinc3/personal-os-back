@@ -4,11 +4,18 @@ import {
 } from '../inference/inference-pricing';
 import { matchesSenderFilter } from './gmail-import-scope';
 
+export {
+  GLOBAL_COST_ALERT_RATIO,
+  GLOBAL_DAILY_COST_LIMIT_USD,
+  globalCostStatus,
+  startOfUtcDay,
+  utcDayKey,
+  type GlobalCostStatus,
+} from '../inference/inference-cost';
+
 /** Límites del piloto acordados en #395 y #402. */
 export const CLASSIFICATIONS_PER_MINUTE = 20;
 export const INITIAL_CLASSIFICATION_BUDGET = 500;
-export const GLOBAL_DAILY_COST_LIMIT_USD = 5;
-export const GLOBAL_COST_ALERT_RATIO = 0.8;
 
 /** Contenido que se envía al modelo; el resto del correo no viaja. */
 export const MAX_EMAIL_CONTENT_CHARS = 24_000;
@@ -88,35 +95,4 @@ export function isBankSenderDomain(fromDomain: string): boolean {
   return BANK_SENDER_DOMAINS.some((bankDomain) =>
     matchesSenderFilter({ fromDomain: domain, senderFilter: bankDomain }),
   );
-}
-
-export function startOfUtcDay(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-}
-
-/** Clave `AAAA-MM-DD` del día UTC, para SQL que compara la columna `date`. */
-export function utcDayKey(now: Date): string {
-  return startOfUtcDay(now).toISOString().slice(0, 10);
-}
-
-export type GlobalCostStatus = 'OK' | 'ALERT' | 'PAUSED';
-
-export function globalCostStatus({
-  costUsd,
-  limitUsd = GLOBAL_DAILY_COST_LIMIT_USD,
-  alertRatio = GLOBAL_COST_ALERT_RATIO,
-}: {
-  costUsd: number;
-  limitUsd?: number;
-  alertRatio?: number;
-}): GlobalCostStatus {
-  if (costUsd >= limitUsd) {
-    return 'PAUSED';
-  }
-  if (costUsd >= limitUsd * alertRatio) {
-    return 'ALERT';
-  }
-  return 'OK';
 }
