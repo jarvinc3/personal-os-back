@@ -64,7 +64,6 @@ import {
   startOfUtcDay,
   utcDayKey,
 } from './email-classification-limits';
-import { inferenceCostUsd } from '../inference/inference-pricing';
 
 const CLASSIFICATION_TASK = 'EMAIL_CLASSIFICATION';
 const CLASSIFICATION_SYSTEM_PROMPT = [
@@ -223,6 +222,19 @@ export class AiEmailClassificationService {
   async countPendingForUser(userId: string): Promise<number> {
     return this.prisma.aiEmailMessage.count({
       where: this.pendingForUserWhere(userId),
+    });
+  }
+
+  /**
+   * Correos sin clasificar para el aviso de tope, incluido el que se está
+   * procesando en este momento, que de otro modo descuenta uno.
+   */
+  private async countUnclassified(userId: string): Promise<number> {
+    return this.prisma.aiEmailMessage.count({
+      where: {
+        userId,
+        processingStatus: { in: ['INGESTED', 'QUEUED', 'CLASSIFYING'] },
+      },
     });
   }
 
@@ -1341,9 +1353,9 @@ export class AiEmailClassificationService {
 
   /**
    * Ajusta la reserva al costo real de la inferencia contra el día que la
-   * reservó. Sin tokens del proveedor, con fallback o con reintento de reparación
-   * la reserva se queda completa: no se conoce el consumo de esos intentos, así
-   * que el costo no se subestima ni se suma dos veces.
+   * reservó. El costo suma cada intento con la tarifa de su modelo. Sin costo
+   * conocido, o con el reintento de reparación (que pierde el costo del primer
+   * intento), la reserva se queda completa para no subestimar el gasto.
    */
   private async settleDailyCost({
     date,
@@ -1354,19 +1366,11 @@ export class AiEmailClassificationService {
     inferred: StructuredInference<EmailClassification>;
     repaired: boolean;
   }): Promise<void> {
-    if (repaired || inferred.fallbackCount > 0) {
+    if (repaired || inferred.costUsd == null) {
       return;
     }
-    if (inferred.inputTokens == null || inferred.outputTokens == null) {
-      return;
-    }
-    const actualUsd = inferenceCostUsd({
-      model: inferred.model,
-      inputTokens: inferred.inputTokens,
-      outputTokens: inferred.outputTokens,
-    });
     const adjustmentUsd = Number(
-      (MAX_CLASSIFICATION_COST_USD - actualUsd).toFixed(6),
+      (MAX_CLASSIFICATION_COST_USD - inferred.costUsd).toFixed(6),
     );
     if (adjustmentUsd === 0) {
       return;
@@ -1383,7 +1387,7 @@ export class AiEmailClassificationService {
   }
 
   private async notifyInitialBudgetDepleted(userId: string): Promise<void> {
-    const pending = await this.countPendingForUser(userId);
+    const pending = await this.countUnclassified(userId);
     await this.notifyLimit({
       userId,
       key: 'INITIAL_BUDGET',
@@ -1396,7 +1400,7 @@ export class AiEmailClassificationService {
     const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
       infer: true,
     });
-    const pending = await this.countPendingForUser(userId);
+    const pending = await this.countUnclassified(userId);
     await this.notifyLimit({
       userId,
       key: 'DAILY_BUDGET',

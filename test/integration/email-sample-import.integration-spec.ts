@@ -141,6 +141,7 @@ function buildService({
       provider: 'integration',
       model: 'integration-model',
       value: financeLabel,
+      costUsd: null,
     }),
   };
   const classification = new AiEmailClassificationService(

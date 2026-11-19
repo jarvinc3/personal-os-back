@@ -27,6 +27,7 @@ function fixture(
     inferenceValue?: unknown;
     inferenceUsage?: { inputTokens?: number; outputTokens?: number };
     inferenceFallbackCount?: number;
+    inferenceCostUsd?: number | null;
     reviewSettings?: {
       reviewConfidenceThreshold?: number;
       acceptVerifiedSenders?: boolean;
@@ -144,6 +145,7 @@ function fixture(
       fallbackCount: options.inferenceFallbackCount ?? 0,
       inputTokens: options.inferenceUsage?.inputTokens ?? null,
       outputTokens: options.inferenceUsage?.outputTokens ?? null,
+      costUsd: options.inferenceCostUsd ?? null,
     }),
   };
   const config = { get: jest.fn(() => 100) };
@@ -941,23 +943,23 @@ describe('AiEmailClassificationService shared limits', () => {
     );
   });
 
-  it('settles the reserved cost down to the tokens the provider returned', async () => {
+  it('settles the reserved cost down to the cost the gateway reported', async () => {
     const { service, prisma } = fixture({
       inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceCostUsd: 0.00032,
     });
 
     await service.processPendingForUser('user-1');
 
-    // 1 000 × 0.2 + 200 × 0.6 por millón = 0.00032 USD real sobre 0.02 reservados.
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { costUsd: { decrement: 0.01968 } },
+        data: { costUsd: { decrement: 0.04968 } },
       }),
     );
   });
 
-  it('keeps the full reservation when the provider returned no tokens', async () => {
-    const { service, prisma } = fixture();
+  it('keeps the full reservation when the gateway could not estimate the cost', async () => {
+    const { service, prisma } = fixture({ inferenceCostUsd: null });
 
     await service.processPendingForUser('user-1');
 
@@ -992,20 +994,24 @@ describe('AiEmailClassificationService shared limits', () => {
     );
   });
 
-  it('keeps the full reservation when the provider fell back', async () => {
+  it('settles the summed cost even after a provider fallback', async () => {
     const { service, prisma } = fixture({
-      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
       inferenceFallbackCount: 1,
+      inferenceCostUsd: 0.0004,
     });
 
     await service.processPendingForUser('user-1');
 
-    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
+    expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { costUsd: { decrement: 0.0496 } },
+      }),
+    );
   });
 
   it('keeps the full reservation when it had to repair a rejected output', async () => {
     const { service, inference, prisma } = fixture({
-      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceCostUsd: 0.0004,
     });
     inference.infer.mockRejectedValueOnce(
       new StructuredInferenceOutputError(

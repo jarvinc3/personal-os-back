@@ -156,9 +156,14 @@ describe('AiInferenceGateway', () => {
       fallbackCount: 1,
       inputTokens: 42,
       outputTokens: 8,
+      costUsd: 0.000013,
     });
     expect(create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ inputTokens: 42, outputTokens: 8 }),
+      data: expect.objectContaining({
+        inputTokens: 42,
+        outputTokens: 8,
+        costUsd: 0.000013,
+      }),
     });
   });
 
@@ -184,6 +189,7 @@ describe('AiInferenceGateway', () => {
         status: 'FAILED',
         inputTokens: 60,
         outputTokens: 10,
+        costUsd: 0.000018,
       }),
     });
   });

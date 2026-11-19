@@ -114,6 +114,11 @@ export interface StructuredInference<T> {
   fallbackCount: number;
   inputTokens: number | null;
   outputTokens: number | null;
+  /**
+   * Costo estimado de todos los intentos acumulados, cada uno con la tarifa de
+   * su modelo. Null cuando algún intento no informó tokens.
+   */
+  costUsd: number | null;
 }
 export class StructuredInferenceOutputError extends Error {
   readonly code = 'STRUCTURED_OUTPUT_INVALID';

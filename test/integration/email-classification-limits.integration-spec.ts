@@ -5,6 +5,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { getPrismaClientClass } from '@personal-os/database';
 // eslint-disable-next-line no-restricted-imports -- El barrel no expone el servicio interno.
 import { AiEmailClassificationService } from '../../packages/intelligence/src/email/ai-email-classification.service';
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone la constante interna.
+import { MAX_CLASSIFICATION_COST_USD } from '../../packages/intelligence/src/email/email-classification-limits';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) {
@@ -93,6 +95,7 @@ function buildService() {
       fallbackCount: 0,
       inputTokens: null,
       outputTokens: null,
+      costUsd: null,
     }),
   };
   const service = new AiEmailClassificationService(
@@ -175,7 +178,7 @@ describe('Límites compartidos de clasificación sobre PostgreSQL', () => {
     const dailyCost = await prisma.aiEmailDailyCost.findUniqueOrThrow({
       where: { date: startOfUtcDay(new Date()) },
     });
-    expect(Number(dailyCost.costUsd)).toBe(0.02);
+    expect(Number(dailyCost.costUsd)).toBe(MAX_CLASSIFICATION_COST_USD);
     await expect(
       prisma.aiEmailModelBudget.findUnique({ where: { userId } }),
     ).resolves.toBeNull();

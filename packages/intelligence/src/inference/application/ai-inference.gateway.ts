@@ -202,6 +202,8 @@ export class AiInferenceGateway {
     let attempts = 0;
     let billedInputTokens: number | null = null;
     let billedOutputTokens: number | null = null;
+    let billedCostUsd = 0;
+    let billedUsageKnown = true;
     let lastProvider: AIProviderClient | undefined;
     let lastHttpStatus: number | null = null;
     let lastErrorCode = 'NO_PROVIDER';
@@ -216,11 +218,17 @@ export class AiInferenceGateway {
         lastProvider = provider;
         try {
           const completion = await provider.chatComplete(messages);
-          if (completion.usage) {
-            billedInputTokens =
-              (billedInputTokens ?? 0) + (completion.usage.inputTokens ?? 0);
-            billedOutputTokens =
-              (billedOutputTokens ?? 0) + (completion.usage.outputTokens ?? 0);
+          const usage = completion.usage;
+          if (usage?.inputTokens != null && usage.outputTokens != null) {
+            billedInputTokens = (billedInputTokens ?? 0) + usage.inputTokens;
+            billedOutputTokens = (billedOutputTokens ?? 0) + usage.outputTokens;
+            billedCostUsd += inferenceCostUsd({
+              model: provider.model,
+              inputTokens: usage.inputTokens,
+              outputTokens: usage.outputTokens,
+            });
+          } else {
+            billedUsageKnown = false;
           }
           const json = extractJson(completion.content);
           if (!json) {
@@ -253,6 +261,9 @@ export class AiInferenceGateway {
             fallbackCount: Math.max(0, attempts - 1),
             inputTokens: billedInputTokens ?? undefined,
             outputTokens: billedOutputTokens ?? undefined,
+            costUsd: billedUsageKnown
+              ? Number(billedCostUsd.toFixed(6))
+              : undefined,
           });
           return {
             value,
@@ -262,6 +273,7 @@ export class AiInferenceGateway {
             fallbackCount: Math.max(0, attempts - 1),
             inputTokens: billedInputTokens,
             outputTokens: billedOutputTokens,
+            costUsd: billedUsageKnown ? Number(billedCostUsd.toFixed(6)) : null,
           };
         } catch (error) {
           if (error instanceof InvalidOutputError) {
@@ -331,6 +343,9 @@ export class AiInferenceGateway {
         errorCode: lastOutputDetail ?? lastErrorCode,
         inputTokens: billedInputTokens ?? undefined,
         outputTokens: billedOutputTokens ?? undefined,
+        costUsd: billedUsageKnown
+          ? Number(billedCostUsd.toFixed(6))
+          : undefined,
       });
       throw error;
     }
@@ -401,6 +416,7 @@ export class AiInferenceGateway {
       errorCode?: string;
       inputTokens?: number;
       outputTokens?: number;
+      costUsd?: number;
     },
   ): Promise<void> {
     if (!request.userId || request.recordTelemetry === false) {
@@ -426,11 +442,7 @@ export class AiInferenceGateway {
           latencyMs: record.latencyMs,
           inputTokens: record.inputTokens,
           outputTokens: record.outputTokens,
-          costUsd: inferenceCostUsd({
-            model: record.model,
-            inputTokens: record.inputTokens,
-            outputTokens: record.outputTokens,
-          }),
+          costUsd: record.costUsd,
           createdAt,
           expiresAt: addDays(createdAt, RETENTION_DAYS),
         },

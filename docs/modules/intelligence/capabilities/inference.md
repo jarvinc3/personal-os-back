@@ -25,8 +25,8 @@ nunca instrucciones.
 `ai_inferences` registra dueño, tarea, tipo/id de origen, proveedor/modelo,
 versiones, resultado operativo, latencia, fallbacks, uso de tokens si el SDK lo
 devuelve, huella HMAC con versión explícita, costo estimado en `cost_usd` y
-vencimiento a 90 días. Los tokens suman todos los intentos de la inferencia,
-incluidos los rechazados por validación. El costo usa la tarifa del modelo y, si no está en la
+vencimiento a 90 días. Los tokens suman el uso que informan los intentos de la inferencia, incluidos
+los rechazados por validación; el costo es null si algún intento no lo informa. El costo usa la tarifa del modelo y, si no está en la
 tabla, un precio conservador por defecto. No guarda prompts, respuestas,
 contenido de errores ni secuencias de tokens. La clave HMAC
 deriva `DATA_ENCRYPTION_KEY` con el propósito versionado

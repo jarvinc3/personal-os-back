@@ -7,13 +7,14 @@ export const GLOBAL_DAILY_COST_LIMIT_USD = 5;
 export const GLOBAL_COST_ALERT_RATIO = 0.8;
 
 /**
- * Costo máximo que se reserva antes de cada clasificación con modelo. Cubre el
- * contenido recortado a 24 000 caracteres (unos 8 000 tokens), la respuesta, el
- * reintento de reparación y el fallback de proveedor, al precio conservador por
- * defecto: 4 × (8 000 × 0.2 + 2 000 × 0.6) / 1 000 000 ≈ 0.011 USD. Con el tope
- * diario de 100 llamadas por usuario, la reserva completa nunca agota los 5 USD.
+ * Costo máximo que se reserva antes de cada clasificación con modelo. Cubre los
+ * cuatro intentos posibles (dos proveedores por el reintento de reparación) con
+ * el contenido de 24 000 caracteres y hasta 16 000 tokens de salida, al precio
+ * más alto de la tabla: 4 × (8 000 × 0.2 + 16 000 × 0.6) / 1 000 000 ≈ 0.045 USD.
+ * Al terminar, la reserva se ajusta al costo real de los intentos, hacia arriba
+ * o hacia abajo.
  */
-export const MAX_CLASSIFICATION_COST_USD = 0.02;
+export const MAX_CLASSIFICATION_COST_USD = 0.05;
 
 /**
  * Dominios bancarios que pueden llegar a la IA. La lista es la semilla del
