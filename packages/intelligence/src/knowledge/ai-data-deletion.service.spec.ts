@@ -1,3 +1,4 @@
+import { Prisma } from '@personal-os/database';
 import { AiDataDeletionService } from './ai-data-deletion.service';
 
 describe('AiDataDeletionService', () => {
@@ -121,6 +122,7 @@ describe('AiDataDeletionService', () => {
       },
     });
     expect(update.notes).toBeNull();
+    expect(update.correctedPayload).toBe(Prisma.DbNull);
     expect(JSON.stringify(update.structuralKeys)).not.toContain('4821');
     expect(JSON.stringify(update.structuralPayload)).not.toContain('4821');
     expect(JSON.stringify(update.structuralPayload)).not.toContain('1250');
