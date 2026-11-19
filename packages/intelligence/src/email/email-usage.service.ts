@@ -28,6 +28,9 @@ export type EmailUsageMessage = {
   processingStatus: string;
 };
 
+/** El tope diario de 100 llamadas acota el rango: 30 días son menos de 3 000 filas. */
+const USAGE_ROW_LIMIT = 5_000;
+
 type UsageBucket = {
   calls: number;
   inputTokens: number;
@@ -59,6 +62,7 @@ export function summarizeEmailUsage({
     failed: 0,
   };
   const byDay = new Map<string, UsageBucket>();
+  // Agrega la misma hora de todos los días del rango; el cliente no recibe fecha.
   const byHour = new Map<number, UsageBucket>();
   const byBank = new Map<string, UsageBucket>();
   const byType = new Map<string, UsageBucket>();
@@ -145,6 +149,7 @@ export class EmailUsageService {
         createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
+      take: USAGE_ROW_LIMIT,
     });
     const sourceIds = [
       ...new Set(

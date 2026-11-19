@@ -324,6 +324,7 @@ export class AiInferenceGateway {
           lastProvider?.model ?? null,
           attempts,
           lastOutputDetail,
+          billedUsageKnown ? Number(billedCostUsd.toFixed(6)) : null,
         );
       }
       throw new StructuredInferenceProviderError(

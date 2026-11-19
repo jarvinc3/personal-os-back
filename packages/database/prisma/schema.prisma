@@ -219,6 +219,7 @@ enum AiEmailProcessingStatus {
   CLASSIFYING
   PROCESSED
   REVIEW_REQUIRED
+  DISCARDED
   FAILED
 
   @@map("ai_email_processing_status")

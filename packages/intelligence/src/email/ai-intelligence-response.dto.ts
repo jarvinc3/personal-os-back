@@ -7,6 +7,7 @@ const EMAIL_PROCESSING_STATUSES = [
   'QUEUED',
   'PROCESSED',
   'REVIEW_REQUIRED',
+  'DISCARDED',
   'FAILED',
 ] as const;
 const DIAGNOSTIC_STATUSES = ['ready', 'missing_oauth_configuration'] as const;

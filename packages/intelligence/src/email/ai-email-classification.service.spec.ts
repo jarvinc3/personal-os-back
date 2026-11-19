@@ -782,6 +782,27 @@ describe('AiEmailClassificationService direct message operations', () => {
     });
   });
 
+  it('discards a non-bank sender without a deterministic classification', async () => {
+    const { service, inference, prisma } = fixture({
+      fromAddress: 'boletin@example.com',
+      fromDomain: 'example.com',
+      subject: 'Novedades del mes',
+      body: 'Conoce las novedades de esta semana.',
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'message-1',
+        userId: 'user-1',
+        processingStatus: 'CLASSIFYING',
+      },
+      data: { processingStatus: 'DISCARDED', classificationStartedAt: null },
+    });
+  });
+
   it('does not measure an audit sample outside the bank sender list', async () => {
     const sender = 'noticias@example.com';
     const subject = 'BHD Notificación de Transacciones';
@@ -989,7 +1010,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     await service.processPendingForUser('user-1');
 
-    expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
+    expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { costUsd: { decrement: 0.12968 } },
       }),
@@ -1001,7 +1022,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     await service.processPendingForUser('user-1');
 
-    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
+    expect(prisma.aiEmailDailyCost.updateMany).not.toHaveBeenCalled();
   });
 
   it('reserves the daily cost in the preview without consuming the daily quota', async () => {
@@ -1040,9 +1061,33 @@ describe('AiEmailClassificationService shared limits', () => {
 
     await service.processPendingForUser('user-1');
 
-    expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
+    expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { costUsd: { decrement: 0.1296 } },
+      }),
+    );
+  });
+
+  it('settles the cost of the repaired attempt together with the rejected one', async () => {
+    const { service, inference, prisma } = fixture({
+      inferenceCostUsd: 0.0004,
+    });
+    inference.infer.mockRejectedValueOnce(
+      new StructuredInferenceOutputError(
+        'Groq',
+        'qwen/qwen3.8-27b',
+        1,
+        'SCHEMA_VALIDATION:transaction:invalid_type',
+        0.0003,
+      ),
+    );
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { costUsd: { decrement: 0.1293 } },
       }),
     );
   });
@@ -1063,7 +1108,7 @@ describe('AiEmailClassificationService shared limits', () => {
     await service.processPendingForUser('user-1');
 
     expect(inference.infer).toHaveBeenCalledTimes(2);
-    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
+    expect(prisma.aiEmailDailyCost.updateMany).not.toHaveBeenCalled();
   });
 });
 

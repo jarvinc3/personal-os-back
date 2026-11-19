@@ -528,7 +528,7 @@ export class AiEmailClassificationService {
     }
     if (!classification) {
       if (!isBankSenderDomain(message.fromDomain)) {
-        await this.persistFailure(userId, message.id);
+        await this.discardMessage(userId, message.id);
         return { kind: 'no_classification' };
       }
       const budget = await this.acquireModelBudget({ userId, modelBudget });
@@ -667,14 +667,20 @@ export class AiEmailClassificationService {
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<StructuredInference<EmailClassification>> {
-    const { inferred, repaired } = await this.classifyWithModel({
-      userId,
-      message,
-      content,
-      recordTelemetry,
-      onModelCall,
-    });
-    await this.settleDailyCost({ date: costDate, inferred, repaired });
+    const { inferred, repaired, rejectedCostUsd } =
+      await this.classifyWithModel({
+        userId,
+        message,
+        content,
+        recordTelemetry,
+        onModelCall,
+      });
+    const costUsd = repaired
+      ? sumKnownCosts(rejectedCostUsd, inferred.costUsd)
+      : inferred.costUsd;
+    if (costUsd != null) {
+      await this.settleDailyCost({ date: costDate, costUsd });
+    }
     return inferred;
   }
 
@@ -698,6 +704,7 @@ export class AiEmailClassificationService {
   }): Promise<{
     inferred: StructuredInference<EmailClassification>;
     repaired: boolean;
+    rejectedCostUsd: number | null;
   }> {
     const messages: InferenceMessage[] = [
       { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
@@ -726,7 +733,7 @@ export class AiEmailClassificationService {
     onModelCall?.();
     try {
       const inferred = await this.inference.infer(request);
-      return { inferred, repaired: false };
+      return { inferred, repaired: false, rejectedCostUsd: null };
     } catch (error) {
       if (!(error instanceof StructuredInferenceOutputError)) {
         throw error;
@@ -746,7 +753,7 @@ export class AiEmailClassificationService {
           },
         ],
       });
-      return { inferred, repaired: true };
+      return { inferred, repaired: true, rejectedCostUsd: error.costUsd };
     }
   }
 
@@ -1188,8 +1195,11 @@ export class AiEmailClassificationService {
         WHERE ai_email_classification_minutes.calls < ${CLASSIFICATIONS_PER_MINUTE}::int
       RETURNING calls
     `;
-    await this.pruneClassificationMinutes(userId);
-    return reserved.length > 0;
+    const reservation = reserved[0];
+    if (reservation?.calls === 1) {
+      await this.pruneClassificationMinutes(userId);
+    }
+    return Boolean(reservation);
   }
 
   /** La ventana solo importa al minuto en curso; las filas viejas se descartan. */
@@ -1362,31 +1372,25 @@ export class AiEmailClassificationService {
 
   /**
    * Ajusta la reserva al costo real de la inferencia contra el día que la
-   * reservó. El costo suma cada intento con la tarifa de su modelo y no supera
-   * la reserva, que cubre los topes de entrada y salida, así que el ajuste no
-   * puede pasar el freno diario. Sin costo conocido, o con el reintento de
-   * reparación (que pierde el costo del primer intento), la reserva se queda
-   * completa para no subestimar el gasto.
+   * reservó. El costo suma cada intento con la tarifa de su modelo —también el
+   * rechazado cuando hubo reparación— y no supera la reserva, que cubre los
+   * topes de entrada y salida, así que el ajuste no puede pasar el freno diario.
+   * Si la fila del día ya no existe, el ajuste no hace nada.
    */
   private async settleDailyCost({
     date,
-    inferred,
-    repaired,
+    costUsd,
   }: {
     date: Date;
-    inferred: StructuredInference<EmailClassification>;
-    repaired: boolean;
+    costUsd: number;
   }): Promise<void> {
-    if (repaired || inferred.costUsd == null) {
-      return;
-    }
     const adjustmentUsd = Number(
-      (MAX_CLASSIFICATION_COST_USD - inferred.costUsd).toFixed(6),
+      (MAX_CLASSIFICATION_COST_USD - costUsd).toFixed(6),
     );
     if (adjustmentUsd === 0) {
       return;
     }
-    await this.prisma.aiEmailDailyCost.update({
+    await this.prisma.aiEmailDailyCost.updateMany({
       where: { date },
       data: {
         costUsd:
@@ -1454,6 +1458,23 @@ export class AiEmailClassificationService {
     }
   }
 
+  /**
+   * Fuera del piloto: el remitente no es bancario y el texto no alcanzó para una
+   * clasificación determinista. Se descarta en vez de mandarlo a revisión.
+   */
+  private async discardMessage(userId: string, messageId: string) {
+    await this.prisma.aiEmailMessage.updateMany({
+      where: { id: messageId, userId, processingStatus: 'CLASSIFYING' },
+      data: {
+        processingStatus: 'DISCARDED',
+        classificationStartedAt: null,
+      },
+    });
+    this.logger.debug(
+      `Message ${messageId} discarded: sender outside the bank list`,
+    );
+  }
+
   private async persistFailure(userId: string, messageId: string) {
     await this.prisma.aiEmailMessage.updateMany({
       where: { id: messageId, userId, processingStatus: 'CLASSIFYING' },
@@ -1486,6 +1507,17 @@ export class AiEmailClassificationService {
     }
     return 'CLASSIFICATION_FAILED';
   }
+}
+
+/** Suma dos costos conocidos; null si falta alguno. */
+function sumKnownCosts(
+  first: number | null,
+  second: number | null,
+): number | null {
+  if (first == null || second == null) {
+    return null;
+  }
+  return Number((first + second).toFixed(6));
 }
 
 /** El contenido que ve el modelo, recortado al máximo que acepta el flujo. */
