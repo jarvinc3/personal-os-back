@@ -5,12 +5,14 @@ import {
   EMAIL_PRODUCT_HINTS,
   INFERENCE_COMPLETION,
   MODULE_SETTINGS_READER,
+  NOTIFICATION_INTENT_SINK,
   StructuredInferenceOutputError,
   type EmailProductHints,
   type EmailProductHintsPort,
   type InferenceCompletionPort,
   type InferenceMessage,
   type ModuleSettingsReader,
+  type NotificationIntentSink,
   type StructuredInference,
   type StructuredInferenceRequest,
 } from '@personal-os/contracts';
@@ -51,6 +53,20 @@ import {
 } from '../knowledge/knowledge-normalizer';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
+import {
+  CLASSIFICATIONS_PER_MINUTE,
+  GLOBAL_COST_ALERT_RATIO,
+  GLOBAL_DAILY_COST_LIMIT_USD,
+  globalCostStatus,
+  INITIAL_CLASSIFICATION_BUDGET,
+  isBankSenderDomain,
+  MAX_CLASSIFICATION_COST_USD,
+  MAX_EMAIL_CONTENT_CHARS,
+  MAX_EMAIL_SENDER_CHARS,
+  MAX_EMAIL_SUBJECT_CHARS,
+  startOfUtcDay,
+  utcDayKey,
+} from './email-classification-limits';
 
 const CLASSIFICATION_TASK = 'EMAIL_CLASSIFICATION';
 const CLASSIFICATION_SYSTEM_PROMPT = [
@@ -63,7 +79,6 @@ const CLASSIFICATION_SYSTEM_PROMPT = [
   'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Set accountNumberLast4 from the last four digits of the owner account and set last4 only from the last four digits of a card. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. A confirmed credit card payment from an owned account uses movementClass CARD_PAYMENT with the card last4 and the source account accountNumberLast4; a reminder, a due date, a minimum payment or a statement cutoff is a notice with no transaction: use FIN_ACCOUNT_NOTICE or FIN_STATEMENT_NOTICE without a transaction. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated, and reverseOfEmailMessageId only when the original message id is stated. Never use the header date as transactionDate and never guess it: omit transactionDate when the operation date is not in the message; suggestedTransactionDate and its source are filled outside the model. Never invent missing values; omit uncertain fields and use low confidence.',
   'Use low confidence when evidence is incomplete or ambiguous.',
 ].join(' ');
-const MAX_EMAIL_CONTENT_CHARS = 24_000;
 const MODEL_REPAIR_INSTRUCTION = [
   'Your previous answer was rejected by the classifier validator.',
   'Return the same classification again as exactly one JSON object that fixes the rejection and still follows every rule.',
@@ -72,6 +87,9 @@ const MODEL_REPAIR_INSTRUCTION = [
 const RECALL_AUDIT_RATE = 100;
 const CLASSIFICATION_BATCH_SIZE = 100;
 const STALE_CLAIM_MS = 10 * 60_000;
+const MINUTE_COUNTER_RETENTION_MS = 60 * 60_000;
+
+type ModelBudget = 'reserve' | 'inspect';
 
 type KnowledgeMatch = {
   id: string;
@@ -112,7 +130,25 @@ type ComputedClassification =
       verifiedSender: boolean;
     }
   | { kind: 'budget_exhausted' }
+  | { kind: 'rate_limited' }
   | { kind: 'no_classification' };
+
+/** De dónde salió la llamada de modelo que se acaba de reservar. */
+type DailyCallClaim = {
+  source: 'INITIAL' | 'DAILY';
+  completedInitialBudget: boolean;
+};
+
+/** Cupo concedido para clasificar; `costDate` es el día del costo reservado. */
+type ModelBudgetGrant = {
+  costDate: Date;
+};
+
+/** Fila devuelta por la reserva atómica del costo global del día. */
+type DailyCostReservation = {
+  cost_usd: Prisma.Decimal;
+  alerted_at: Date | null;
+};
 
 /** Resultado de clasificar un correo concreto, con o sin escritura. */
 export type MessageClassificationResult =
@@ -143,6 +179,9 @@ export class AiEmailClassificationService {
     @Optional()
     @Inject(EMAIL_PRODUCT_HINTS)
     private readonly productHints?: EmailProductHintsPort,
+    @Optional()
+    @Inject(NOTIFICATION_INTENT_SINK)
+    private readonly notifications?: NotificationIntentSink,
   ) {}
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
@@ -156,6 +195,7 @@ export class AiEmailClassificationService {
 
     let modelCalls = 0;
     let processed = 0;
+    let rateLimited = false;
     const reviewSettings = pending.length
       ? await loadEmailReviewSettings(this.moduleSettings, userId)
       : defaultEmailReviewSettings();
@@ -169,17 +209,34 @@ export class AiEmailClassificationService {
       if (result.processed) {
         processed += 1;
       }
+      if (result.rateLimited) {
+        rateLimited = true;
+        break;
+      }
       if (result.budgetExhausted) {
         break;
       }
     }
-    return { processed, modelCalls };
+    return { processed, modelCalls, rateLimited };
   }
 
   /** Cuánto correo queda por clasificar con el mismo criterio de la próxima pasada. */
   async countPendingForUser(userId: string): Promise<number> {
     return this.prisma.aiEmailMessage.count({
       where: this.pendingForUserWhere(userId),
+    });
+  }
+
+  /**
+   * Correos sin clasificar para el aviso de tope, incluido el que se está
+   * procesando en este momento, que de otro modo descuenta uno.
+   */
+  private async countUnclassified(userId: string): Promise<number> {
+    return this.prisma.aiEmailMessage.count({
+      where: {
+        userId,
+        processingStatus: { in: ['INGESTED', 'QUEUED', 'CLASSIFYING'] },
+      },
     });
   }
 
@@ -208,6 +265,7 @@ export class AiEmailClassificationService {
     processed: boolean;
     modelCalls: number;
     budgetExhausted?: boolean;
+    rateLimited?: boolean;
   }> {
     const claim = await this.prisma.aiEmailMessage.updateMany({
       where: {
@@ -258,6 +316,10 @@ export class AiEmailClassificationService {
       if (computation.kind === 'budget_exhausted') {
         await this.leaveQueued(messageId, userId);
         return { processed: false, modelCalls, budgetExhausted: true };
+      }
+      if (computation.kind === 'rate_limited') {
+        await this.leaveQueued(messageId, userId);
+        return { processed: false, modelCalls, rateLimited: true };
       }
       if (computation.kind === 'no_classification') {
         await this.leaveQueued(messageId, userId);
@@ -389,7 +451,7 @@ export class AiEmailClassificationService {
     }
   }
 
-  /** Lectura pura de la decisión: no escribe nada. */
+  /** Lectura pura de la decisión: solo escribe el contador del minuto. */
   private async computeClassification({
     userId,
     message,
@@ -399,10 +461,13 @@ export class AiEmailClassificationService {
   }: {
     userId: string;
     message: ClassifiableMessage;
-    modelBudget: 'reserve' | 'inspect';
+    modelBudget: ModelBudget;
     onModelCall?: () => void;
     recordTelemetry?: boolean;
   }): Promise<ComputedClassification> {
+    if (!(await this.reserveClassificationSlot(userId))) {
+      return { kind: 'rate_limited' };
+    }
     const resolvedKnowledge = await this.resolveKnowledge(userId, message);
     const matches = resolvedKnowledge.matches;
     const known = matches[0];
@@ -447,7 +512,12 @@ export class AiEmailClassificationService {
     let model: string | null = null;
     // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
     // clasificación, la llamada no puede cambiarla ni impedir que se guarde.
-    if (auditSample && classification) {
+    // La medición respeta el filtro de remitentes bancarios del piloto.
+    if (
+      auditSample &&
+      classification &&
+      isBankSenderDomain(message.fromDomain)
+    ) {
       await this.measureWithModel({
         userId,
         message,
@@ -457,17 +527,19 @@ export class AiEmailClassificationService {
       });
     }
     if (!classification) {
-      const budgetAvailable =
-        modelBudget === 'reserve'
-          ? await this.reserveModelCall(userId)
-          : await this.hasModelBudget(userId);
-      if (!budgetAvailable) {
+      if (!isBankSenderDomain(message.fromDomain)) {
+        await this.discardMessage(userId, message.id);
+        return { kind: 'no_classification' };
+      }
+      const budget = await this.acquireModelBudget({ userId, modelBudget });
+      if (!budget) {
         return { kind: 'budget_exhausted' };
       }
-      const inferred = await this.classifyWithModel({
+      const inferred = await this.classifyWithModelAndSettleCost({
         userId,
         message,
         content: modelContent(message),
+        costDate: budget.costDate,
         recordTelemetry,
         onModelCall,
       });
@@ -549,25 +621,23 @@ export class AiEmailClassificationService {
   }: {
     userId: string;
     message: ClassifiableMessage;
-    modelBudget: 'reserve' | 'inspect';
+    modelBudget: ModelBudget;
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<void> {
-    const budgetAvailable =
-      modelBudget === 'reserve'
-        ? await this.reserveModelCall(userId)
-        : await this.hasModelBudget(userId);
-    if (!budgetAvailable) {
+    const budget = await this.acquireModelBudget({ userId, modelBudget });
+    if (!budget) {
       this.logger.warn(
         `Audit sample measurement skipped for message ${message.id}: model budget exhausted`,
       );
       return;
     }
     try {
-      await this.classifyWithModel({
+      await this.classifyWithModelAndSettleCost({
         userId,
         message,
         content: modelContent(message),
+        costDate: budget.costDate,
         recordTelemetry,
         onModelCall,
       });
@@ -576,6 +646,42 @@ export class AiEmailClassificationService {
         `Audit sample measurement failed for message ${message.id}: ${this.safeErrorDescription(error)}`,
       );
     }
+  }
+
+  /**
+   * Clasifica con el modelo y ajusta la reserva del día al consumo real. Se
+   * llama solo después de `acquireModelBudget`, así que siempre hay reserva.
+   */
+  private async classifyWithModelAndSettleCost({
+    userId,
+    message,
+    content,
+    costDate,
+    recordTelemetry,
+    onModelCall,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+    content: string;
+    costDate: Date;
+    recordTelemetry?: boolean;
+    onModelCall?: () => void;
+  }): Promise<StructuredInference<EmailClassification>> {
+    const { inferred, repaired, rejectedCostUsd } =
+      await this.classifyWithModel({
+        userId,
+        message,
+        content,
+        recordTelemetry,
+        onModelCall,
+      });
+    const costUsd = repaired
+      ? sumKnownCosts(rejectedCostUsd, inferred.costUsd)
+      : inferred.costUsd;
+    if (costUsd != null) {
+      await this.settleDailyCost({ date: costDate, costUsd });
+    }
+    return inferred;
   }
 
   /**
@@ -595,14 +701,18 @@ export class AiEmailClassificationService {
     content: string;
     recordTelemetry?: boolean;
     onModelCall?: () => void;
-  }): Promise<StructuredInference<EmailClassification>> {
+  }): Promise<{
+    inferred: StructuredInference<EmailClassification>;
+    repaired: boolean;
+    rejectedCostUsd: number | null;
+  }> {
     const messages: InferenceMessage[] = [
       { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
       {
         role: 'user',
         content: JSON.stringify({
-          from: message.fromAddress,
-          subject: message.subject,
+          from: message.fromAddress.slice(0, MAX_EMAIL_SENDER_CHARS),
+          subject: message.subject.slice(0, MAX_EMAIL_SUBJECT_CHARS),
           emailContent: content,
         }),
       },
@@ -622,7 +732,8 @@ export class AiEmailClassificationService {
 
     onModelCall?.();
     try {
-      return await this.inference.infer(request);
+      const inferred = await this.inference.infer(request);
+      return { inferred, repaired: false, rejectedCostUsd: null };
     } catch (error) {
       if (!(error instanceof StructuredInferenceOutputError)) {
         throw error;
@@ -632,7 +743,7 @@ export class AiEmailClassificationService {
         `Email classification output rejected for message ${message.id}: ${rejection}`,
       );
       onModelCall?.();
-      return this.inference.infer({
+      const inferred = await this.inference.infer({
         ...request,
         messages: [
           ...messages,
@@ -642,6 +753,7 @@ export class AiEmailClassificationService {
           },
         ],
       });
+      return { inferred, repaired: true, rejectedCostUsd: error.costUsd };
     }
   }
 
@@ -654,7 +766,9 @@ export class AiEmailClassificationService {
         reason:
           computation.kind === 'budget_exhausted'
             ? 'MODEL_BUDGET_EXHAUSTED'
-            : 'CLASSIFICATION_UNAVAILABLE',
+            : computation.kind === 'rate_limited'
+              ? 'RATE_LIMITED'
+              : 'CLASSIFICATION_UNAVAILABLE',
       };
     }
     return {
@@ -709,10 +823,10 @@ export class AiEmailClassificationService {
   }
 
   private async hasModelBudget(userId: string): Promise<boolean> {
-    const now = new Date();
-    const today = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
+    if (await this.isGlobalCostPaused()) {
+      return false;
+    }
+    const today = startOfUtcDay(new Date());
     const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
       infer: true,
     });
@@ -1021,11 +1135,102 @@ export class AiEmailClassificationService {
     ]);
   }
 
-  private async reserveModelCall(userId: string): Promise<boolean> {
-    const now = new Date();
-    const today = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
+  /**
+   * Reserva una llamada del presupuesto diario del usuario y el costo máximo del
+   * día. Si el costo global no cabe, la llamada vuelve al presupuesto y la
+   * clasificación no corre. Devuelve el día reservado.
+   */
+  private async reserveModelCall(userId: string): Promise<Date | null> {
+    const claim = await this.claimDailyCall(userId);
+    if (!claim) {
+      await this.notifyDailyBudgetExhausted(userId);
+      return null;
+    }
+    const costDate = await this.reserveDailyCost(userId);
+    if (!costDate) {
+      await this.releaseDailyCall({ userId, claim });
+      return null;
+    }
+    if (claim.completedInitialBudget) {
+      await this.notifyInitialBudgetDepleted(userId);
+    }
+    return costDate;
+  }
+
+  /**
+   * Reserva el costo máximo de la llamada. La clasificación normal además ocupa
+   * una llamada del presupuesto diario; la vista previa solo paga el costo. Un
+   * modelo nunca se llama sin reserva. Null significa que no hay presupuesto.
+   */
+  private async acquireModelBudget({
+    userId,
+    modelBudget,
+  }: {
+    userId: string;
+    modelBudget: ModelBudget;
+  }): Promise<ModelBudgetGrant | null> {
+    if (modelBudget === 'reserve') {
+      const costDate = await this.reserveModelCall(userId);
+      return costDate ? { costDate } : null;
+    }
+    if (!(await this.hasModelBudget(userId))) {
+      return null;
+    }
+    const costDate = await this.reserveDailyCost(userId);
+    return costDate ? { costDate } : null;
+  }
+
+  /**
+   * Reserva atómica de una clasificación en la ventana del minuto. La fila vive
+   * en la base y la comparten todas las réplicas: el INSERT solo deja pasar
+   * mientras la cuenta no llegue al límite.
+   */
+  private async reserveClassificationSlot(userId: string): Promise<boolean> {
+    const reserved = await this.prisma.$queryRaw<Array<{ calls: number }>>`
+      INSERT INTO ai_email_classification_minutes (user_id, minute, calls)
+      VALUES (${userId}, date_trunc('minute', now()), 1)
+      ON CONFLICT (user_id, minute) DO UPDATE
+        SET calls = ai_email_classification_minutes.calls + 1,
+            updated_at = now()
+        WHERE ai_email_classification_minutes.calls < ${CLASSIFICATIONS_PER_MINUTE}::int
+      RETURNING calls
+    `;
+    const reservation = reserved[0];
+    if (reservation?.calls === 1) {
+      await this.pruneClassificationMinutes(userId);
+    }
+    return Boolean(reservation);
+  }
+
+  /** La ventana solo importa al minuto en curso; las filas viejas se descartan. */
+  private async pruneClassificationMinutes(userId: string): Promise<void> {
+    await this.prisma.aiEmailClassificationMinute.deleteMany({
+      where: {
+        userId,
+        minute: { lt: new Date(Date.now() - MINUTE_COUNTER_RETENTION_MS) },
+      },
+    });
+  }
+
+  private async claimDailyCall(userId: string): Promise<DailyCallClaim | null> {
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { initialBudgetRemaining: true },
+    });
+    const initialRemaining = connection?.initialBudgetRemaining ?? 0;
+    if (initialRemaining > 0) {
+      const claimed = await this.prisma.aiEmailConnection.updateMany({
+        where: { userId, initialBudgetRemaining: { gt: 0 } },
+        data: { initialBudgetRemaining: { decrement: 1 } },
+      });
+      if (claimed.count === 1) {
+        return {
+          source: 'INITIAL',
+          completedInitialBudget: initialRemaining === 1,
+        };
+      }
+    }
+    const today = startOfUtcDay(new Date());
     const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
       infer: true,
     });
@@ -1038,11 +1243,236 @@ export class AiEmailClassificationService {
       where: { userId, budgetDate: { lt: today } },
       data: { budgetDate: today, calls: 0, dailyLimit },
     });
-    const reserved = await this.prisma.aiEmailModelBudget.updateMany({
+    const claimed = await this.prisma.aiEmailModelBudget.updateMany({
       where: { userId, budgetDate: today, calls: { lt: dailyLimit } },
       data: { calls: { increment: 1 }, dailyLimit },
     });
-    return reserved.count === 1;
+    return claimed.count === 1
+      ? { source: 'DAILY', completedInitialBudget: false }
+      : null;
+  }
+
+  private async releaseDailyCall({
+    userId,
+    claim,
+  }: {
+    userId: string;
+    claim: DailyCallClaim;
+  }): Promise<void> {
+    if (claim.source === 'INITIAL') {
+      await this.prisma.aiEmailConnection.updateMany({
+        where: { userId },
+        data: { initialBudgetRemaining: { increment: 1 } },
+      });
+      return;
+    }
+    await this.prisma.aiEmailModelBudget.updateMany({
+      where: { userId, calls: { gt: 0 } },
+      data: { calls: { decrement: 1 } },
+    });
+  }
+
+  private async isGlobalCostPaused(): Promise<boolean> {
+    const dailyCost = await this.prisma.aiEmailDailyCost.findUnique({
+      where: { date: startOfUtcDay(new Date()) },
+      select: { costUsd: true },
+    });
+    return Boolean(
+      dailyCost &&
+      globalCostStatus({ costUsd: Number(dailyCost.costUsd) }) === 'PAUSED',
+    );
+  }
+
+  /**
+   * Reserva el costo máximo de la clasificación con un UPDATE condicionado: la
+   * fila del día se bloquea y solo suma si todavía cabe bajo el tope, así que dos
+   * clasificaciones concurrentes no pueden pasarlo a la vez.
+   */
+  private async reserveDailyCost(userId: string): Promise<Date | null> {
+    const date = startOfUtcDay(new Date());
+    await this.prisma.aiEmailDailyCost.upsert({
+      where: { date },
+      create: { date, costUsd: 0 },
+      update: {},
+    });
+    const reservations = await this.prisma.$queryRaw<DailyCostReservation[]>`
+      UPDATE ai_email_daily_costs
+      SET cost_usd = cost_usd + ${MAX_CLASSIFICATION_COST_USD}::numeric,
+          updated_at = now()
+      WHERE date = ${utcDayKey(date)}::date
+        AND cost_usd + ${MAX_CLASSIFICATION_COST_USD}::numeric <= ${GLOBAL_DAILY_COST_LIMIT_USD}::numeric
+      RETURNING cost_usd, alerted_at
+    `;
+    const reservation = reservations[0];
+    if (!reservation) {
+      await this.pauseDailyCost({ userId, date });
+      return null;
+    }
+    await this.alertDailyCost({
+      userId,
+      date,
+      costUsd: Number(reservation.cost_usd),
+      alertedAt: reservation.alerted_at,
+    });
+    return date;
+  }
+
+  private async pauseDailyCost({
+    userId,
+    date,
+  }: {
+    userId: string;
+    date: Date;
+  }): Promise<void> {
+    const paused = await this.prisma.aiEmailDailyCost.updateMany({
+      where: { date, pausedAt: null },
+      data: { pausedAt: new Date() },
+    });
+    if (paused.count === 0) {
+      return;
+    }
+    const pending = await this.countUnclassified(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'COST_PAUSED',
+      title: 'Clasificación en pausa',
+      body: `Se alcanzó el tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+    });
+  }
+
+  private async alertDailyCost({
+    userId,
+    date,
+    costUsd,
+    alertedAt,
+  }: {
+    userId: string;
+    date: Date;
+    costUsd: number;
+    alertedAt: Date | null;
+  }): Promise<void> {
+    if (alertedAt || globalCostStatus({ costUsd }) !== 'ALERT') {
+      return;
+    }
+    const alerted = await this.prisma.aiEmailDailyCost.updateMany({
+      where: { date, alertedAt: null },
+      data: { alertedAt: new Date() },
+    });
+    if (alerted.count === 0) {
+      return;
+    }
+    const pending = await this.countUnclassified(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'COST_ALERT',
+      title: `Uso de clasificación al ${GLOBAL_COST_ALERT_RATIO * 100} %`,
+      body: `El piloto alcanzó el ${GLOBAL_COST_ALERT_RATIO * 100} % del tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola.`,
+    });
+  }
+
+  /**
+   * Ajusta la reserva al costo real de la inferencia contra el día que la
+   * reservó. El costo suma cada intento con la tarifa de su modelo —también el
+   * rechazado cuando hubo reparación— y no supera la reserva, que cubre los
+   * topes de entrada y salida, así que el ajuste no puede pasar el freno diario.
+   * Si la fila del día ya no existe, el ajuste no hace nada.
+   */
+  private async settleDailyCost({
+    date,
+    costUsd,
+  }: {
+    date: Date;
+    costUsd: number;
+  }): Promise<void> {
+    const adjustmentUsd = Number(
+      (MAX_CLASSIFICATION_COST_USD - costUsd).toFixed(6),
+    );
+    if (adjustmentUsd === 0) {
+      return;
+    }
+    await this.prisma.aiEmailDailyCost.updateMany({
+      where: { date },
+      data: {
+        costUsd:
+          adjustmentUsd > 0
+            ? { decrement: adjustmentUsd }
+            : { increment: -adjustmentUsd },
+      },
+    });
+  }
+
+  private async notifyInitialBudgetDepleted(userId: string): Promise<void> {
+    const pending = await this.countUnclassified(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'INITIAL_BUDGET',
+      title: 'Carga inicial agotada',
+      body: `Se agotó la carga inicial de ${INITIAL_CLASSIFICATION_BUDGET} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+    });
+  }
+
+  private async notifyDailyBudgetExhausted(userId: string): Promise<void> {
+    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
+      infer: true,
+    });
+    const pending = await this.countUnclassified(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'DAILY_BUDGET',
+      title: 'Tope diario de clasificación',
+      body: `Se agotó el tope diario de ${dailyLimit} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+    });
+  }
+
+  private async notifyLimit({
+    userId,
+    key,
+    title,
+    body,
+  }: {
+    userId: string;
+    key: string;
+    title: string;
+    body: string;
+  }): Promise<void> {
+    if (!this.notifications) {
+      return;
+    }
+    try {
+      await this.notifications.submit({
+        schemaVersion: 1,
+        userId,
+        sourceDomain: 'INTELLIGENCE',
+        type: 'AI_EMAIL_CLASSIFICATION_LIMIT',
+        preferenceKey: `ai.email.${key.toLowerCase()}`,
+        title,
+        body,
+        requestedChannels: ['IN_APP'],
+        deduplicationKey: `ai-email-limit:${userId}:${key}:${startOfUtcDay(new Date()).toISOString()}`,
+        occurredAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Email classification notice failed: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Fuera del piloto: el remitente no es bancario y el texto no alcanzó para una
+   * clasificación determinista. Se descarta en vez de mandarlo a revisión.
+   */
+  private async discardMessage(userId: string, messageId: string) {
+    await this.prisma.aiEmailMessage.updateMany({
+      where: { id: messageId, userId, processingStatus: 'CLASSIFYING' },
+      data: {
+        processingStatus: 'DISCARDED',
+        classificationStartedAt: null,
+      },
+    });
+    this.logger.debug(
+      `Message ${messageId} discarded: sender outside the bank list`,
+    );
   }
 
   private async persistFailure(userId: string, messageId: string) {
@@ -1077,6 +1507,17 @@ export class AiEmailClassificationService {
     }
     return 'CLASSIFICATION_FAILED';
   }
+}
+
+/** Suma dos costos conocidos; null si falta alguno. */
+function sumKnownCosts(
+  first: number | null,
+  second: number | null,
+): number | null {
+  if (first == null || second == null) {
+    return null;
+  }
+  return Number((first + second).toFixed(6));
 }
 
 /** El contenido que ve el modelo, recortado al máximo que acepta el flujo. */

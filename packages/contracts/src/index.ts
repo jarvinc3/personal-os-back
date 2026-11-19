@@ -114,6 +114,11 @@ export interface StructuredInference<T> {
   fallbackCount: number;
   inputTokens: number | null;
   outputTokens: number | null;
+  /**
+   * Costo estimado de todos los intentos acumulados, cada uno con la tarifa de
+   * su modelo. Null cuando algún intento no informó tokens.
+   */
+  costUsd: number | null;
 }
 export class StructuredInferenceOutputError extends Error {
   readonly code = 'STRUCTURED_OUTPUT_INVALID';
@@ -127,6 +132,11 @@ export class StructuredInferenceOutputError extends Error {
      * los campos rechazados. Nunca incluye el contenido del modelo.
      */
     readonly detail: string | null = null,
+    /**
+     * Costo de los intentos ya cobrados de esta inferencia, para ajustar la
+     * reserva aunque la salida se haya rechazado. Null si no se conoce.
+     */
+    readonly costUsd: number | null = null,
   ) {
     super('The model output did not match the required structured schema');
     this.name = 'StructuredInferenceOutputError';
