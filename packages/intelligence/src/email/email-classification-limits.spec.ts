@@ -3,17 +3,25 @@ import {
   isBankSenderDomain,
   MAX_CLASSIFICATION_COST_USD,
   MAX_EMAIL_CONTENT_CHARS,
+  MAX_EMAIL_SENDER_CHARS,
+  MAX_EMAIL_SUBJECT_CHARS,
+  PROMPT_OVERHEAD_CHARS,
   startOfUtcDay,
   utcDayKey,
 } from './email-classification-limits';
 
 describe('Email classification limits', () => {
   it('reserva al menos el costo de los cuatro intentos con la salida máxima', () => {
-    // Contenido en el peor caso UTF-8, sobre del prompt, salida que limitan los
-    // proveedores y el precio más alto de la tabla.
+    // Todo lo que se envía está recortado: contenido, asunto, remitente y el
+    // sobre del prompt. En el peor caso UTF-8 cada carácter son 4 bytes y un
+    // token nunca supera un byte; la salida la limitan los proveedores a 4096.
+    const promptChars =
+      MAX_EMAIL_CONTENT_CHARS +
+      MAX_EMAIL_SUBJECT_CHARS +
+      MAX_EMAIL_SENDER_CHARS +
+      PROMPT_OVERHEAD_CHARS;
     const worstCaseUsd =
-      (4 * ((MAX_EMAIL_CONTENT_CHARS * 4 + 4_000) * 0.2 + 4_096 * 0.6)) /
-      1_000_000;
+      (4 * (promptChars * 4 * 0.2 + 4_096 * 0.6)) / 1_000_000;
 
     expect(MAX_CLASSIFICATION_COST_USD).toBeGreaterThanOrEqual(worstCaseUsd);
   });

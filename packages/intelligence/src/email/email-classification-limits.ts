@@ -12,14 +12,21 @@ export const GLOBAL_COST_ALERT_RATIO = 0.8;
 
 /** Contenido que se envía al modelo; el resto del correo no viaja. */
 export const MAX_EMAIL_CONTENT_CHARS = 24_000;
+/** Asunto del correo que acompaña al contenido. */
+export const MAX_EMAIL_SUBJECT_CHARS = 1_000;
+/** Remitente del correo que acompaña al contenido. */
+export const MAX_EMAIL_SENDER_CHARS = 320;
+/**
+ * Prompt de sistema, esquema JSON, sobre del correo y la instrucción de
+ * reparación. Hoy suman unos 5 100 caracteres; el margen cubre cambios menores.
+ */
+export const PROMPT_OVERHEAD_CHARS = 12_000;
 /** Dos proveedores por el reintento de reparación de la salida. */
 const MAX_PROVIDER_ATTEMPTS = 4;
 /** Groq y OpenRouter limitan la salida a 4096 tokens por intento. */
 const MAX_OUTPUT_TOKENS_PER_ATTEMPT = 4_096;
-/** Prompt de sistema, esquema JSON y sobre del correo. */
-const PROMPT_TOKEN_ALLOWANCE = 4_000;
 /** Un carácter UTF-8 ocupa hasta 4 bytes y un token nunca supera un byte. */
-const MAX_TOKENS_PER_CHAR = 4;
+const MAX_BYTES_PER_CHAR = 4;
 
 const TOP_INPUT_PRICE_USD_PER_MILLION_TOKENS = Math.max(
   DEFAULT_MODEL_PRICE_USD_PER_MILLION_TOKENS.input,
@@ -36,16 +43,20 @@ const TOP_OUTPUT_PRICE_USD_PER_MILLION_TOKENS = Math.max(
 
 /**
  * Costo máximo que se reserva antes de cada clasificación con modelo. Se
- * calcula desde los topes reales del flujo —caracteres de contenido, salida que
- * limitan los proveedores e intentos— al precio más alto de la tabla, para que
- * la reserva no dependa de una estimación de tokens. Al terminar, se ajusta al
- * costo real de los intentos, hacia arriba o hacia abajo.
+ * calcula desde los topes reales, que el código aplica al recortar: contenido,
+ * asunto y remitente, más el sobre del prompt, en el peor caso UTF-8, con los
+ * cuatro intentos posibles y la salida que limitan los proveedores, al precio
+ * más alto de la tabla. La reserva cubre el costo real; al terminar se ajusta
+ * hacia abajo.
  */
 export const MAX_CLASSIFICATION_COST_USD =
   Math.ceil(
     (MAX_PROVIDER_ATTEMPTS *
-      ((MAX_EMAIL_CONTENT_CHARS * MAX_TOKENS_PER_CHAR +
-        PROMPT_TOKEN_ALLOWANCE) *
+      ((MAX_EMAIL_CONTENT_CHARS +
+        MAX_EMAIL_SUBJECT_CHARS +
+        MAX_EMAIL_SENDER_CHARS +
+        PROMPT_OVERHEAD_CHARS) *
+        MAX_BYTES_PER_CHAR *
         TOP_INPUT_PRICE_USD_PER_MILLION_TOKENS +
         MAX_OUTPUT_TOKENS_PER_ATTEMPT *
           TOP_OUTPUT_PRICE_USD_PER_MILLION_TOKENS)) /

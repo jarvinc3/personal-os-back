@@ -62,6 +62,8 @@ import {
   isBankSenderDomain,
   MAX_CLASSIFICATION_COST_USD,
   MAX_EMAIL_CONTENT_CHARS,
+  MAX_EMAIL_SENDER_CHARS,
+  MAX_EMAIL_SUBJECT_CHARS,
   startOfUtcDay,
   utcDayKey,
 } from './email-classification-limits';
@@ -702,8 +704,8 @@ export class AiEmailClassificationService {
       {
         role: 'user',
         content: JSON.stringify({
-          from: message.fromAddress,
-          subject: message.subject,
+          from: message.fromAddress.slice(0, MAX_EMAIL_SENDER_CHARS),
+          subject: message.subject.slice(0, MAX_EMAIL_SUBJECT_CHARS),
           emailContent: content,
         }),
       },
@@ -1360,9 +1362,11 @@ export class AiEmailClassificationService {
 
   /**
    * Ajusta la reserva al costo real de la inferencia contra el día que la
-   * reservó. El costo suma cada intento con la tarifa de su modelo. Sin costo
-   * conocido, o con el reintento de reparación (que pierde el costo del primer
-   * intento), la reserva se queda completa para no subestimar el gasto.
+   * reservó. El costo suma cada intento con la tarifa de su modelo y no supera
+   * la reserva, que cubre los topes de entrada y salida, así que el ajuste no
+   * puede pasar el freno diario. Sin costo conocido, o con el reintento de
+   * reparación (que pierde el costo del primer intento), la reserva se queda
+   * completa para no subestimar el gasto.
    */
   private async settleDailyCost({
     date,

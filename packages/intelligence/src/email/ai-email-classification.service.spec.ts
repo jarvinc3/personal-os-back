@@ -991,7 +991,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { costUsd: { decrement: 0.08968 } },
+        data: { costUsd: { decrement: 0.12968 } },
       }),
     );
   });
@@ -1042,7 +1042,7 @@ describe('AiEmailClassificationService shared limits', () => {
 
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { costUsd: { decrement: 0.0896 } },
+        data: { costUsd: { decrement: 0.1296 } },
       }),
     );
   });
