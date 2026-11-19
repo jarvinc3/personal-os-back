@@ -49,6 +49,15 @@ export function readEmailClassificationLimits(
   };
 }
 
+export {
+  GLOBAL_COST_ALERT_RATIO,
+  GLOBAL_DAILY_COST_LIMIT_USD,
+  globalCostStatus,
+  startOfUtcDay,
+  utcDayKey,
+  type GlobalCostStatus,
+} from '../inference/inference-cost';
+
 /**
  * Prompt de sistema, esquema JSON, sobre del correo y la instrucción de
  * reparación. Hoy suman unos 5 100 caracteres; el margen cubre cambios menores.
@@ -137,36 +146,4 @@ export function isBankSenderDomain(
   return bankSenderDomains.some((bankDomain) =>
     matchesSenderFilter({ fromDomain: domain, senderFilter: bankDomain }),
   );
-}
-
-export function startOfUtcDay(now: Date): Date {
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-  );
-}
-
-/** Clave `AAAA-MM-DD` del día UTC, para SQL que compara la columna `date`. */
-export function utcDayKey(now: Date): string {
-  return startOfUtcDay(now).toISOString().slice(0, 10);
-}
-
-export type GlobalCostStatus = 'OK' | 'ALERT' | 'PAUSED';
-
-export function globalCostStatus({
-  costUsd,
-  limits,
-}: {
-  costUsd: number;
-  limits: Pick<
-    EmailClassificationLimits,
-    'dailyCostLimitUsd' | 'costAlertRatio'
-  >;
-}): GlobalCostStatus {
-  if (costUsd >= limits.dailyCostLimitUsd) {
-    return 'PAUSED';
-  }
-  if (costUsd >= limits.dailyCostLimitUsd * limits.costAlertRatio) {
-    return 'ALERT';
-  }
-  return 'OK';
 }

@@ -218,7 +218,11 @@ export class EmailUsageService {
           limitUsd: this.limits.dailyCostLimitUsd,
           usedUsd,
           alertRatio: this.limits.costAlertRatio,
-          status: globalCostStatus({ costUsd: usedUsd, limits: this.limits }),
+          status: globalCostStatus({
+            costUsd: usedUsd,
+            limitUsd: this.limits.dailyCostLimitUsd,
+            alertRatio: this.limits.costAlertRatio,
+          }),
         },
       },
     };

@@ -75,11 +75,31 @@ describe('AiDataDeletionService', () => {
       ),
       aiConversation: {
         deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       aiAction: {
         findMany: jest.fn().mockResolvedValue([]),
         deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
       },
+      aiViewSuggestion: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 's1', label: 'Revisá', prompt: '¿Cómo va el presupuesto?' },
+          ]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 4 }),
+      },
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      aiEmailMessage: { findMany: jest.fn().mockResolvedValue([]) },
+      aiDatasetItem: { findMany: jest.fn().mockResolvedValue([]) },
+      aiAnalysisRun: { findMany: jest.fn().mockResolvedValue([]) },
+      aiKnowledgeObservation: { findMany: jest.fn().mockResolvedValue([]) },
+      aiHumanVerification: { findMany: jest.fn().mockResolvedValue([]) },
+      aiKnowledge: { findMany: jest.fn().mockResolvedValue([]) },
+      aiConsentEvent: { findMany: jest.fn().mockResolvedValue([]) },
+      aiInference: { findMany: jest.fn().mockResolvedValue([]) },
       userAiSettings: {
         findUnique: jest.fn(() =>
           Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),
@@ -213,8 +233,12 @@ describe('AiDataDeletionService', () => {
     expect(result).toMatchObject({
       deletedConversations: 2,
       deletedActions: 3,
+      deletedViewSuggestions: 4,
     });
     expect(prisma.aiAction.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+    });
+    expect(prisma.aiViewSuggestion.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'u1' },
     });
     expect(
@@ -227,6 +251,16 @@ describe('AiDataDeletionService', () => {
         reason: 'USER_DELETED_AI_DATA',
       },
     });
+  });
+
+  it('incluye las sugerencias del agente en la exportación de datos de IA', async () => {
+    const { service } = fixture(true);
+
+    const exported = await service.exportForUser('u1');
+
+    expect(exported.viewSuggestions).toEqual([
+      { id: 's1', label: 'Revisá', prompt: '¿Cómo va el presupuesto?' },
+    ]);
   });
 
   it('marca INCOMPLETE solo los runs que cubrían la evidencia borrada', async () => {

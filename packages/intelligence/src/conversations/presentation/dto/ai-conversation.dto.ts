@@ -126,6 +126,18 @@ export class AiConversationDetailDto {
   updatedAt!: Date;
 }
 
+export class LatestAiConversationQueryDto {
+  @ApiProperty({ description: 'SHA-256 hex de la clave de contexto canónica' })
+  @IsString()
+  @Matches(/^[a-f0-9]{64}$/i)
+  context!: string;
+}
+
+export class AiConversationLatestDto {
+  @ApiProperty({ type: () => AiConversationDetailDto, nullable: true })
+  conversation!: AiConversationDetailDto | null;
+}
+
 export class AiConversationAnswerDto {
   @ApiProperty()
   conversationId!: string;

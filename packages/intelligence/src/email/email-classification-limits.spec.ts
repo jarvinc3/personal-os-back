@@ -58,17 +58,18 @@ describe('Email classification limits', () => {
   });
 
   it('marca la alerta al 80 % y la pausa al 100 %', () => {
-    expect(globalCostStatus({ costUsd: 3.99, limits })).toBe('OK');
-    expect(globalCostStatus({ costUsd: 4, limits })).toBe('ALERT');
-    expect(globalCostStatus({ costUsd: 4.99, limits })).toBe('ALERT');
-    expect(globalCostStatus({ costUsd: 5, limits })).toBe('PAUSED');
-    expect(globalCostStatus({ costUsd: 6, limits })).toBe('PAUSED');
-    expect(
-      globalCostStatus({
-        costUsd: 1,
-        limits: { dailyCostLimitUsd: 1, costAlertRatio: 0.5 },
-      }),
-    ).toBe('PAUSED');
+    const costLimits = {
+      limitUsd: limits.dailyCostLimitUsd,
+      alertRatio: limits.costAlertRatio,
+    };
+    expect(globalCostStatus({ costUsd: 3.99, ...costLimits })).toBe('OK');
+    expect(globalCostStatus({ costUsd: 4, ...costLimits })).toBe('ALERT');
+    expect(globalCostStatus({ costUsd: 4.99, ...costLimits })).toBe('ALERT');
+    expect(globalCostStatus({ costUsd: 5, ...costLimits })).toBe('PAUSED');
+    expect(globalCostStatus({ costUsd: 6, ...costLimits })).toBe('PAUSED');
+    expect(globalCostStatus({ costUsd: 1, limitUsd: 1, alertRatio: 0.5 })).toBe(
+      'PAUSED',
+    );
   });
 
   it('empieza el día en UTC', () => {

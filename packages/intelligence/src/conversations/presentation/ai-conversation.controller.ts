@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -19,7 +27,38 @@ import {
   AiConversationSummaryDto,
   SendAiConversationMessageDto,
   CreateAiConversationDto,
+  AiConversationLatestDto,
+  LatestAiConversationQueryDto,
 } from './dto/ai-conversation.dto';
+
+function isVisibleMessage(role: string): role is 'user' | 'assistant' {
+  return role === 'user' || role === 'assistant';
+}
+
+function toConversationDetail(
+  conversation: Awaited<ReturnType<AiConversationStore['findOwned']>>,
+): AiConversationDetailDto {
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    context:
+      conversation.invocationContext as AiConversationDetailDto['context'],
+    messages: conversation.messages.flatMap((message) => {
+      if (!isVisibleMessage(message.role) || message.content.length === 0) {
+        return [];
+      }
+      return [
+        {
+          role: message.role,
+          content: message.content,
+          createdAt: message.createdAt,
+        },
+      ];
+    }),
+  };
+}
 
 @ApiTags('intelligence-conversations')
 @ApiBearerAuth('access-token')
@@ -54,6 +93,27 @@ export class AiConversationController {
     }));
   }
 
+  @Get('latest')
+  @ApiOperation({
+    summary: 'Recuperar la conversación propia más reciente de un contexto',
+  })
+  @ApiOkResponse({ type: AiConversationLatestDto })
+  @ApiBadRequestResponse({
+    description: 'La clave de contexto debe ser SHA-256 hexadecimal',
+  })
+  async latest(
+    @CurrentUser('sub') userId: string,
+    @Query() query: LatestAiConversationQueryDto,
+  ) {
+    const conversation = await this.conversations.findLatestByContext(
+      userId,
+      query.context.toLowerCase(),
+    );
+    return {
+      conversation: conversation ? toConversationDetail(conversation) : null,
+    };
+  }
+
   @Get(':conversationId')
   @ApiOperation({ summary: 'Recuperar una conversación propia' })
   @ApiOkResponse({ type: AiConversationDetailDto })
@@ -66,24 +126,7 @@ export class AiConversationController {
       userId,
       conversationId,
     );
-    return {
-      id: conversation.id,
-      title: conversation.title,
-      createdAt: conversation.createdAt,
-      updatedAt: conversation.updatedAt,
-      context: conversation.invocationContext,
-      messages: conversation.messages
-        .filter(
-          (message) =>
-            (message.role === 'user' || message.role === 'assistant') &&
-            message.content.length > 0,
-        )
-        .map((message) => ({
-          role: message.role as 'user' | 'assistant',
-          content: message.content,
-          createdAt: message.createdAt,
-        })),
-    };
+    return toConversationDetail(conversation);
   }
 
   @Post(':conversationId/messages')

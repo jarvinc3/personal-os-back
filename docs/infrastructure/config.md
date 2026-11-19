@@ -11,6 +11,7 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `SUPABASE_SERVICE_ROLE_KEY`                                                               | Requerida                                                                               |
 | `GROQ_API_KEY` / `OPENROUTER_API_KEY`                                                     | Al menos una, salvo `NODE_ENV=test`                                                     |
 | `MAX_EMAIL_LLM_EXTRACTS` / `AI_DAILY_INSIGHT_QUOTA`                                       | Enteros > 0; defaults 25 y 20 respectivamente                                           |
+| `AI_VIEW_SUGGESTION_DAILY_MODEL_BUDGET` / `AI_VIEW_SUGGESTION_TTL_MINUTES`                | Enteros > 0; defaults 100 generaciones por día y 30 minutos de caché                    |
 | `AI_EMAIL_DAILY_TOKEN_BUDGET` / `AI_EMAIL_INITIAL_BUDGET`                                 | Enteros > 0; defaults 320 000 tokens por día y 500 clasificaciones iniciales            |
 | `AI_EMAIL_CLASSIFICATIONS_PER_MINUTE`                                                     | Entero > 0; default 20 clasificaciones por minuto y usuario                             |
 | `AI_EMAIL_DAILY_COST_LIMIT_USD` / `AI_EMAIL_COST_ALERT_RATIO`                             | Costo > 0 y proporción 0–1; defaults 5 USD y 0.8                                        |

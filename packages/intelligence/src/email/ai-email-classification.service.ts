@@ -1381,7 +1381,8 @@ export class AiEmailClassificationService {
       dailyCost &&
       globalCostStatus({
         costUsd: Number(dailyCost.costUsd),
-        limits: this.limits,
+        limitUsd: this.limits.dailyCostLimitUsd,
+        alertRatio: this.limits.costAlertRatio,
       }) === 'PAUSED',
     );
   }
@@ -1457,7 +1458,11 @@ export class AiEmailClassificationService {
   }): Promise<void> {
     if (
       alertedAt ||
-      globalCostStatus({ costUsd, limits: this.limits }) !== 'ALERT'
+      globalCostStatus({
+        costUsd,
+        limitUsd: this.limits.dailyCostLimitUsd,
+        alertRatio: this.limits.costAlertRatio,
+      }) !== 'ALERT'
     ) {
       return;
     }

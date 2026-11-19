@@ -25,6 +25,13 @@ export const AI_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     includes: ['propuestas, resultado y estado de ejecución'],
     order: 4,
   },
+  {
+    id: 'ai.viewSuggestions',
+    app: DATA_APP.AI,
+    label: 'Sugerencias del agente',
+    includes: ['etiquetas, prompts y descartes por vista'],
+    order: 5,
+  },
 ];
 
 @Injectable()
