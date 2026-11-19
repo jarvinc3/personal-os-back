@@ -58,6 +58,7 @@ import {
   GLOBAL_COST_ALERT_RATIO,
   GLOBAL_DAILY_COST_LIMIT_USD,
   globalCostStatus,
+  INITIAL_CLASSIFICATION_BUDGET,
   isBankSenderDomain,
   MAX_CLASSIFICATION_COST_USD,
   startOfUtcDay,
@@ -139,7 +140,7 @@ type DailyCallClaim = {
 
 /** Cupo concedido para clasificar; `costDate` es el día del costo reservado. */
 type ModelBudgetGrant = {
-  costDate: Date | null;
+  costDate: Date;
 };
 
 /** Fila devuelta por la reserva atómica del costo global del día. */
@@ -629,8 +630,8 @@ export class AiEmailClassificationService {
   }
 
   /**
-   * Clasifica con el modelo y, cuando la llamada reservó costo, ajusta el
-   * asiento del día al consumo real. La vista previa clasifica sin reservar.
+   * Clasifica con el modelo y ajusta la reserva del día al consumo real. Se
+   * llama solo después de `acquireModelBudget`, así que siempre hay reserva.
    */
   private async classifyWithModelAndSettleCost({
     userId,
@@ -643,7 +644,7 @@ export class AiEmailClassificationService {
     userId: string;
     message: ClassifiableMessage;
     content: string;
-    costDate: Date | null;
+    costDate: Date;
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<StructuredInference<EmailClassification>> {
@@ -654,9 +655,7 @@ export class AiEmailClassificationService {
       recordTelemetry,
       onModelCall,
     });
-    if (costDate) {
-      await this.settleDailyCost({ date: costDate, inferred, repaired });
-    }
+    await this.settleDailyCost({ date: costDate, inferred, repaired });
     return inferred;
   }
 
@@ -1111,16 +1110,14 @@ export class AiEmailClassificationService {
   }
 
   /**
-   * Reserva el minuto, una llamada del presupuesto diario del usuario y el costo
-   * máximo del día, en ese orden. Si el costo global no cabe, la llamada vuelve
-   * al presupuesto y la clasificación no corre. Devuelve el día reservado.
+   * Reserva una llamada del presupuesto diario del usuario y el costo máximo del
+   * día. Si el costo global no cabe, la llamada vuelve al presupuesto y la
+   * clasificación no corre. Devuelve el día reservado.
    */
   private async reserveModelCall(userId: string): Promise<Date | null> {
-    if (!(await this.reserveClassificationSlot(userId))) {
-      return null;
-    }
     const claim = await this.claimDailyCall(userId);
     if (!claim) {
+      await this.notifyDailyBudgetExhausted(userId);
       return null;
     }
     const costDate = await this.reserveDailyCost(userId);
@@ -1129,19 +1126,15 @@ export class AiEmailClassificationService {
       return null;
     }
     if (claim.completedInitialBudget) {
-      await this.notifyLimit({
-        userId,
-        key: 'INITIAL_BUDGET',
-        title: 'Carga inicial completada',
-        body: 'Se clasificaron las 500 importaciones iniciales; el resto sigue en cola para el próximo día.',
-      });
+      await this.notifyInitialBudgetDepleted(userId);
     }
     return costDate;
   }
 
   /**
-   * Reserva la llamada de modelo o, en la vista previa, solo comprueba el cupo.
-   * Devuelve null cuando no hay presupuesto para clasificar.
+   * Reserva el costo máximo de la llamada. La clasificación normal además ocupa
+   * una llamada del presupuesto diario; la vista previa solo paga el costo. Un
+   * modelo nunca se llama sin reserva. Null significa que no hay presupuesto.
    */
   private async acquireModelBudget({
     userId,
@@ -1150,10 +1143,14 @@ export class AiEmailClassificationService {
     userId: string;
     modelBudget: ModelBudget;
   }): Promise<ModelBudgetGrant | null> {
-    if (modelBudget === 'inspect') {
-      return (await this.hasModelBudget(userId)) ? { costDate: null } : null;
+    if (modelBudget === 'reserve') {
+      const costDate = await this.reserveModelCall(userId);
+      return costDate ? { costDate } : null;
     }
-    const costDate = await this.reserveModelCall(userId);
+    if (!(await this.hasModelBudget(userId))) {
+      return null;
+    }
+    const costDate = await this.reserveDailyCost(userId);
     return costDate ? { costDate } : null;
   }
 
@@ -1344,9 +1341,9 @@ export class AiEmailClassificationService {
 
   /**
    * Ajusta la reserva al costo real de la inferencia contra el día que la
-   * reservó. Con fallback o reintento de reparación la reserva se queda completa,
-   * porque no se conoce el consumo de los intentos rechazados. El costo no se
-   * suma dos veces.
+   * reservó. Sin tokens del proveedor, con fallback o con reintento de reparación
+   * la reserva se queda completa: no se conoce el consumo de esos intentos, así
+   * que el costo no se subestima ni se suma dos veces.
    */
   private async settleDailyCost({
     date,
@@ -1358,6 +1355,9 @@ export class AiEmailClassificationService {
     repaired: boolean;
   }): Promise<void> {
     if (repaired || inferred.fallbackCount > 0) {
+      return;
+    }
+    if (inferred.inputTokens == null || inferred.outputTokens == null) {
       return;
     }
     const actualUsd = inferenceCostUsd({
@@ -1379,6 +1379,29 @@ export class AiEmailClassificationService {
             ? { decrement: adjustmentUsd }
             : { increment: -adjustmentUsd },
       },
+    });
+  }
+
+  private async notifyInitialBudgetDepleted(userId: string): Promise<void> {
+    const pending = await this.countPendingForUser(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'INITIAL_BUDGET',
+      title: 'Carga inicial agotada',
+      body: `Se agotó la carga inicial de ${INITIAL_CLASSIFICATION_BUDGET} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+    });
+  }
+
+  private async notifyDailyBudgetExhausted(userId: string): Promise<void> {
+    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
+      infer: true,
+    });
+    const pending = await this.countPendingForUser(userId);
+    await this.notifyLimit({
+      userId,
+      key: 'DAILY_BUDGET',
+      title: 'Tope diario de clasificación',
+      body: `Se agotó el tope diario de ${dailyLimit} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
     });
   }
 

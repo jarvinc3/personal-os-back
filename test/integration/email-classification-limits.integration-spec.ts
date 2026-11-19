@@ -164,6 +164,23 @@ describe('Límites compartidos de clasificación sobre PostgreSQL', () => {
     await expect(readMinuteCalls(userId)).resolves.toBe(20);
   });
 
+  it('reserva el costo global en la vista previa sin consumir el cupo diario', async () => {
+    const { userId, messageId } = await createUserWithMessage();
+    const { service, inference } = buildService();
+
+    await expect(
+      service.previewClassification({ userId, messageId }),
+    ).resolves.toMatchObject({ kind: 'classified' });
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    const dailyCost = await prisma.aiEmailDailyCost.findUniqueOrThrow({
+      where: { date: startOfUtcDay(new Date()) },
+    });
+    expect(Number(dailyCost.costUsd)).toBe(0.02);
+    await expect(
+      prisma.aiEmailModelBudget.findUnique({ where: { userId } }),
+    ).resolves.toBeNull();
+  });
+
   it('no llama al modelo cuando el costo máximo no cabe bajo el tope diario', async () => {
     const { userId, messageId } = await createUserWithMessage();
     const date = startOfUtcDay(new Date());

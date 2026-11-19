@@ -128,6 +128,66 @@ describe('AiInferenceGateway', () => {
     );
   });
 
+  it('sums the tokens of a rejected completion and the attempt that succeeded', async () => {
+    const rejected = {
+      name: 'primary',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":4}',
+        toolCalls: [],
+        usage: { inputTokens: 30, outputTokens: 5 },
+      }),
+    };
+    const valid = {
+      name: 'fallback',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+        usage: { inputTokens: 12, outputTokens: 3 },
+      }),
+    };
+    const { gateway, create } = build([rejected, valid]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      value: { value: 'ok' },
+      fallbackCount: 1,
+      inputTokens: 42,
+      outputTokens: 8,
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ inputTokens: 42, outputTokens: 8 }),
+    });
+  });
+
+  it('keeps the tokens of rejected completions when no attempt succeeds', async () => {
+    const rejectedTwice = {
+      content: '{"value":4}',
+      toolCalls: [],
+      usage: { inputTokens: 30, outputTokens: 5 },
+    };
+    const providers = ['primary', 'fallback'].map((name) => ({
+      name,
+      model: `model-${name}`,
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue(rejectedTwice),
+    }));
+    const { gateway, create } = build(providers);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'STRUCTURED_OUTPUT_INVALID',
+    });
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        status: 'FAILED',
+        inputTokens: 60,
+        outputTokens: 10,
+      }),
+    });
+  });
+
   it('honors a preferred provider ahead of the round-robin first slot', async () => {
     const first = {
       name: 'first',

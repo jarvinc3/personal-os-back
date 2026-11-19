@@ -200,6 +200,8 @@ export class AiInferenceGateway {
     ).length;
     const messages = toProviderMessages(request.messages, request.jsonSchema);
     let attempts = 0;
+    let billedInputTokens: number | null = null;
+    let billedOutputTokens: number | null = null;
     let lastProvider: AIProviderClient | undefined;
     let lastHttpStatus: number | null = null;
     let lastErrorCode = 'NO_PROVIDER';
@@ -214,6 +216,12 @@ export class AiInferenceGateway {
         lastProvider = provider;
         try {
           const completion = await provider.chatComplete(messages);
+          if (completion.usage) {
+            billedInputTokens =
+              (billedInputTokens ?? 0) + (completion.usage.inputTokens ?? 0);
+            billedOutputTokens =
+              (billedOutputTokens ?? 0) + (completion.usage.outputTokens ?? 0);
+          }
           const json = extractJson(completion.content);
           if (!json) {
             throw new InvalidOutputError('INVALID_JSON');
@@ -243,8 +251,8 @@ export class AiInferenceGateway {
             model: provider.model,
             latencyMs,
             fallbackCount: Math.max(0, attempts - 1),
-            inputTokens: completion.usage?.inputTokens,
-            outputTokens: completion.usage?.outputTokens,
+            inputTokens: billedInputTokens ?? undefined,
+            outputTokens: billedOutputTokens ?? undefined,
           });
           return {
             value,
@@ -252,8 +260,8 @@ export class AiInferenceGateway {
             model: provider.model,
             latencyMs,
             fallbackCount: Math.max(0, attempts - 1),
-            inputTokens: completion.usage?.inputTokens ?? null,
-            outputTokens: completion.usage?.outputTokens ?? null,
+            inputTokens: billedInputTokens,
+            outputTokens: billedOutputTokens,
           };
         } catch (error) {
           if (error instanceof InvalidOutputError) {
@@ -321,6 +329,8 @@ export class AiInferenceGateway {
         latencyMs: Date.now() - startedAt,
         fallbackCount: Math.max(0, attempts - 1),
         errorCode: lastOutputDetail ?? lastErrorCode,
+        inputTokens: billedInputTokens ?? undefined,
+        outputTokens: billedOutputTokens ?? undefined,
       });
       throw error;
     }

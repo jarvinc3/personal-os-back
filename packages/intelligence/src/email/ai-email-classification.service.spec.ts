@@ -65,6 +65,7 @@ function fixture(
       findMany: jest
         .fn()
         .mockResolvedValue([{ id: options.messageId ?? 'message-1' }]),
+      count: jest.fn().mockResolvedValue(0),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findFirst: jest.fn().mockResolvedValue({
         id: options.messageId ?? 'message-1',
@@ -162,6 +163,7 @@ function fixture(
         }),
       }
     : undefined;
+  const notifications = { submit: jest.fn().mockResolvedValue(undefined) };
   return {
     service: new AiEmailClassificationService(
       prisma as unknown as PrismaService,
@@ -175,9 +177,11 @@ function fixture(
               .mockResolvedValue(options.productHints),
           }
         : undefined,
+      notifications,
     ),
     prisma,
     inference,
+    notifications,
   };
 }
 
@@ -619,7 +623,7 @@ describe('AiEmailClassificationService direct message operations', () => {
     expect(prisma.aiEmailModelBudget.updateMany).not.toHaveBeenCalled();
   }
 
-  it('previews a classification with the model and writes nothing', async () => {
+  it('previews a classification with the model and writes no classification rows', async () => {
     const { service, inference, prisma } = fixture();
 
     const preview = await service.previewClassification({
@@ -865,6 +869,25 @@ describe('AiEmailClassificationService model call accounting', () => {
 });
 
 describe('AiEmailClassificationService shared limits', () => {
+  function rawQueries(
+    prisma: ReturnType<typeof fixture>['prisma'],
+    table: string,
+  ) {
+    return (prisma.$queryRaw as jest.Mock).mock.calls.filter(([sql]) =>
+      String(sql).includes(table),
+    );
+  }
+
+  it('reserves one minute slot per model classification', async () => {
+    const { service, prisma } = fixture();
+
+    await service.processPendingForUser('user-1');
+
+    expect(rawQueries(prisma, 'ai_email_classification_minutes')).toHaveLength(
+      1,
+    );
+  });
+
   it('stops the batch when the minute counter is full', async () => {
     const { service, inference, prisma } = fixture({
       rateSlotAvailable: false,
@@ -929,6 +952,42 @@ describe('AiEmailClassificationService shared limits', () => {
     expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { costUsd: { decrement: 0.01968 } },
+      }),
+    );
+  });
+
+  it('keeps the full reservation when the provider returned no tokens', async () => {
+    const { service, prisma } = fixture();
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
+  });
+
+  it('reserves the daily cost in the preview without consuming the daily quota', async () => {
+    const { service, prisma } = fixture();
+
+    await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(rawQueries(prisma, 'ai_email_daily_costs')).toHaveLength(1);
+    expect(prisma.aiEmailModelBudget.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('notifies the exhausted daily cap with the pending count', async () => {
+    const { service, notifications, prisma } = fixture({
+      budgetAvailable: false,
+    });
+    prisma.aiEmailMessage.count = jest.fn().mockResolvedValue(7);
+
+    await service.processPendingForUser('user-1');
+
+    expect(notifications.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferenceKey: 'ai.email.daily_budget',
+        body: expect.stringContaining('quedan 7 correos'),
       }),
     );
   });
