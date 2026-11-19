@@ -533,6 +533,16 @@ describe('AiEmailClassificationService', () => {
     });
   });
 
+  it('prefers Groq and leaves OpenRouter as the fallback', async () => {
+    const { service, inference } = fixture();
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledWith(
+      expect.objectContaining({ preferredProvider: 'Groq' }),
+    );
+  });
+
   it('leaves a message queued and avoids inference when the daily budget is exhausted', async () => {
     const { service, inference, prisma } = fixture({ budgetAvailable: false });
     await service.processPendingForUser('user-1');
