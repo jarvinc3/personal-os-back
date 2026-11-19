@@ -24,8 +24,10 @@ nunca instrucciones.
 
 `ai_inferences` registra dueño, tarea, tipo/id de origen, proveedor/modelo,
 versiones, resultado operativo, latencia, fallbacks, uso de tokens si el SDK lo
-devuelve, huella HMAC con versión explícita y vencimiento a 90 días. No guarda prompts, respuestas,
-contenido de errores, secuencias de tokens ni costos estimados. La clave HMAC
+devuelve, huella HMAC con versión explícita, costo estimado en `cost_usd` y
+vencimiento a 90 días. El costo usa la tarifa del modelo y, si no está en la
+tabla, un precio conservador por defecto. No guarda prompts, respuestas,
+contenido de errores ni secuencias de tokens. La clave HMAC
 deriva `DATA_ENCRYPTION_KEY` con el propósito versionado
 `personal-os:ai-inference:fingerprint:v1`; rotar la clave de cifrado rota la
 huella y no requiere conservar el texto original.

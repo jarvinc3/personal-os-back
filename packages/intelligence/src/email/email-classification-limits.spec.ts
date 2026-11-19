@@ -1,8 +1,8 @@
 import {
   globalCostStatus,
   isBankSenderDomain,
-  recentClassificationTimestamps,
   startOfUtcDay,
+  utcDayKey,
 } from './email-classification-limits';
 
 describe('Email classification limits', () => {
@@ -23,22 +23,15 @@ describe('Email classification limits', () => {
     );
   });
 
+  it('nombra el día UTC con la clave que compara el SQL', () => {
+    expect(utcDayKey(new Date('2026-11-18T23:59:59.000Z'))).toBe('2026-11-18');
+    expect(utcDayKey(new Date('2026-11-19T00:00:00.000Z'))).toBe('2026-11-19');
+  });
+
   it('reconoce bancos y sus subdominios, no dominios parecidos', () => {
     expect(isBankSenderDomain('bhd.com.do')).toBe(true);
     expect(isBankSenderDomain('alertas.bhd.com.do')).toBe(true);
     expect(isBankSenderDomain('notbhd.com.do')).toBe(false);
     expect(isBankSenderDomain('example.com')).toBe(false);
-  });
-
-  it('conserva solo los timestamps del último minuto', () => {
-    const now = new Date('2026-11-18T12:00:00.000Z');
-    const recent = now.getTime() - 30_000;
-    const old = now.getTime() - 61_000;
-    expect(
-      recentClassificationTimestamps({
-        timestamps: [old, recent, now.getTime()],
-        now,
-      }),
-    ).toEqual([recent, now.getTime()]);
   });
 });

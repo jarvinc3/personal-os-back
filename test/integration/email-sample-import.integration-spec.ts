@@ -168,6 +168,14 @@ function readMessage(messageId: string) {
 
 describe('Selección acotada de muestra por lista explícita', () => {
   afterAll(async () => {
+    const now = new Date();
+    await prisma.aiEmailDailyCost.deleteMany({
+      where: {
+        date: new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+        ),
+      },
+    });
     const userIds = [...createdUserIds];
     if (userIds.length) {
       await prisma.aiSignalEvidence.deleteMany({

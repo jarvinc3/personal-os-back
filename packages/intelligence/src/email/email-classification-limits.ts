@@ -7,6 +7,15 @@ export const GLOBAL_DAILY_COST_LIMIT_USD = 5;
 export const GLOBAL_COST_ALERT_RATIO = 0.8;
 
 /**
+ * Costo máximo que se reserva antes de cada clasificación con modelo. Cubre el
+ * contenido recortado a 24 000 caracteres (unos 8 000 tokens), la respuesta, el
+ * reintento de reparación y el fallback de proveedor, al precio conservador por
+ * defecto: 4 × (8 000 × 0.2 + 2 000 × 0.6) / 1 000 000 ≈ 0.011 USD. Con el tope
+ * diario de 100 llamadas por usuario, la reserva completa nunca agota los 5 USD.
+ */
+export const MAX_CLASSIFICATION_COST_USD = 0.02;
+
+/**
  * Dominios bancarios que pueden llegar a la IA. La lista es la semilla del
  * piloto; convertirla en configuración por entorno queda reportado en #402.
  */
@@ -38,6 +47,11 @@ export function startOfUtcDay(now: Date): Date {
   );
 }
 
+/** Clave `AAAA-MM-DD` del día UTC, para SQL que compara la columna `date`. */
+export function utcDayKey(now: Date): string {
+  return startOfUtcDay(now).toISOString().slice(0, 10);
+}
+
 export type GlobalCostStatus = 'OK' | 'ALERT' | 'PAUSED';
 
 export function globalCostStatus({
@@ -56,16 +70,4 @@ export function globalCostStatus({
     return 'ALERT';
   }
   return 'OK';
-}
-
-/** Ventana deslizante de un minuto para el ritmo por usuario. */
-export function recentClassificationTimestamps({
-  timestamps,
-  now,
-}: {
-  timestamps: readonly number[];
-  now: Date;
-}): number[] {
-  const windowStart = now.getTime() - 60_000;
-  return timestamps.filter((timestamp) => timestamp > windowStart);
 }

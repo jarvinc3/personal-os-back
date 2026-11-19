@@ -25,6 +25,7 @@ model User {
   aiEmailMessages                AiEmailMessage[]
   aiEmailClassifications         AiEmailClassification[]
   aiEmailModelBudget             AiEmailModelBudget?
+  aiEmailClassificationMinutes   AiEmailClassificationMinute[]
   aiSignals                      AiSignal[]
   aiEmailProductProposals        AiEmailProductProposal[]
   aiEmailProductProposalEvidence AiEmailProductProposalEvidence[]
@@ -706,6 +707,20 @@ model AiEmailDailyCost {
   updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("ai_email_daily_costs")
+}
+
+/// Cuota del ritmo de clasificación por usuario y minuto. La tabla es la
+/// fuente compartida entre réplicas del límite de 20 por minuto: cada
+/// clasificación reserva su lugar con un INSERT ... ON CONFLICT atómico.
+model AiEmailClassificationMinute {
+  userId    String   @map("user_id")
+  minute    DateTime @db.Timestamptz(6)
+  calls     Int      @default(0)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([userId, minute])
+  @@map("ai_email_classification_minutes")
 }
 
 model AiEmailMessageContent {

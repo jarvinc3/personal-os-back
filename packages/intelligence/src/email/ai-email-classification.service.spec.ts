@@ -22,7 +22,11 @@ function fixture(
     knowledge?: unknown[];
     role?: string;
     budgetAvailable?: boolean;
+    rateSlotAvailable?: boolean;
+    costReservationAvailable?: boolean;
     inferenceValue?: unknown;
+    inferenceUsage?: { inputTokens?: number; outputTokens?: number };
+    inferenceFallbackCount?: number;
     reviewSettings?: {
       reviewConfidenceThreshold?: number;
       acceptVerifiedSenders?: boolean;
@@ -100,11 +104,26 @@ function fixture(
     },
     aiEmailDailyCost: {
       findUnique: jest.fn().mockResolvedValue(null),
-      upsert: jest
-        .fn()
-        .mockResolvedValue({ costUsd: 0, alertedAt: null, pausedAt: null }),
+      upsert: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({ costUsd: 0, alertedAt: null }),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
+    aiEmailClassificationMinute: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    $queryRaw: jest.fn((strings: TemplateStringsArray) => {
+      const sql = strings.join(' ? ');
+      if (sql.includes('ai_email_classification_minutes')) {
+        return Promise.resolve(
+          options.rateSlotAvailable === false ? [] : [{ calls: 1 }],
+        );
+      }
+      return Promise.resolve(
+        options.costReservationAvailable === false
+          ? []
+          : [{ cost_usd: 0.02, alerted_at: null }],
+      );
+    }),
     ...tx,
     $transaction: jest.fn(async (queries: Promise<unknown>[]) =>
       Promise.all(queries),
@@ -121,6 +140,9 @@ function fixture(
         transaction: { kind: 'TRANSACTION' },
         confidence: 0.9,
       },
+      fallbackCount: options.inferenceFallbackCount ?? 0,
+      inputTokens: options.inferenceUsage?.inputTokens ?? null,
+      outputTokens: options.inferenceUsage?.outputTokens ?? null,
     }),
   };
   const config = { get: jest.fn(() => 100) };
@@ -839,6 +861,106 @@ describe('AiEmailClassificationService model call accounting', () => {
       modelCalls: 0,
       rateLimited: false,
     });
+  });
+});
+
+describe('AiEmailClassificationService shared limits', () => {
+  it('stops the batch when the minute counter is full', async () => {
+    const { service, inference, prisma } = fixture({
+      rateSlotAvailable: false,
+    });
+
+    await expect(service.processPendingForUser('user-1')).resolves.toEqual({
+      processed: 0,
+      modelCalls: 0,
+      rateLimited: true,
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { processingStatus: 'QUEUED', classificationStartedAt: null },
+      }),
+    );
+  });
+
+  it('reports the minute limit in the preview without calling the model', async () => {
+    const { service, inference } = fixture({ rateSlotAvailable: false });
+
+    await expect(
+      service.previewClassification({
+        userId: 'user-1',
+        messageId: 'message-1',
+      }),
+    ).resolves.toEqual({ kind: 'unavailable', reason: 'RATE_LIMITED' });
+    expect(inference.infer).not.toHaveBeenCalled();
+  });
+
+  it('does not call the model when the max cost does not fit under the daily cap', async () => {
+    const { service, inference, prisma } = fixture({
+      costReservationAvailable: false,
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { processingStatus: 'QUEUED', classificationStartedAt: null },
+      }),
+    );
+    expect(prisma.aiEmailModelBudget.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { calls: { decrement: 1 } } }),
+    );
+    expect(prisma.aiEmailDailyCost.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ pausedAt: null }),
+      }),
+    );
+  });
+
+  it('settles the reserved cost down to the tokens the provider returned', async () => {
+    const { service, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    // 1 000 × 0.2 + 200 × 0.6 por millón = 0.00032 USD real sobre 0.02 reservados.
+    expect(prisma.aiEmailDailyCost.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { costUsd: { decrement: 0.01968 } },
+      }),
+    );
+  });
+
+  it('keeps the full reservation when the provider fell back', async () => {
+    const { service, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceFallbackCount: 1,
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps the full reservation when it had to repair a rejected output', async () => {
+    const { service, inference, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+    });
+    inference.infer.mockRejectedValueOnce(
+      new StructuredInferenceOutputError(
+        'Groq',
+        'qwen/qwen3.8-27b',
+        1,
+        'SCHEMA_VALIDATION:transaction:invalid_type',
+      ),
+    );
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailDailyCost.update).not.toHaveBeenCalled();
   });
 });
 

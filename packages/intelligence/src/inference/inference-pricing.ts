@@ -1,8 +1,17 @@
 /**
+ * Precio conservador por millón de tokens para un modelo sin tarifa publicada.
+ * Toma los valores más altos de la tabla del gateway: un modelo desconocido
+ * nunca puede subestimar el costo ni saltarse el tope diario.
+ */
+export const DEFAULT_MODEL_PRICE_USD_PER_MILLION_TOKENS = {
+  input: 0.2,
+  output: 0.6,
+};
+
+/**
  * Precio por millón de tokens de los modelos que usa el gateway. Groq y
  * OpenRouter publican la tabla por modelo; estos valores son la referencia
- * conservadora para el piloto y quedan pendientes de medir en DEV. Si un
- * modelo no está en la tabla, no se estima costo (null) en vez de inventarlo.
+ * conservadora para el piloto y quedan pendientes de medir en DEV.
  */
 export const MODEL_PRICES_USD_PER_MILLION_TOKENS: Record<
   string,
@@ -22,11 +31,10 @@ export function inferenceCostUsd({
   model: string;
   inputTokens?: number | null;
   outputTokens?: number | null;
-}): number | null {
-  const price = MODEL_PRICES_USD_PER_MILLION_TOKENS[model];
-  if (!price) {
-    return null;
-  }
+}): number {
+  const price =
+    MODEL_PRICES_USD_PER_MILLION_TOKENS[model] ??
+    DEFAULT_MODEL_PRICE_USD_PER_MILLION_TOKENS;
   const input = Math.max(0, inputTokens ?? 0);
   const output = Math.max(0, outputTokens ?? 0);
   return (
