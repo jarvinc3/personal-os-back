@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
+import type { AiEmailMessageStatus } from './dto/list-email-messages-query.dto';
 import { decryptToken, encryptToken } from './token-encryption.util';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
 import {
@@ -63,6 +64,15 @@ type AttemptFields = {
   lastAttemptImportedCount: number | null;
   lastAttemptPhase: string | null;
 };
+
+type ListMessagesInput = {
+  userId: string;
+  cursor?: string;
+  q?: string;
+  status?: AiEmailMessageStatus;
+};
+
+type MessageCursorPoint = { receivedAt: Date; id: string };
 
 type FailureFields = {
   lastFailureAt: Date | null;
@@ -190,35 +200,32 @@ export class AiEmailSourceService {
     };
   }
 
-  async listMessages(userId: string, cursor?: string) {
-    let cursorValues: { receivedAt: string; id: string } | undefined;
-    if (cursor) {
-      try {
-        cursorValues = JSON.parse(
-          Buffer.from(cursor, 'base64url').toString('utf8'),
-        ) as { receivedAt: string; id: string };
-        if (
-          !cursorValues.id ||
-          !Number.isFinite(Date.parse(cursorValues.receivedAt))
-        ) {
-          throw new Error('invalid cursor');
-        }
-      } catch {
-        throw new BadRequestException('Cursor inválido');
-      }
-    }
+  async listMessages({ userId, cursor, q, status }: ListMessagesInput) {
+    const cursorPoint = this.parseMessageCursor(cursor);
     const rows = await this.prisma.aiEmailMessage.findMany({
       where: {
         userId,
-        ...(cursorValues
+        ...(status ? { processingStatus: status } : {}),
+        ...(cursorPoint
           ? {
               OR: [
-                { receivedAt: { gt: new Date(cursorValues.receivedAt) } },
+                { receivedAt: { gt: cursorPoint.receivedAt } },
                 {
-                  receivedAt: new Date(cursorValues.receivedAt),
-                  id: { gt: cursorValues.id },
+                  receivedAt: cursorPoint.receivedAt,
+                  id: { gt: cursorPoint.id },
                 },
               ],
+            }
+          : {}),
+        // El cursor ya ocupa `OR`; la búsqueda va en `AND` para no pisarlo.
+        ...(q
+          ? {
+              AND: {
+                OR: [
+                  { subject: { contains: q, mode: 'insensitive' } },
+                  { fromAddress: { contains: q, mode: 'insensitive' } },
+                ],
+              },
             }
           : {}),
       },
@@ -250,6 +257,28 @@ export class AiEmailSourceService {
             ).toString('base64url')
           : null,
     };
+  }
+
+  private parseMessageCursor(cursor?: string): MessageCursorPoint | undefined {
+    if (!cursor) {
+      return undefined;
+    }
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { receivedAt?: unknown; id?: unknown };
+      if (
+        typeof parsed.id !== 'string' ||
+        !parsed.id ||
+        typeof parsed.receivedAt !== 'string' ||
+        !Number.isFinite(Date.parse(parsed.receivedAt))
+      ) {
+        throw new Error('invalid cursor');
+      }
+      return { receivedAt: new Date(parsed.receivedAt), id: parsed.id };
+    } catch {
+      throw new BadRequestException('Cursor inválido');
+    }
   }
 
   async getMessage(userId: string, messageId: string) {

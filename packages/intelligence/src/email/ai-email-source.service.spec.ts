@@ -654,3 +654,116 @@ describe('AiEmailSourceService', () => {
     });
   });
 });
+
+describe('AiEmailSourceService.listMessages', () => {
+  function messageRow(id: string, receivedAt: Date) {
+    return {
+      id,
+      receivedAt,
+      fromAddress: 'alertas@banco.com',
+      fromDomain: 'banco.com',
+      subject: 'Consumo con tarjeta',
+      processingStatus: 'PROCESSED',
+      contentFingerprint: null,
+    };
+  }
+
+  function makeListService(rows: unknown[]) {
+    const prisma = {
+      aiEmailMessage: { findMany: jest.fn().mockResolvedValue(rows) },
+    };
+    return {
+      prisma,
+      service: new AiEmailSourceService(prisma as never, {} as never),
+    };
+  }
+
+  it('combina usuario, estado, búsqueda y cursor en la misma consulta', async () => {
+    const { prisma, service } = makeListService([]);
+    const cursorReceivedAt = new Date('2026-11-01T10:00:00.000Z');
+    const cursor = Buffer.from(
+      JSON.stringify({
+        receivedAt: cursorReceivedAt.toISOString(),
+        id: 'message-1',
+      }),
+    ).toString('base64url');
+
+    await service.listMessages({
+      userId: 'user-1',
+      cursor,
+      q: 'Factura',
+      status: 'REVIEW_REQUIRED',
+    });
+
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          userId: 'user-1',
+          processingStatus: 'REVIEW_REQUIRED',
+          OR: [
+            { receivedAt: { gt: cursorReceivedAt } },
+            { receivedAt: cursorReceivedAt, id: { gt: 'message-1' } },
+          ],
+          AND: {
+            OR: [
+              { subject: { contains: 'Factura', mode: 'insensitive' } },
+              {
+                fromAddress: { contains: 'Factura', mode: 'insensitive' },
+              },
+            ],
+          },
+        },
+        orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
+        take: 51,
+      }),
+    );
+  });
+
+  it('pide solo el usuario cuando no hay filtros', async () => {
+    const { prisma, service } = makeListService([]);
+
+    await expect(service.listMessages({ userId: 'user-1' })).resolves.toEqual({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'user-1' } }),
+    );
+  });
+
+  it('devuelve el cursor de la última fila incluida en la página', async () => {
+    const rows = Array.from({ length: 51 }, (_, index) =>
+      messageRow(`message-${index}`, new Date(Date.UTC(2026, 9, 1, 10, index))),
+    );
+    const { service } = makeListService(rows);
+
+    const page = await service.listMessages({ userId: 'user-1' });
+
+    expect(page.items).toHaveLength(50);
+    expect(page.hasMore).toBe(true);
+    expect(
+      JSON.parse(
+        Buffer.from(page.nextCursor ?? '', 'base64url').toString('utf8'),
+      ),
+    ).toEqual({
+      receivedAt: rows[49].receivedAt.toISOString(),
+      id: 'message-49',
+    });
+  });
+
+  it.each([
+    'no-es-un-cursor',
+    Buffer.from(JSON.stringify({ id: 7 })).toString('base64url'),
+    Buffer.from(
+      JSON.stringify({ receivedAt: 'ayer', id: 'message-1' }),
+    ).toString('base64url'),
+  ])('rechaza el cursor inválido %s sin consultar', async (cursor) => {
+    const { prisma, service } = makeListService([]);
+
+    await expect(
+      service.listMessages({ userId: 'user-1', cursor }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.aiEmailMessage.findMany).not.toHaveBeenCalled();
+  });
+});

@@ -21,13 +21,15 @@ Errors are classified as `configuration`, `authorization`, `rate_limit`, `tempor
 Endpoints:
 
 - `GET /api/intelligence`: connection, counts, current role, first/latest received-message dates, and `requiresReconnect` for the Gmail source.
-- `GET /api/intelligence/messages?cursor=...`: keyset-paginated summaries ordered oldest-first.
+- `GET /api/intelligence/messages?cursor=...&q=...&status=...`: keyset-paginated summaries ordered oldest-first.
 - `GET /api/intelligence/messages/:messageId`: the caller's message and available body representations.
 - `POST /api/intelligence/email/connect` accepts an optional `{ period, senderFilter }` and returns the authorization URL; `POST /api/intelligence/email/sync`.
 - `POST /api/intelligence/email/reset` with `{ "confirmed": true }` removes this user's imported mail and derived review/analysis data, resets bootstrap cursors, and retains the OAuth connection. Without a connection it returns 409 `GMAIL_NOT_CONNECTED`; while a sync is active or waiting for quota it returns 409 `GMAIL_SYNC_IN_PROGRESS` and deletes nothing.
 - `GET /api/intelligence/email/oauth/callback`: public OAuth callback; the signed state is validated before persisting tokens.
 - `GET|PATCH /api/intelligence/preferences/consent`: contribution consent, enabled by default and revocable. Revoking it pauses GLOBAL knowledge and rebuilds the projection.
 - `GET /api/intelligence/admin/roles` and `PATCH /api/intelligence/admin/roles/:userId`: ADMIN-only role management.
+
+The messages list accepts two optional filters that combine with the cursor and the authenticated account: `q` matches the subject or the sender address without distinguishing case, and `status` keeps the messages in one processing state (`INGESTED`, `QUEUED`, `PROCESSED`, `REVIEW_REQUIRED` or `FAILED`). A search covers the whole imported history, not only the first page, and the next page keeps the same filters. `CLASSIFYING` and `DISCARDED` stay out of the public filter. An unknown state responds 400 with the allowed values, and a malformed cursor keeps responding 400. Response shape and oldest-first order do not change. Issue: [#414](https://github.com/jarvinc3/personal-os-back/issues/414).
 
 Raw message bodies are purged 30 days after ingestion in DEV and 7 days after ingestion in PROD; canonical and sanitized representations remain available for this phase. New tables enable RLS and revoke `PUBLIC`, `anon`, and `authenticated` access where those roles exist. The backend accesses them through Prisma.
 
