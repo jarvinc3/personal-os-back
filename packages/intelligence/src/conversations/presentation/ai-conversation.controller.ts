@@ -18,6 +18,7 @@ import {
   AiConversationDetailDto,
   AiConversationSummaryDto,
   SendAiConversationMessageDto,
+  CreateAiConversationDto,
 } from './dto/ai-conversation.dto';
 
 @ApiTags('intelligence-conversations')
@@ -32,8 +33,14 @@ export class AiConversationController {
   @Post()
   @ApiOperation({ summary: 'Crear una conversación privada del agente' })
   @ApiCreatedResponse({ type: AiConversationCreatedDto })
-  create(@CurrentUser('sub') userId: string) {
-    return this.conversations.create(userId);
+  @ApiBadRequestResponse({
+    description: 'Contexto inválido o entidad no accesible',
+  })
+  create(
+    @CurrentUser('sub') userId: string,
+    @Body() body?: CreateAiConversationDto,
+  ) {
+    return this.orchestrator.createConversation(userId, body?.context);
   }
 
   @Get()
@@ -64,6 +71,7 @@ export class AiConversationController {
       title: conversation.title,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt,
+      context: conversation.invocationContext,
       messages: conversation.messages
         .filter(
           (message) =>
@@ -95,6 +103,7 @@ export class AiConversationController {
       userId,
       conversationId,
       dto.content.trim(),
+      dto.context,
     );
   }
 
