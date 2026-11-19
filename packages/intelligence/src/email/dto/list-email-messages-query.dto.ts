@@ -1,23 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-
-/**
- * Estados que la lista de correos admite como filtro (#414). El enum de la base
- * guarda además `CLASSIFYING` y `DISCARDED`, que no se filtran desde la lista.
- */
-export const AI_EMAIL_MESSAGE_STATUS_FILTERS = [
-  'INGESTED',
-  'QUEUED',
-  'PROCESSED',
-  'REVIEW_REQUIRED',
-  'FAILED',
-] as const;
-
-export type AiEmailMessageStatus =
-  (typeof AI_EMAIL_MESSAGE_STATUS_FILTERS)[number];
-
-const INVALID_STATUS_MESSAGE = `status debe ser uno de: ${AI_EMAIL_MESSAGE_STATUS_FILTERS.join(', ')}`;
+import {
+  AI_EMAIL_MESSAGE_STATUS_FILTERS,
+  INVALID_EMAIL_MESSAGE_STATUS_MESSAGE,
+  type AiEmailMessageStatus,
+} from '../ai-email-message-status';
 
 function trimToUndefined(value: unknown): string | undefined {
   if (typeof value !== 'string') {
@@ -47,7 +35,7 @@ export class ListEmailMessagesQueryDto {
     typeof value === 'string' ? trimToUndefined(value) : value,
   )
   @IsIn(AI_EMAIL_MESSAGE_STATUS_FILTERS, {
-    message: INVALID_STATUS_MESSAGE,
+    message: INVALID_EMAIL_MESSAGE_STATUS_MESSAGE,
   })
   status?: AiEmailMessageStatus;
 

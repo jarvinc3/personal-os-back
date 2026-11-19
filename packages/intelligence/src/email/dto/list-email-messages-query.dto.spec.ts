@@ -1,9 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
-import {
-  AI_EMAIL_MESSAGE_STATUS_FILTERS,
-  ListEmailMessagesQueryDto,
-} from './list-email-messages-query.dto';
+import { AI_EMAIL_MESSAGE_STATUS_FILTERS } from '../ai-email-message-status';
+import { ListEmailMessagesQueryDto } from './list-email-messages-query.dto';
 
 async function validateQuery(input: Record<string, unknown>) {
   return validate(plainToInstance(ListEmailMessagesQueryDto, input));

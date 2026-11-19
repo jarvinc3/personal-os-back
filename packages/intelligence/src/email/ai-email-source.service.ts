@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
-import type { AiEmailMessageStatus } from './dto/list-email-messages-query.dto';
+import type { AiEmailMessageStatus } from './ai-email-message-status';
 import { decryptToken, encryptToken } from './token-encryption.util';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
 import { INITIAL_CLASSIFICATION_BUDGET } from './email-classification-limits';

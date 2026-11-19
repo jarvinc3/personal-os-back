@@ -16,7 +16,7 @@ import { AiRolesService } from './roles/ai-roles.service';
 import { AiRolesController } from './roles/ai-roles.controller';
 import { AiSignalsController } from './signals/ai-signals.controller';
 import { AiSignalsService } from './signals/ai-signals.service';
-import { AI_EMAIL_MESSAGE_STATUS_FILTERS } from './email/dto/list-email-messages-query.dto';
+import { AI_EMAIL_MESSAGE_STATUS_FILTERS } from './email/ai-email-message-status';
 
 type OperationObject = {
   responses?: Record<
