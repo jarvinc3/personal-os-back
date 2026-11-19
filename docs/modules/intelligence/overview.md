@@ -25,6 +25,7 @@ La interfaz web de conversaciones espera la decisión del owner. Gmail es una fu
 inference/       # proveedores y gateway de inferencia
 capabilities/    # registro genérico AI-8
 conversations/   # store, contexto, orquestador y API AI-9
+suggestions/     # sugerencias del agente por vista y descarte (#358)
 actions/         # política y ejecución de acciones AI-10
 email/           # Gmail, consentimiento y clasificación
 evidence/        # dataset, runs y revisión humana
