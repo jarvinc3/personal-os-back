@@ -161,11 +161,12 @@ export class FinanceAiCapabilities implements FinanceAiCapabilitiesPort {
     ctx: AiExecutionContext,
     ref: { type: string; id: string },
   ): Promise<JsonObject | null> {
-    if (!FINANCE_ENTITY_TYPES.includes(ref.type as FinanceEntityType)) {
+    const type = ref.type === 'savings_goal' ? 'savingsGoal' : ref.type;
+    if (!FINANCE_ENTITY_TYPES.includes(type as FinanceEntityType)) {
       return null;
     }
     const [entity] = await this.entities.lookup(ctx.userId, [
-      { type: ref.type as FinanceEntityType, id: ref.id },
+      { type: type as FinanceEntityType, id: ref.id },
     ]);
     return entity && typeof entity === 'object' && !Array.isArray(entity)
       ? (entity as JsonObject)
