@@ -34,7 +34,13 @@ const SUGGESTION_FIELDS = {
 export class ViewSuggestionStore {
   constructor(private readonly prisma: PrismaService) {}
 
-  findActive({ userId, route, viewKey, now }: ViewScopeFilter & { now: Date }) {
+  findActive({
+    userId,
+    route,
+    viewKey,
+    now,
+    limit,
+  }: ViewScopeFilter & { now: Date; limit: number }) {
     return this.prisma.aiViewSuggestion.findMany({
       where: {
         userId,
@@ -44,6 +50,7 @@ export class ViewSuggestionStore {
         expiresAt: { gt: now },
       },
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take: limit,
       select: SUGGESTION_FIELDS,
     });
   }
@@ -52,9 +59,12 @@ export class ViewSuggestionStore {
     userId,
     route,
     viewKey,
-  }: ViewScopeFilter): Promise<string[]> {
+    limit,
+  }: ViewScopeFilter & { limit: number }): Promise<string[]> {
     const rows = await this.prisma.aiViewSuggestion.findMany({
       where: { userId, route, viewKey },
+      orderBy: { suggestionKey: 'asc' },
+      take: limit,
       select: { suggestionKey: true },
     });
     return rows.map((row) => row.suggestionKey);
@@ -93,31 +103,35 @@ export class ViewSuggestionStore {
     });
   }
 
-  create({
+  createMany({
     userId,
     route,
     viewKey,
-    suggestionKey,
-    label,
-    prompt,
+    suggestions,
     expiresAt,
   }: ViewScopeFilter & {
-    suggestionKey: string;
-    label: string;
-    prompt: string;
+    suggestions: Array<{
+      suggestionKey: string;
+      label: string;
+      prompt: string;
+    }>;
     expiresAt: Date;
   }) {
-    return this.prisma.aiViewSuggestion.create({
-      data: {
+    return this.prisma.aiViewSuggestion.createManyAndReturn({
+      data: suggestions.map((suggestion) => ({
         userId,
         route,
         viewKey,
-        suggestionKey,
-        label,
-        prompt,
+        suggestionKey: suggestion.suggestionKey,
+        label: suggestion.label,
+        prompt: suggestion.prompt,
         expiresAt,
+      })),
+      skipDuplicates: true,
+      select: {
+        ...SUGGESTION_FIELDS,
+        suggestionKey: true,
       },
-      select: SUGGESTION_FIELDS,
     });
   }
 

@@ -40,6 +40,7 @@ export class AiDataDeletionService {
       inferences,
       conversations,
       actions,
+      viewSuggestions,
     ] = await Promise.all([
       this.prisma.aiEmailConnection.findUnique({
         where: { userId },
@@ -71,6 +72,10 @@ export class AiDataDeletionService {
         include: { messages: { orderBy: { sequence: 'asc' } } },
       }),
       this.prisma.aiAction.findMany({ where: { userId } }),
+      this.prisma.aiViewSuggestion.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+      }),
     ]);
     // Preserve JSON semantics for BigInt sequences without exposing OAuth tokens.
     return JSON.parse(
@@ -89,6 +94,7 @@ export class AiDataDeletionService {
           inferences,
           conversations,
           actions,
+          viewSuggestions,
         },
         (_, value: unknown) =>
           typeof value === 'bigint' ? value.toString() : value,
@@ -113,8 +119,16 @@ export class AiDataDeletionService {
     const { count: deletedActions } = await this.prisma.aiAction.deleteMany({
       where: { userId },
     });
+    const { count: deletedViewSuggestions } =
+      await this.prisma.aiViewSuggestion.deleteMany({ where: { userId } });
     await this.revokeConsentAndDropDerivedData(userId);
-    return { deleted: true, ...result, deletedConversations, deletedActions };
+    return {
+      deleted: true,
+      ...result,
+      deletedConversations,
+      deletedActions,
+      deletedViewSuggestions,
+    };
   }
 
   async removeEmailData({

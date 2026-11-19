@@ -15,9 +15,9 @@ Recurso propio de sugerencias cortas para la vista actual del usuario. No reutil
 2. Si la caché venció, reserva el ritmo del minuto (`ai_view_suggestion_minutes`), el cupo diario (`ai_view_suggestion_budgets`, `AI_VIEW_SUGGESTION_DAILY_MODEL_BUDGET`) y el costo máximo de la llamada en el tope global (`ai_email_daily_costs`, 5 USD/día). Las tres reservas son atómicas y valen entre réplicas.
 3. `AiInferenceGateway` genera hasta tres sugerencias con salida estructurada validada; la etiqueta admite 80 caracteres y el prompt 500.
 4. Se guardan en `ai_view_suggestions` con TTL (`AI_VIEW_SUGGESTION_TTL_MINUTES`, 30 minutos) y la reserva se ajusta al costo real medido.
-5. Si falta ritmo, cupo, tope global, proveedor o una salida válida, la respuesta es `{ "suggestions": [] }` y queda un aviso en el log. La API no devuelve error por eso.
+5. Si falta ritmo, cupo, tope global, proveedor o una salida válida, la respuesta es `{ "suggestions": [] }` y queda un aviso en el log. La API no devuelve error por eso. Cuando la generación falla, se libera la reserva completa de costo y se devuelve el cupo diario antes de responder; el ritmo del minuto queda consumido.
 
-La caché no revive un descarte: la clave de la sugerencia es el SHA-256 de la etiqueta normalizada (sin mayúsculas ni espacios repetidos), el descarte cambia la fila a `DISMISSED` y la conserva, y una regeneración con la misma etiqueta no crea una fila nueva. Una sugerencia vencida que seguía activa se borra al regenerar la vista.
+La caché no revive un descarte: la clave de la sugerencia es el SHA-256 de la etiqueta normalizada (sin mayúsculas ni espacios repetidos), el descarte cambia la fila a `DISMISSED` y la conserva, y una regeneración con la misma etiqueta no crea una fila nueva. Para no dejar la respuesta en error, la inserción usa `createMany` con `skipDuplicates` sobre la clave única de usuario, ruta, vista y sugerencia, y después se releen las activas guardadas: dos peticiones simultáneas con la caché vencida comparten el mismo resultado y la lista nunca supera tres. La consulta de claves descartadas se acota a 1000 por vista y usa el índice único, así que el costo no crece con el historial. Una sugerencia vencida que seguía activa se borra al regenerar la vista.
 
 ## Acciones propuestas (AI-10)
 
@@ -37,6 +37,8 @@ El gateway solo ofrece al modelo las capacidades `WRITE` con confirmación. Una 
 | Caché                       | 30 minutos por usuario y vista (`AI_VIEW_SUGGESTION_TTL_MINUTES`)    |
 
 En el peor caso, el tope global admite unas 125 reservas de sugerencias por día; en uso normal cada generación reserva 0.04 USD y liquida centésimas de centavo.
+
+La exportación de datos de IA incluye las sugerencias por vista y «Borrar todos mis datos de IA» las elimina, igual que las conversaciones y las acciones. La rama correspondiente es `ai.viewSuggestions`.
 
 ## HTTP
 

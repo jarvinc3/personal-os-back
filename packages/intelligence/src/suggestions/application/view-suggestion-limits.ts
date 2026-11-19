@@ -6,6 +6,8 @@ import {
 /** Ritmo y cupo propios de sugerencias, separados del piloto de correo de #402. */
 export const VIEW_SUGGESTIONS_PER_MINUTE = 20;
 export const MAX_VIEW_SUGGESTIONS = 3;
+/** Techo de claves descartadas que se consultan por vista; el índice único las cubre. */
+export const MAX_TRACKED_DISMISSAL_KEYS = 1_000;
 export const MAX_SUGGESTION_LABEL_CHARS = 80;
 export const MAX_SUGGESTION_PROMPT_CHARS = 500;
 

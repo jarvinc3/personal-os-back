@@ -112,7 +112,8 @@ export class ViewSuggestionBudgetService {
     return claimed.count === 1;
   }
 
-  private async releaseDailyCall(userId: string): Promise<void> {
+  /** Devuelve el cupo diario cuando la generación no llegó a consumirlo. */
+  async releaseDailyCall(userId: string): Promise<void> {
     await this.prisma.aiViewSuggestionBudget.updateMany({
       where: { userId, calls: { gt: 0 } },
       data: { calls: { decrement: 1 } },

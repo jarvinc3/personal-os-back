@@ -24,21 +24,53 @@ const actionRow = {
 
 type SettleCall = { costDate: Date; actualCostUsd: number };
 
+type StoredSuggestion = {
+  id: string;
+  suggestionKey: string;
+  label: string;
+  prompt: string;
+  actionId: string | null;
+};
+
 function fixture() {
+  let storedActive: StoredSuggestion[] = [];
   const store = {
-    findActive: jest.fn().mockResolvedValue([]),
+    findActive: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(storedActive)),
     findKnownKeys: jest.fn().mockResolvedValue([]),
     findExpiredActive: jest.fn().mockResolvedValue([]),
     deleteByIds: jest.fn(),
-    create: jest.fn().mockImplementation((input: { label: string }) =>
-      Promise.resolve({
-        id: 'suggestion-1',
-        label: input.label,
-        prompt: 'prompt',
-        actionId: null,
-      }),
+    createMany: jest.fn().mockImplementation(
+      (input: {
+        suggestions: Array<{
+          suggestionKey: string;
+          label: string;
+          prompt: string;
+        }>;
+      }) => {
+        storedActive = input.suggestions.map((suggestion, index) => ({
+          id: `suggestion-${index + 1}`,
+          suggestionKey: suggestion.suggestionKey,
+          label: suggestion.label,
+          prompt: suggestion.prompt,
+          actionId: null,
+        }));
+        return Promise.resolve(storedActive);
+      },
     ),
-    setActionId: jest.fn(),
+    setActionId: jest
+      .fn()
+      .mockImplementation(
+        (input: { suggestionId: string; actionId: string }) => {
+          storedActive = storedActive.map((suggestion) =>
+            suggestion.id === input.suggestionId
+              ? { ...suggestion, actionId: input.actionId }
+              : suggestion,
+          );
+          return Promise.resolve();
+        },
+      ),
     findOwned: jest.fn(),
     dismiss: jest.fn().mockResolvedValue(true),
     findActions: jest.fn().mockResolvedValue([]),
@@ -46,6 +78,7 @@ function fixture() {
   const budget = {
     reserve: jest.fn().mockResolvedValue(new Date('2026-11-19T00:00:00Z')),
     settle: jest.fn(),
+    releaseDailyCall: jest.fn(),
   };
   const generator = {
     generate: jest.fn().mockResolvedValue({
@@ -156,12 +189,14 @@ describe('ViewSuggestionsService', () => {
       route: '/finance',
       viewKey: 'view:budget',
     });
-    expect(store.create).toHaveBeenCalledWith(
+    expect(store.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-A',
         route: '/finance',
         viewKey: 'view:budget',
-        label: 'Ajustá el presupuesto',
+        suggestions: [
+          expect.objectContaining({ label: 'Ajustá el presupuesto' }),
+        ],
       }),
     );
     expect(budget.settle).toHaveBeenCalledTimes(1);
@@ -192,14 +227,18 @@ describe('ViewSuggestionsService', () => {
     expect(generator.generate).not.toHaveBeenCalled();
   });
 
-  it('leaves the row empty when the model is unavailable', async () => {
+  it('leaves the row empty and releases the reservation when the model is unavailable', async () => {
     const { service, budget, generator } = fixture();
     generator.generate.mockRejectedValue(new Error('provider down'));
 
     await expect(
       service.resolveForView({ userId: 'user-A', route: '/finance' }),
     ).resolves.toEqual([]);
-    expect(budget.settle).not.toHaveBeenCalled();
+    expect(budget.settle).toHaveBeenCalledWith({
+      costDate: expect.anything(),
+      actualCostUsd: 0,
+    });
+    expect(budget.releaseDailyCall).toHaveBeenCalledWith('user-A');
   });
 
   it('does not store a suggestion whose key was already dismissed', async () => {
@@ -216,8 +255,40 @@ describe('ViewSuggestionsService', () => {
       route: '/finance',
     });
 
-    expect(store.create).not.toHaveBeenCalled();
+    expect(store.createMany).not.toHaveBeenCalled();
     expect(suggestions).toEqual([]);
+  });
+
+  it('resolves two concurrent requests on the same empty view without failing', async () => {
+    const { service, store } = fixture();
+    const label = 'Revisá el presupuesto';
+    const stored = [
+      {
+        id: 'suggestion-1',
+        suggestionKey: viewSuggestionKey(label),
+        label,
+        prompt: '¿Cómo va el presupuesto?',
+        actionId: null,
+      },
+    ];
+    let inserts = 0;
+    store.createMany.mockImplementation(() => {
+      inserts += 1;
+      if (inserts === 1) {
+        store.findActive.mockResolvedValue(stored);
+        return Promise.resolve(stored);
+      }
+      return Promise.resolve([]);
+    });
+
+    const [first, second] = await Promise.all([
+      service.resolveForView({ userId: 'user-A', route: '/finance' }),
+      service.resolveForView({ userId: 'user-A', route: '/finance' }),
+    ]);
+
+    expect(store.createMany).toHaveBeenCalled();
+    expect(first).toEqual(second);
+    expect(first).toHaveLength(1);
   });
 
   it('drops actions whose arguments are invalid', async () => {

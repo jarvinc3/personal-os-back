@@ -20,7 +20,10 @@ import {
   viewSuggestionKey,
   type ViewSuggestionScope,
 } from './view-suggestion-scope';
-import { MAX_VIEW_SUGGESTIONS } from './view-suggestion-limits';
+import {
+  MAX_VIEW_SUGGESTIONS,
+  MAX_TRACKED_DISMISSAL_KEYS,
+} from './view-suggestion-limits';
 import {
   ViewSuggestionStore,
   type StoredViewSuggestion,
@@ -78,7 +81,12 @@ export class ViewSuggestionsService {
   }): Promise<ViewSuggestionView[]> {
     const scope = resolveViewSuggestionScope({ route, view, sheet });
     const now = new Date();
-    const cached = await this.suggestions.findActive({ userId, ...scope, now });
+    const cached = await this.suggestions.findActive({
+      userId,
+      ...scope,
+      now,
+      limit: MAX_VIEW_SUGGESTIONS,
+    });
     if (cached.length) {
       return this.withActions(userId, cached);
     }
@@ -89,6 +97,9 @@ export class ViewSuggestionsService {
     }
     const generated = await this.requestGeneration({ userId, scope });
     if (!generated) {
+      // Sin consumo conocido se libera la reserva completa y el cupo diario.
+      await this.budget.settle({ costDate, actualCostUsd: 0 });
+      await this.budget.releaseDailyCall(userId);
       return [];
     }
     await this.budget.settle({
@@ -156,46 +167,60 @@ export class ViewSuggestionsService {
   }): Promise<ViewSuggestionView[]> {
     await this.expireCached({ userId, scope, now });
     const knownKeys = new Set(
-      await this.suggestions.findKnownKeys({ userId, ...scope }),
+      await this.suggestions.findKnownKeys({
+        userId,
+        ...scope,
+        limit: MAX_TRACKED_DISMISSAL_KEYS,
+      }),
     );
     const expiresAt = new Date(
       now.getTime() +
         this.config.get('AI_VIEW_SUGGESTION_TTL_MINUTES', { infer: true }) *
           60_000,
     );
-    const created: StoredViewSuggestion[] = [];
-    for (const candidate of candidates) {
-      if (created.length >= MAX_VIEW_SUGGESTIONS) {
-        break;
-      }
-      const suggestionKey = viewSuggestionKey(candidate.label);
-      if (knownKeys.has(suggestionKey)) {
-        continue;
-      }
-      knownKeys.add(suggestionKey);
-      const suggestion = await this.suggestions.create({
+    const pending = candidates
+      .filter((candidate) => !knownKeys.has(viewSuggestionKey(candidate.label)))
+      .slice(0, MAX_VIEW_SUGGESTIONS)
+      .map((candidate) => ({
+        ...candidate,
+        suggestionKey: viewSuggestionKey(candidate.label),
+      }));
+    if (pending.length) {
+      const created = await this.suggestions.createMany({
         userId,
         ...scope,
-        suggestionKey,
-        label: candidate.label,
-        prompt: candidate.prompt,
+        suggestions: pending,
         expiresAt,
       });
-      const actionId = await this.proposeAction({
-        userId,
-        suggestionId: suggestion.id,
-        action: candidate.action,
-      });
-      if (actionId) {
-        await this.suggestions.setActionId({
+      const candidateByKey = new Map(
+        pending.map((candidate) => [candidate.suggestionKey, candidate]),
+      );
+      for (const suggestion of created) {
+        const candidate = candidateByKey.get(suggestion.suggestionKey);
+        if (!candidate) {
+          continue;
+        }
+        const actionId = await this.proposeAction({
           userId,
           suggestionId: suggestion.id,
-          actionId,
+          action: candidate.action,
         });
+        if (actionId) {
+          await this.suggestions.setActionId({
+            userId,
+            suggestionId: suggestion.id,
+            actionId,
+          });
+        }
       }
-      created.push({ ...suggestion, actionId });
     }
-    return this.withActions(userId, created);
+    const active = await this.suggestions.findActive({
+      userId,
+      ...scope,
+      now,
+      limit: MAX_VIEW_SUGGESTIONS,
+    });
+    return this.withActions(userId, active);
   }
 
   private async proposeAction({
