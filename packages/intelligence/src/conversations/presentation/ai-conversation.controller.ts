@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -19,6 +27,8 @@ import {
   AiConversationSummaryDto,
   SendAiConversationMessageDto,
   CreateAiConversationDto,
+  AiConversationLatestDto,
+  LatestAiConversationQueryDto,
 } from './dto/ai-conversation.dto';
 
 @ApiTags('intelligence-conversations')
@@ -52,6 +62,47 @@ export class AiConversationController {
       ...conversation,
       messageCount: _count.messages,
     }));
+  }
+
+  @Get('latest')
+  @ApiOperation({
+    summary: 'Recuperar la conversación propia más reciente de un contexto',
+  })
+  @ApiOkResponse({ type: AiConversationLatestDto })
+  @ApiBadRequestResponse({
+    description: 'La clave de contexto debe ser SHA-256 hexadecimal',
+  })
+  async latest(
+    @CurrentUser('sub') userId: string,
+    @Query() query: LatestAiConversationQueryDto,
+  ) {
+    const conversation = await this.conversations.findLatestByContext(
+      userId,
+      query.context,
+    );
+    if (!conversation) {
+      return { conversation: null };
+    }
+    return {
+      conversation: {
+        id: conversation.id,
+        title: conversation.title,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        context: conversation.invocationContext,
+        messages: conversation.messages
+          .filter(
+            (message) =>
+              (message.role === 'user' || message.role === 'assistant') &&
+              message.content.length > 0,
+          )
+          .map((message) => ({
+            role: message.role as 'user' | 'assistant',
+            content: message.content,
+            createdAt: message.createdAt,
+          })),
+      },
+    };
   }
 
   @Get(':conversationId')

@@ -7,6 +7,7 @@ import {
 import { AiOrchestrator } from './ai.orchestrator';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
+import { aiInvocationContextKey } from './ai-invocation-context-key';
 
 const readCapability: AiCapabilityDescriptor = {
   id: 'finance_monthly_summary',
@@ -106,6 +107,23 @@ describe('AiOrchestrator', () => {
       'user-1',
       'conversation-1',
       context,
+      aiInvocationContextKey(context),
+    );
+  });
+
+  it('persiste la clave canónica al crear una conversación contextual', async () => {
+    const { service, store } = setup();
+    const context = {
+      route: '/finance/products/transactions',
+      filters: { month: '2026-11' },
+    };
+
+    await service.createConversation('user-1', context);
+
+    expect(store.create).toHaveBeenCalledWith(
+      'user-1',
+      context,
+      aiInvocationContextKey(context),
     );
   });
 

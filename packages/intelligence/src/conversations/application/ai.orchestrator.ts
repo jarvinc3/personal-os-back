@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import type { AiInvocationEntityRefType } from '@personal-os/core';
+import { aiInvocationContextKey } from './ai-invocation-context-key';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
 import {
@@ -50,6 +51,7 @@ export class AiOrchestrator {
     return this.conversations.create(
       userId,
       resolved as Prisma.InputJsonValue | undefined,
+      resolved ? aiInvocationContextKey(resolved) : undefined,
     );
   }
 
@@ -69,6 +71,7 @@ export class AiOrchestrator {
         userId,
         conversationId,
         resolvedContext as Prisma.InputJsonValue,
+        aiInvocationContextKey(resolvedContext),
       );
     }
     const hadUserMessages = initial.messages.some(
@@ -238,7 +241,7 @@ export class AiOrchestrator {
   private async validateInvocationContext(
     userId: string,
     context?: InvocationContextInput,
-  ): Promise<Record<string, unknown> | undefined> {
+  ): Promise<InvocationContextInput | undefined> {
     if (!context) {
       return undefined;
     }

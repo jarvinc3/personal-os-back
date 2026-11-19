@@ -159,6 +159,7 @@ model AiConversation {
   title             String                  @default("Nueva conversación")
   summary           String?                 @db.Text
   invocationContext Json?                   @map("invocation_context")
+  contextKey        String?                 @map("context_key")
   summaryUpdatedAt  DateTime?               @map("summary_updated_at") @db.Timestamptz(6)
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -167,6 +168,7 @@ model AiConversation {
 
   @@unique([id, userId], map: "ai_conversations_id_user_id_key")
   @@index([userId, updatedAt(sort: Desc), id], map: "ai_conversations_user_updated_idx")
+  @@index([userId, contextKey, updatedAt(sort: Desc), id], map: "ai_conversations_user_context_updated_idx")
   @@map("ai_conversations")
 }
 

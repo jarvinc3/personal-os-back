@@ -7,6 +7,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 ### Agregado
 
 - #356: las conversaciones del agente aceptan contexto de invocación con ruta, vista/sheet, filtros y entidad; el backend comprueba que la entidad sea accesible para el usuario, persiste el contexto y lo incorpora como dato no confiable al ensamblado. Se define `contextKey` como SHA-256 de JSON canónico para agrupar conversaciones en #357.
+- #357: agrega `GET /intelligence/conversations/latest?context=<sha256>` y persiste/indexa la clave canónica por usuario. Sin coincidencia devuelve `conversation: null`; el historial global sigue disponible.
 
 - #382: al conectar Gmail se elige desde cuándo importar (`TODAY`, `LAST_MONTH` o `LAST_3_MONTHS`) y, opcionalmente, un `senderFilter` por dominio. La fecha se resuelve en UTC (meses de calendario con el día ajustado) y viaja en el `state` OAuth firmado; la conexión guarda `import_start_at` y `sender_filter`, y `GET /intelligence` los devuelve. El bootstrap y la recuperación consultan Gmail con `after:` y `from:`; el incremental no acepta consulta en el historial, así que descarta antes de guardar el correo anterior al corte o de otro remitente. La sync acotada de BHD también respeta el alcance. Sin período se conserva el bootstrap desde 2026-01-01, así que la web anterior sigue funcionando; reconectar con otro período no borra correo ya importado.
 

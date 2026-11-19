@@ -6,9 +6,16 @@ import { Prisma, PrismaService } from '@personal-os/database';
 export class AiConversationStore {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(userId: string, invocationContext?: Prisma.InputJsonValue) {
+  create(
+    userId: string,
+    invocationContext?: Prisma.InputJsonValue,
+    contextKey?: string,
+  ) {
     return this.prisma.aiConversation.create({
-      data: { userId, ...(invocationContext ? { invocationContext } : {}) },
+      data: {
+        userId,
+        ...(invocationContext ? { invocationContext, contextKey } : {}),
+      },
       select: { id: true, title: true, createdAt: true, updatedAt: true },
     });
   }
@@ -72,14 +79,24 @@ export class AiConversationStore {
     };
   }
 
+  async findLatestByContext(userId: string, contextKey: string) {
+    const latest = await this.prisma.aiConversation.findFirst({
+      where: { userId, contextKey },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: { id: true },
+    });
+    return latest ? this.findOwned(userId, latest.id) : null;
+  }
+
   async setInvocationContext(
     userId: string,
     conversationId: string,
     invocationContext: Prisma.InputJsonValue,
+    contextKey: string,
   ): Promise<void> {
     await this.prisma.aiConversation.updateMany({
       where: { id: conversationId, userId },
-      data: { invocationContext },
+      data: { invocationContext, contextKey },
     });
   }
 

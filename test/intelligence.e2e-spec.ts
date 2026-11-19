@@ -229,6 +229,7 @@ describe('Intelligence API (e2e)', () => {
           ? Promise.resolve(conversation)
           : Promise.reject(new NotFoundException('Conversación no encontrada')),
       ),
+    findLatestByContext: jest.fn().mockResolvedValue(null),
     deleteOwned: jest.fn().mockResolvedValue(undefined),
     append: jest.fn().mockResolvedValue(undefined),
   };
@@ -287,6 +288,17 @@ describe('Intelligence API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect(({ body }) => expect(body.data[0].messageCount).toBe(3));
+
+    const contextKey = 'a'.repeat(64);
+    await request(app.getHttpServer())
+      .get(`/api/intelligence/conversations/latest?context=${contextKey}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => expect(body.data.conversation).toBeNull());
+    expect(conversations.findLatestByContext).toHaveBeenCalledWith(
+      'user-123',
+      contextKey,
+    );
 
     await request(app.getHttpServer())
       .get('/api/intelligence/conversations/conversation-1')

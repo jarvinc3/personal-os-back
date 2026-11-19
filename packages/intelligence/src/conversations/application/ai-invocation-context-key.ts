@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
-import type { AiInvocationContext } from '@personal-os/core';
+
+export type AiInvocationContextKeyInput = {
+  route: string;
+  view?: string;
+  sheet?: string;
+  entityRef?: { type: string; id: string };
+  filters?: Record<string, unknown>;
+};
 
 function canonicalize(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -16,7 +23,9 @@ function canonicalize(value: unknown): unknown {
 }
 
 /** Stable owner-independent equivalence key; ownership is always checked separately. */
-export function aiInvocationContextKey(context: AiInvocationContext): string {
+export function aiInvocationContextKey(
+  context: AiInvocationContextKeyInput,
+): string {
   return createHash('sha256')
     .update(JSON.stringify(canonicalize(context)))
     .digest('hex');
