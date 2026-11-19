@@ -291,7 +291,9 @@ describe('Intelligence API (e2e)', () => {
 
     const contextKey = 'a'.repeat(64);
     await request(app.getHttpServer())
-      .get(`/api/intelligence/conversations/latest?context=${contextKey}`)
+      .get(
+        `/api/intelligence/conversations/latest?context=${contextKey.toUpperCase()}`,
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect(({ body }) => expect(body.data.conversation).toBeNull());

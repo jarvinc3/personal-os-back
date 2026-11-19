@@ -78,7 +78,7 @@ export class AiConversationController {
   ) {
     const conversation = await this.conversations.findLatestByContext(
       userId,
-      query.context,
+      query.context.toLowerCase(),
     );
     if (!conversation) {
       return { conversation: null };

@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { AiConversationStore } from './ai-conversation.store';
+import { aiInvocationContextKey } from './ai-invocation-context-key';
 
 describe('AiConversationStore', () => {
   it('returns the latest conversation only for the requested owner and context key', async () => {
@@ -15,6 +16,7 @@ describe('AiConversationStore', () => {
     };
     const prisma = {
       aiConversation: {
+        findMany: jest.fn().mockResolvedValue([]),
         findFirst: jest
           .fn()
           .mockResolvedValueOnce({ id: 'latest-1' })
@@ -42,7 +44,10 @@ describe('AiConversationStore', () => {
 
   it('returns null when the user has no conversation for the requested context', async () => {
     const prisma = {
-      aiConversation: { findFirst: jest.fn().mockResolvedValue(null) },
+      aiConversation: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
     const store = new AiConversationStore(prisma);
 
@@ -54,6 +59,44 @@ describe('AiConversationStore', () => {
         where: { userId: 'user-A', contextKey: 'b'.repeat(64) },
       }),
     );
+  });
+
+  it('backfills keys for existing contextual conversations before lookup', async () => {
+    const context = { route: '/finance', view: 'transactions' };
+    const contextKey = aiInvocationContextKey(context);
+    const conversation = {
+      id: 'legacy-1',
+      title: 'Legacy',
+      summary: null,
+      summaryUpdatedAt: null,
+      invocationContext: context,
+      createdAt: new Date('2026-11-01T00:00:00Z'),
+      updatedAt: new Date('2026-11-02T00:00:00Z'),
+      messages: [],
+    };
+    const prisma = {
+      aiConversation: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 'legacy-1', invocationContext: context }]),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        findFirst: jest
+          .fn()
+          .mockResolvedValueOnce({ id: 'legacy-1' })
+          .mockResolvedValueOnce(conversation),
+      },
+    };
+    const store = new AiConversationStore(prisma);
+
+    await expect(
+      store.findLatestByContext('user-A', contextKey),
+    ).resolves.toMatchObject({ id: 'legacy-1' });
+    expect(prisma.aiConversation.updateMany).toHaveBeenCalledWith({
+      where: { id: 'legacy-1', userId: 'user-A', contextKey: null },
+      data: {
+        contextKey: contextKey,
+      },
+    });
   });
 
   it('queries by authenticated owner and orders history by sequence', async () => {

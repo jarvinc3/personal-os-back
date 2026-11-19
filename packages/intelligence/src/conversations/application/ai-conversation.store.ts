@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AiConversationMessage } from '@personal-os/contracts';
 import { Prisma, PrismaService } from '@personal-os/database';
+import {
+  aiInvocationContextKey,
+  type AiInvocationContextKeyInput,
+} from './ai-invocation-context-key';
 
 @Injectable()
 export class AiConversationStore {
@@ -80,6 +84,32 @@ export class AiConversationStore {
   }
 
   async findLatestByContext(userId: string, contextKey: string) {
+    const legacyConversations = await this.prisma.aiConversation.findMany({
+      where: {
+        userId,
+        contextKey: null,
+        invocationContext: { not: Prisma.DbNull },
+      },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: { id: true, invocationContext: true },
+    });
+    await Promise.all(
+      legacyConversations.map((conversation) => {
+        const context = conversation.invocationContext;
+        if (!context || typeof context !== 'object' || Array.isArray(context)) {
+          return Promise.resolve();
+        }
+        return this.prisma.aiConversation.updateMany({
+          where: { id: conversation.id, userId, contextKey: null },
+          data: {
+            contextKey: aiInvocationContextKey(
+              context as AiInvocationContextKeyInput,
+            ),
+          },
+        });
+      }),
+    );
+
     const latest = await this.prisma.aiConversation.findFirst({
       where: { userId, contextKey },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
