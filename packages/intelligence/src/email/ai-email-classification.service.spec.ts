@@ -1180,6 +1180,41 @@ describe('AiEmailClassificationService shared limits', () => {
     );
   });
 
+  it('settles the tokens of the rejected attempt together with the repaired one', async () => {
+    const { service, inference, prisma } = fixture({
+      inferenceUsage: { inputTokens: 1000, outputTokens: 200 },
+      inferenceCostUsd: 0.0004,
+    });
+    inference.infer.mockRejectedValueOnce(
+      new StructuredInferenceOutputError(
+        'Groq',
+        'qwen/qwen3.8-27b',
+        1,
+        'SCHEMA_VALIDATION:transaction:invalid_type',
+        0.0003,
+        800,
+        150,
+      ),
+    );
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailTokenBudget.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          tokens: {
+            decrement:
+              estimateClassificationTokens({
+                limits: LIMITS,
+                contentChars: 'A regular email.'.length,
+              }) - 2_150,
+          },
+        },
+      }),
+    );
+  });
+
   it('keeps the full reservation when it had to repair a rejected output', async () => {
     const { service, inference, prisma } = fixture({
       inferenceCostUsd: 0.0004,

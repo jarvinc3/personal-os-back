@@ -679,7 +679,7 @@ export class AiEmailClassificationService {
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<StructuredInference<EmailClassification>> {
-    const { inferred, repaired, rejectedCostUsd } =
+    const { inferred, repaired, rejectedCostUsd, rejectedTokens } =
       await this.classifyWithModel({
         userId,
         message,
@@ -693,7 +693,9 @@ export class AiEmailClassificationService {
     if (costUsd != null) {
       await this.settleDailyCost({ date: budget.costDate, costUsd });
     }
-    const usedTokens = inferenceTokens(inferred);
+    const usedTokens = repaired
+      ? sumKnownTokens(rejectedTokens, inferenceTokens(inferred))
+      : inferenceTokens(inferred);
     if (usedTokens != null && budget.reservedTokens != null) {
       await this.settleDailyTokens({
         userId,
@@ -726,6 +728,7 @@ export class AiEmailClassificationService {
     inferred: StructuredInference<EmailClassification>;
     repaired: boolean;
     rejectedCostUsd: number | null;
+    rejectedTokens: number | null;
   }> {
     const messages: InferenceMessage[] = [
       { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
@@ -755,7 +758,12 @@ export class AiEmailClassificationService {
     onModelCall?.();
     try {
       const inferred = await this.inference.infer(request);
-      return { inferred, repaired: false, rejectedCostUsd: null };
+      return {
+        inferred,
+        repaired: false,
+        rejectedCostUsd: null,
+        rejectedTokens: null,
+      };
     } catch (error) {
       if (!(error instanceof StructuredInferenceOutputError)) {
         throw error;
@@ -775,7 +783,12 @@ export class AiEmailClassificationService {
           },
         ],
       });
-      return { inferred, repaired: true, rejectedCostUsd: error.costUsd };
+      return {
+        inferred,
+        repaired: true,
+        rejectedCostUsd: error.costUsd,
+        rejectedTokens: sumKnownTokens(error.inputTokens, error.outputTokens),
+      };
     }
   }
 
@@ -1617,6 +1630,17 @@ function sumKnownCosts(
     return null;
   }
   return Number((first + second).toFixed(6));
+}
+
+/** Suma los tokens conocidos de dos intentos; null si falta alguno. */
+function sumKnownTokens(
+  first: number | null,
+  second: number | null,
+): number | null {
+  if (first == null || second == null) {
+    return null;
+  }
+  return first + second;
 }
 
 /** Tokens facturados de todos los intentos; null si el proveedor no los reporta. */

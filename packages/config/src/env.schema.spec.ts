@@ -106,6 +106,16 @@ describe('envSchema AI limits', () => {
     ]);
   });
 
+  it('treats a blank bank sender list as the default', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      AI_EMAIL_BANK_SENDER_DOMAINS: '   ',
+    });
+
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('bhd.com.do');
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(12);
+  });
+
   it('parses numeric strings', () => {
     const parsed = parseEnv({
       ...validBaseEnv,

@@ -131,19 +131,23 @@ export const envSchema = z
     /** Remitente del correo que acompaña al contenido, en caracteres. */
     AI_EMAIL_MAX_SENDER_CHARS: defaultedPositiveInt(320),
     /** Dominios bancarios del piloto, separados por coma. */
-    AI_EMAIL_BANK_SENDER_DOMAINS: z
-      .string()
-      .default(DEFAULT_BANK_SENDER_DOMAINS)
-      .transform((value) =>
-        value
-          .split(',')
-          .map((domain) => domain.trim().toLowerCase())
-          .filter(Boolean),
-      )
-      .refine(
-        (domains) => domains.length > 0,
-        'AI_EMAIL_BANK_SENDER_DOMAINS needs at least one domain',
-      ),
+    AI_EMAIL_BANK_SENDER_DOMAINS: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z
+        .string()
+        .default(DEFAULT_BANK_SENDER_DOMAINS)
+        .transform((value) =>
+          value
+            .split(',')
+            .map((domain) => domain.trim().toLowerCase())
+            .filter(Boolean),
+        )
+        .refine(
+          (domains) => domains.length > 0,
+          'AI_EMAIL_BANK_SENDER_DOMAINS needs at least one domain',
+        ),
+    ),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 

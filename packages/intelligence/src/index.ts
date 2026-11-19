@@ -18,6 +18,7 @@ export { AiService } from './inference/application/ai.service';
 export { createAiProviderPool } from './inference/ai-provider-pool';
 export type { AiProviderKeys } from './inference/ai-provider-pool';
 export { AiInferenceGateway } from './inference/application/ai-inference.gateway';
+export { AiProviderRateLimiter } from './inference/infrastructure/ai-provider-rate-limiter';
 export { AI_DATA_BRANCHES } from './inference/infrastructure/ai-inference-data.service';
 export { AiInferenceDataService } from './inference/infrastructure/ai-inference-data.service';
 export { AiEvidenceService } from './evidence/ai-evidence.service';

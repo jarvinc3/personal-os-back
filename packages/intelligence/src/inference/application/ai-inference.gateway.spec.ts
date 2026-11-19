@@ -228,6 +228,8 @@ describe('AiInferenceGateway', () => {
 
     await expect(gateway.infer(request())).rejects.toMatchObject({
       code: 'STRUCTURED_OUTPUT_INVALID',
+      inputTokens: 60,
+      outputTokens: 10,
     });
     expect(create).toHaveBeenCalledWith({
       data: expect.objectContaining({
