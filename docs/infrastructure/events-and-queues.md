@@ -70,12 +70,14 @@ Evidencia: `packages/core/src/events/outbox/outbox-relay.spec.ts`,
 
 ## Colas BullMQ
 
-| Nombre          | Uso                                                   |
-| --------------- | ----------------------------------------------------- |
-| `notifications` | Dispatch push                                         |
-| `gmail-sync`    | Import bancario email                                 |
-| `ai-processing` | Insights IA                                           |
-| `email-sync`    | Envío EMAIL (Resend) si `EMAIL_DELIVERY_ENABLED=true` |
+| Nombre                   | Uso                                                   |
+| ------------------------ | ----------------------------------------------------- |
+| `notifications`          | Dispatch push                                         |
+| `gmail-sync`             | Import bancario email                                 |
+| `ai-processing`          | Insights IA                                           |
+| `email-sync`             | Envío EMAIL (Resend) si `EMAIL_DELIVERY_ENABLED=true` |
+| `ai-signal-routing`      | Entrega de señales a sus consumidores                 |
+| `ai-email-sample-import` | Corrida asíncrona de `sample-import` (#355)           |
 
 **Bull Board:** `http://localhost:$PORT/admin/queues` cuando `NODE_ENV=development` **y** BullMQ enabled. Fuera del prefix `/api`. Off en production/test (404). Basic auth opcional: `BULL_BOARD_USER` + `BULL_BOARD_PASSWORD`. En non-prod CORS permite el origen del propio API para retry/empty.
 

@@ -146,14 +146,20 @@ describe('OpenAPI response schemas of intelligence', () => {
     expect(missing).toEqual([]);
   });
 
-  it('publishes the created status of the sample import', () => {
+  it('publishes the accepted status of the sample import', () => {
     const operation = document.paths['/api/intelligence/email/sample-import']
       ?.post as OperationObject | undefined;
+    const status = document.paths[
+      '/api/intelligence/email/sample-import/{jobId}'
+    ]?.get as OperationObject | undefined;
 
     expect(
-      operation?.responses?.['201']?.content?.['application/json']?.schema,
+      operation?.responses?.['202']?.content?.['application/json']?.schema,
     ).toBeDefined();
     expect(operation?.responses?.['200']).toBeUndefined();
+    expect(
+      status?.responses?.['200']?.content?.['application/json']?.schema,
+    ).toBeDefined();
   });
 
   it('documents the two targets of a card payment preview', () => {

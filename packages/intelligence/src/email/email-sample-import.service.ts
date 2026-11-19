@@ -1,13 +1,32 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
 import type {
   JsonObject,
   RoutedSignal,
   SignalImportPreview,
 } from '@personal-os/contracts';
+import { QueueNames, type AiEmailSampleImportJob } from '@personal-os/core';
 import { PrismaService } from '@personal-os/database';
 import { AiEmailClassificationService } from './ai-email-classification.service';
 import { buildFinanceSignal } from './email-classification-persistence';
 import type { EmailClassification } from './email-classification.util';
+import {
+  SAMPLE_IMPORT_ERROR,
+  SAMPLE_IMPORT_JOB_NAME,
+  SAMPLE_IMPORT_JOB_OPTIONS,
+} from './email-sample-import-job.constants';
+import {
+  EmailSampleImportJobsRepository,
+  type SampleImportJobRow,
+  type SampleImportStatus,
+} from './email-sample-import-jobs.repository';
 import { AiSignalConsumerRegistry } from '../signals/ai-signal-consumer.registry';
 import { AiSignalsService } from '../signals/ai-signals.service';
 
@@ -25,6 +44,8 @@ const MESSAGE_SELECT = {
   fromDomain: true,
   subject: true,
 } as const;
+
+const NOT_FOUND_JOB_MESSAGE = 'Trabajo de muestra de correos no encontrado';
 
 export type SampleImportSelection = {
   messageIds?: readonly string[];
@@ -123,14 +144,140 @@ type ClassificationResult = Awaited<
   ReturnType<AiEmailClassificationService['previewClassification']>
 >;
 
+export type SampleImportJobProgress = {
+  processed: number;
+  total: number;
+};
+
+/** Reference the owner polls: status, progress and the terminal manifest. */
+export type SampleImportJobView = {
+  id: string;
+  status: SampleImportStatus;
+  dryRun: boolean;
+  progress: SampleImportJobProgress;
+  result: SampleImportManifest | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+};
+
+type StartSampleImportInput = {
+  userId: string;
+  dryRun: boolean;
+  selection: SampleImportSelection;
+};
+
+/** Mode and window kept in the job row so the manifest reads the same later. */
+type ReportedSelection = {
+  mode: 'IDS' | 'SENDER_WINDOW';
+  sender?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+};
+
+type RunSampleImportInput = StartSampleImportInput & {
+  reportedSelection?: ReportedSelection;
+  onProgress?: (processed: number) => Promise<void>;
+};
+
+type ResolvedSelection = ReportedSelection & { selected: SelectedMessage[] };
+
+type SenderWindow = { sender: string; dateFrom: Date; dateTo: Date };
+
 @Injectable()
 export class EmailSampleImportService {
+  private readonly logger = new Logger(EmailSampleImportService.name);
+
   constructor(
     private readonly prisma: PrismaService,
+    private readonly jobs: EmailSampleImportJobsRepository,
     private readonly classification: AiEmailClassificationService,
     private readonly consumers: AiSignalConsumerRegistry,
     private readonly signals: AiSignalsService,
+    @Optional()
+    @InjectQueue(QueueNames.AI_EMAIL_SAMPLE_IMPORT)
+    private readonly queue?: Queue<AiEmailSampleImportJob>,
   ) {}
+
+  /**
+   * Creates the job and returns its reference before the messages are
+   * processed. With Redis the run happens in a worker; without it the run
+   * continues in this process once the response is on its way.
+   */
+  async start({
+    userId,
+    dryRun,
+    selection,
+  }: StartSampleImportInput): Promise<SampleImportJobView> {
+    const resolved = await this.resolveSelection({
+      userId,
+      selection,
+      limit: selectionLimit(dryRun),
+    });
+    const job = await this.jobs.create({
+      userId,
+      dryRun,
+      selectionMode: resolved.mode,
+      messageIds: resolved.selected.map((selected) => selected.messageId),
+      sender: resolved.sender ?? null,
+      dateFrom: resolved.dateFrom ?? null,
+      dateTo: resolved.dateTo ?? null,
+    });
+    if (this.queue) {
+      await this.queue.add(
+        SAMPLE_IMPORT_JOB_NAME,
+        { userId, sampleImportId: job.id },
+        { ...SAMPLE_IMPORT_JOB_OPTIONS, jobId: job.id },
+      );
+    } else {
+      void this.process(job.id).catch((error: unknown) => {
+        this.logger.error(
+          `Sample import ${job.id} could not start: ${errorMessage(error)}`,
+        );
+      });
+    }
+    return this.toView(job);
+  }
+
+  async getForUser(
+    userId: string,
+    jobId: string,
+  ): Promise<SampleImportJobView> {
+    const job = await this.jobs.findForUser(userId, jobId);
+    if (!job) {
+      throw new NotFoundException(NOT_FOUND_JOB_MESSAGE);
+    }
+    return this.toView(job);
+  }
+
+  /** Runs a queued job once. A job already running or finished is left alone. */
+  async process(jobId: string): Promise<void> {
+    const job = await this.jobs.claim(jobId);
+    if (!job) {
+      return;
+    }
+    try {
+      const manifest = await this.run({
+        userId: job.userId,
+        dryRun: job.dryRun,
+        selection: { messageIds: job.messageIds },
+        reportedSelection: {
+          mode: job.selectionMode,
+          sender: job.sender ?? undefined,
+          dateFrom: job.dateFrom ?? undefined,
+          dateTo: job.dateTo ?? undefined,
+        },
+        onProgress: (processed) => this.jobs.updateProgress(job.id, processed),
+      });
+      await this.jobs.complete(job.id, manifest);
+    } catch (error) {
+      this.logger.error(
+        `Sample import ${job.id} failed: ${errorMessage(error)}`,
+      );
+      await this.jobs.fail(job.id, SAMPLE_IMPORT_ERROR.RUN_FAILED);
+    }
+  }
 
   /**
    * Reclasifica e importa solo la muestra pedida. En vista previa no escribe
@@ -140,42 +287,78 @@ export class EmailSampleImportService {
     userId,
     dryRun,
     selection,
-  }: {
-    userId: string;
-    dryRun: boolean;
-    selection: SampleImportSelection;
-  }): Promise<SampleImportManifest> {
-    const limit = dryRun ? DRY_RUN_SELECTION_LIMIT : SAMPLE_SELECTION_LIMIT;
+    reportedSelection,
+    onProgress,
+  }: RunSampleImportInput): Promise<SampleImportManifest> {
+    const limit = selectionLimit(dryRun);
     const resolved = await this.resolveSelection({
       userId,
       selection,
       limit,
     });
     const items: SampleManifestItem[] = [];
-    for (const selected of resolved.selected) {
+    for (const [index, selected] of resolved.selected.entries()) {
       items.push(
         dryRun
           ? await this.previewMessage({ userId, selected })
           : await this.executeMessage({ userId, selected }),
       );
+      await onProgress?.(index + 1);
     }
     return {
       dryRun,
-      selection: {
-        mode: resolved.mode,
-        requested: resolved.selected.length,
-        included: items.filter((item) => item.status === 'INCLUDED').length,
-        cap: limit,
-        ...(resolved.mode === 'SENDER_WINDOW'
-          ? {
-              sender: selection.sender!.trim(),
-              dateFrom: selection.dateFrom!.toISOString(),
-              dateTo: selection.dateTo!.toISOString(),
-            }
-          : {}),
-      },
+      selection: this.manifestSelection({
+        resolved,
+        items,
+        limit,
+        reportedSelection,
+      }),
       summary: this.summarize({ dryRun, items }),
       items,
+    };
+  }
+
+  private manifestSelection({
+    resolved,
+    items,
+    limit,
+    reportedSelection,
+  }: {
+    resolved: ResolvedSelection;
+    items: readonly SampleManifestItem[];
+    limit: number;
+    reportedSelection?: ReportedSelection;
+  }): SampleImportManifest['selection'] {
+    const mode = reportedSelection?.mode ?? resolved.mode;
+    const sender = reportedSelection?.sender ?? resolved.sender;
+    const dateFrom = reportedSelection?.dateFrom ?? resolved.dateFrom;
+    const dateTo = reportedSelection?.dateTo ?? resolved.dateTo;
+    return {
+      mode,
+      requested: resolved.selected.length,
+      included: items.filter((item) => item.status === 'INCLUDED').length,
+      cap: limit,
+      ...(mode === 'SENDER_WINDOW'
+        ? {
+            sender: sender!,
+            dateFrom: dateFrom!.toISOString(),
+            dateTo: dateTo!.toISOString(),
+          }
+        : {}),
+    };
+  }
+
+  private toView(job: SampleImportJobRow): SampleImportJobView {
+    return {
+      id: job.id,
+      status: job.status,
+      dryRun: job.dryRun,
+      progress: { processed: job.processed, total: job.total },
+      result: (job.result ?? null) as unknown as SampleImportManifest | null,
+      error: job.error,
+      createdAt: job.createdAt.toISOString(),
+      startedAt: job.startedAt?.toISOString() ?? null,
+      finishedAt: job.finishedAt?.toISOString() ?? null,
     };
   }
 
@@ -228,10 +411,7 @@ export class EmailSampleImportService {
     userId: string;
     selection: SampleImportSelection;
     limit: number;
-  }): Promise<{
-    mode: 'IDS' | 'SENDER_WINDOW';
-    selected: SelectedMessage[];
-  }> {
+  }): Promise<ResolvedSelection> {
     const hasIds = Array.isArray(selection.messageIds);
     const hasWindow =
       selection.sender !== undefined ||
@@ -252,9 +432,11 @@ export class EmailSampleImportService {
         }),
       };
     }
+    const window = requireSenderWindow(selection);
     return {
       mode: 'SENDER_WINDOW',
-      selected: await this.selectBySender({ userId, selection, limit }),
+      ...window,
+      selected: await this.selectBySender({ userId, window, limit }),
     };
   }
 
@@ -291,30 +473,20 @@ export class EmailSampleImportService {
 
   private async selectBySender({
     userId,
-    selection,
+    window,
     limit,
   }: {
     userId: string;
-    selection: SampleImportSelection;
+    window: SenderWindow;
     limit: number;
   }): Promise<SelectedMessage[]> {
-    const sender = selection.sender?.trim();
-    if (!sender) {
-      throw new BadRequestException('Falta el remitente o banco');
-    }
-    if (!selection.dateFrom || !selection.dateTo) {
-      throw new BadRequestException('Falta la ventana dateFrom/dateTo');
-    }
-    if (selection.dateFrom > selection.dateTo) {
-      throw new BadRequestException('dateFrom no puede ser posterior a dateTo');
-    }
     const rows = await this.prisma.aiEmailMessage.findMany({
       where: {
         userId,
-        receivedAt: { gte: selection.dateFrom, lte: selection.dateTo },
+        receivedAt: { gte: window.dateFrom, lte: window.dateTo },
         OR: [
-          { fromDomain: { equals: sender, mode: 'insensitive' } },
-          { fromAddress: { equals: sender, mode: 'insensitive' } },
+          { fromDomain: { equals: window.sender, mode: 'insensitive' } },
+          { fromAddress: { equals: window.sender, mode: 'insensitive' } },
         ],
       },
       select: MESSAGE_SELECT,
@@ -577,4 +749,30 @@ export class EmailSampleImportService {
       last4: transaction?.last4 ?? null,
     };
   }
+}
+
+function selectionLimit(dryRun: boolean): number {
+  return dryRun ? DRY_RUN_SELECTION_LIMIT : SAMPLE_SELECTION_LIMIT;
+}
+
+function requireSenderWindow(selection: SampleImportSelection): SenderWindow {
+  const sender = selection.sender?.trim();
+  if (!sender) {
+    throw new BadRequestException('Falta el remitente o banco');
+  }
+  if (!selection.dateFrom || !selection.dateTo) {
+    throw new BadRequestException('Falta la ventana dateFrom/dateTo');
+  }
+  if (selection.dateFrom > selection.dateTo) {
+    throw new BadRequestException('dateFrom no puede ser posterior a dateTo');
+  }
+  return {
+    sender,
+    dateFrom: selection.dateFrom,
+    dateTo: selection.dateTo,
+  };
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

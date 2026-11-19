@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EmailSampleImportService } from './email-sample-import.service';
 
 const financeLabel = {
@@ -58,6 +58,39 @@ const appliedPreview = {
   },
 };
 
+function jobRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'job-1',
+    userId: 'user-1',
+    dryRun: true,
+    status: 'QUEUED',
+    selectionMode: 'IDS',
+    messageIds: ['message-1'],
+    sender: null,
+    dateFrom: null,
+    dateTo: null,
+    total: 1,
+    processed: 0,
+    result: null,
+    error: null,
+    startedAt: null,
+    finishedAt: null,
+    createdAt: new Date('2026-11-19T10:00:00.000Z'),
+    ...overrides,
+  };
+}
+
+function makeJobsMock() {
+  return {
+    create: jest.fn().mockResolvedValue(jobRow()),
+    findForUser: jest.fn().mockResolvedValue(jobRow()),
+    claim: jest.fn().mockResolvedValue(jobRow({ status: 'RUNNING' })),
+    updateProgress: jest.fn().mockResolvedValue(undefined),
+    complete: jest.fn().mockResolvedValue(undefined),
+    fail: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 function setup({
   messages = [message('message-1')],
   classification = classified,
@@ -66,11 +99,15 @@ function setup({
     outcome: 'APPLIED',
     domainReferences: [{ type: 'FinTransaction', id: 'transaction-1' }],
   },
+  queue,
+  jobs = makeJobsMock(),
 }: {
   messages?: Array<ReturnType<typeof message>>;
   classification?: Record<string, unknown>;
   previewResult?: Record<string, unknown>;
   consumeResult?: Record<string, unknown>;
+  queue?: { add: jest.Mock };
+  jobs?: ReturnType<typeof makeJobsMock>;
 } = {}) {
   const findMany = jest.fn((args: Record<string, unknown>) => {
     const where = args.where as { id?: { in?: readonly string[] } } | undefined;
@@ -101,13 +138,16 @@ function setup({
   };
   const service = new EmailSampleImportService(
     prisma,
+    jobs as never,
     classificationService as never,
     consumers as never,
     signals as never,
+    queue as never,
   );
   return {
     service,
     prisma,
+    jobs,
     findMany,
     classificationService,
     financeConsumer,
@@ -583,5 +623,173 @@ describe('EmailSampleImportService', () => {
     expect(where).not.toHaveProperty('fromDomain');
     expect(where).not.toHaveProperty('templateFingerprint');
     expect(classificationService.reclassifyMessageNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns the job reference before any message is processed', async () => {
+    const queue = { add: jest.fn().mockResolvedValue({}) };
+    const { service, jobs, classificationService } = setup({ queue });
+
+    const view = await service.start({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(jobs.create).toHaveBeenCalledWith({
+      userId: 'user-1',
+      dryRun: true,
+      selectionMode: 'IDS',
+      messageIds: ['message-1'],
+      sender: null,
+      dateFrom: null,
+      dateTo: null,
+    });
+    expect(queue.add).toHaveBeenCalledWith(
+      'run-sample-import',
+      { userId: 'user-1', sampleImportId: 'job-1' },
+      expect.objectContaining({ jobId: 'job-1' }),
+    );
+    expect(view).toMatchObject({
+      id: 'job-1',
+      status: 'QUEUED',
+      dryRun: true,
+      progress: { processed: 0, total: 1 },
+      result: null,
+    });
+    expect(classificationService.previewClassification).not.toHaveBeenCalled();
+  });
+
+  it('keeps the sender window in the job', async () => {
+    const queue = { add: jest.fn().mockResolvedValue({}) };
+    const { service, jobs } = setup({ queue });
+    const dateFrom = new Date('2026-10-26T00:00:00.000Z');
+    const dateTo = new Date('2026-11-02T23:59:59.999Z');
+
+    await service.start({
+      userId: 'user-1',
+      dryRun: false,
+      selection: { sender: 'bhd.com.do', dateFrom, dateTo },
+    });
+
+    expect(jobs.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectionMode: 'SENDER_WINDOW',
+        messageIds: ['message-1'],
+        sender: 'bhd.com.do',
+        dateFrom,
+        dateTo,
+      }),
+    );
+  });
+
+  it('rejects an invalid selection before creating the job', async () => {
+    const queue = { add: jest.fn().mockResolvedValue({}) };
+    const { service, jobs } = setup({ queue });
+
+    await expect(
+      service.start({
+        userId: 'user-1',
+        dryRun: true,
+        selection: { messageIds: [] },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(jobs.create).not.toHaveBeenCalled();
+  });
+
+  it('runs the claimed job, reports progress and stores the manifest', async () => {
+    const messages = [message('message-1'), message('message-2')];
+    const jobs = makeJobsMock();
+    jobs.claim.mockResolvedValueOnce(
+      jobRow({
+        status: 'RUNNING',
+        messageIds: ['message-1', 'message-2'],
+        total: 2,
+      }),
+    );
+    const { service } = setup({ messages, jobs });
+
+    await service.process('job-1');
+
+    expect(jobs.updateProgress).toHaveBeenNthCalledWith(1, 'job-1', 1);
+    expect(jobs.updateProgress).toHaveBeenNthCalledWith(2, 'job-1', 2);
+    expect(jobs.complete).toHaveBeenCalledTimes(1);
+    const completed = jobs.complete.mock.calls[0] as [
+      string,
+      {
+        dryRun: boolean;
+        selection: { mode: string; requested: number };
+        items: unknown[];
+      },
+    ];
+    expect(completed[0]).toBe('job-1');
+    expect(completed[1]).toMatchObject({
+      dryRun: true,
+      selection: { mode: 'IDS', requested: 2 },
+    });
+    expect(completed[1].items).toHaveLength(2);
+    expect(jobs.fail).not.toHaveBeenCalled();
+  });
+
+  it('does not run a job that is already running or finished', async () => {
+    const jobs = makeJobsMock();
+    jobs.claim.mockResolvedValueOnce(null);
+    const { service, classificationService } = setup({ jobs });
+
+    await service.process('job-1');
+
+    expect(classificationService.previewClassification).not.toHaveBeenCalled();
+    expect(jobs.complete).not.toHaveBeenCalled();
+  });
+
+  it('marks a failed run with a code that carries no message content', async () => {
+    const { service, jobs, classificationService } = setup();
+    classificationService.previewClassification.mockRejectedValueOnce(
+      new Error('proveedor: asunto del correo'),
+    );
+
+    await service.process('job-1');
+
+    expect(jobs.fail).toHaveBeenCalledWith('job-1', 'SAMPLE_IMPORT_FAILED');
+    expect(jobs.complete).not.toHaveBeenCalled();
+  });
+
+  it('returns the terminal manifest of a finished job', async () => {
+    const jobs = makeJobsMock();
+    jobs.findForUser.mockResolvedValueOnce(
+      jobRow({
+        status: 'COMPLETED',
+        processed: 1,
+        result: {
+          dryRun: true,
+          selection: { mode: 'IDS', requested: 1, included: 1, cap: 50 },
+          summary: { included: 1, notFound: 0 },
+          items: [],
+        },
+        startedAt: new Date('2026-11-19T10:00:01.000Z'),
+        finishedAt: new Date('2026-11-19T10:01:00.000Z'),
+      }),
+    );
+    const { service } = setup({ jobs });
+
+    const view = await service.getForUser('user-1', 'job-1');
+
+    expect(view).toMatchObject({
+      status: 'COMPLETED',
+      progress: { processed: 1, total: 1 },
+      startedAt: '2026-11-19T10:00:01.000Z',
+      finishedAt: '2026-11-19T10:01:00.000Z',
+    });
+    expect(view.result).toMatchObject({ dryRun: true });
+  });
+
+  it('hides the job of another owner', async () => {
+    const jobs = makeJobsMock();
+    jobs.findForUser.mockResolvedValueOnce(null);
+    const { service } = setup({ jobs });
+
+    await expect(service.getForUser('user-2', 'job-1')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(jobs.findForUser).toHaveBeenCalledWith('user-2', 'job-1');
   });
 });

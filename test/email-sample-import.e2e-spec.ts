@@ -1,4 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  NotFoundException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -74,10 +78,34 @@ const manifest = {
   ],
 };
 
+const startedJob = {
+  id: 'job-1',
+  status: 'QUEUED',
+  dryRun: true,
+  progress: { processed: 0, total: 1 },
+  result: null,
+  error: null,
+  createdAt: '2026-11-19T10:00:00.000Z',
+  startedAt: null,
+  finishedAt: null,
+};
+
+const finishedJob = {
+  ...startedJob,
+  status: 'COMPLETED',
+  progress: { processed: 1, total: 1 },
+  result: manifest,
+  startedAt: '2026-11-19T10:00:01.000Z',
+  finishedAt: '2026-11-19T10:04:22.000Z',
+};
+
 describe('Email sample import API (e2e)', () => {
   let app: INestApplication<App>;
   let token: string;
-  const sampleImport = { run: jest.fn().mockResolvedValue(manifest) };
+  const sampleImport = {
+    start: jest.fn().mockResolvedValue(startedJob),
+    getForUser: jest.fn().mockResolvedValue(startedJob),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -103,19 +131,21 @@ describe('Email sample import API (e2e)', () => {
 
   afterEach(async () => app?.close());
 
-  it('returns the manifest of the selected ids in preview mode', async () => {
+  it('answers the job reference before the preview finishes', async () => {
     const response = await request(app.getHttpServer())
       .post('/api/intelligence/email/sample-import')
       .set('Authorization', `Bearer ${token}`)
       .send({ dryRun: true, selection: { messageIds: ['message-1'] } })
-      .expect(201);
+      .expect(202);
 
     expect(response.body.data).toMatchObject({
+      id: 'job-1',
+      status: 'QUEUED',
       dryRun: true,
-      summary: { included: 1, wouldCreateMovement: 1 },
-      items: [{ provider: 'groq', model: 'test-model' }],
+      progress: { processed: 0, total: 1 },
+      result: null,
     });
-    expect(sampleImport.run).toHaveBeenCalledWith({
+    expect(sampleImport.start).toHaveBeenCalledWith({
       userId: 'user-123',
       dryRun: true,
       selection: {
@@ -127,31 +157,85 @@ describe('Email sample import API (e2e)', () => {
     });
   });
 
-  it('returns all review reasons in the sample manifest', async () => {
-    sampleImport.run.mockResolvedValueOnce({
-      ...manifest,
-      items: [
-        {
-          ...manifest.items[0],
-          prediction: {
-            outcome: 'REVIEW_REQUIRED',
-            reason: 'NO_LEDGER_TARGET',
-            reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
-          },
-        },
-      ],
+  it('returns the state and progress of a running job', async () => {
+    sampleImport.getForUser.mockResolvedValueOnce({
+      ...startedJob,
+      status: 'RUNNING',
+      progress: { processed: 1, total: 2 },
+      startedAt: '2026-11-19T10:00:01.000Z',
     });
 
     const response = await request(app.getHttpServer())
-      .post('/api/intelligence/email/sample-import')
+      .get('/api/intelligence/email/sample-import/job-1')
       .set('Authorization', `Bearer ${token}`)
-      .send({ dryRun: true, selection: { messageIds: ['message-1'] } })
-      .expect(201);
+      .expect(200);
 
-    expect(response.body.data.items[0].prediction).toMatchObject({
+    expect(response.body.data).toMatchObject({
+      id: 'job-1',
+      status: 'RUNNING',
+      progress: { processed: 1, total: 2 },
+      result: null,
+    });
+    expect(sampleImport.getForUser).toHaveBeenCalledWith('user-123', 'job-1');
+  });
+
+  it('returns the terminal manifest of a finished job', async () => {
+    sampleImport.getForUser.mockResolvedValueOnce(finishedJob);
+
+    const response = await request(app.getHttpServer())
+      .get('/api/intelligence/email/sample-import/job-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data).toMatchObject({
+      status: 'COMPLETED',
+      progress: { processed: 1, total: 1 },
+      finishedAt: '2026-11-19T10:04:22.000Z',
+    });
+    expect(response.body.data.result).toMatchObject({
+      dryRun: true,
+      summary: { included: 1, wouldCreateMovement: 1 },
+      items: [{ provider: 'groq', model: 'test-model' }],
+      selection: { mode: 'IDS', requested: 1, included: 1 },
+    });
+  });
+
+  it('returns all review reasons in the terminal manifest', async () => {
+    sampleImport.getForUser.mockResolvedValueOnce({
+      ...finishedJob,
+      result: {
+        ...manifest,
+        items: [
+          {
+            ...manifest.items[0],
+            prediction: {
+              outcome: 'REVIEW_REQUIRED',
+              reason: 'NO_LEDGER_TARGET',
+              reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
+            },
+          },
+        ],
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/api/intelligence/email/sample-import/job-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(response.body.data.result.items[0].prediction).toMatchObject({
       reason: 'NO_LEDGER_TARGET',
       reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
     });
+  });
+
+  it('does not reveal the job of another owner', async () => {
+    sampleImport.getForUser.mockRejectedValueOnce(new NotFoundException());
+
+    await request(app.getHttpServer())
+      .get('/api/intelligence/email/sample-import/job-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 
   it('accepts a sender window with dates', async () => {
@@ -166,8 +250,8 @@ describe('Email sample import API (e2e)', () => {
           dateTo: '2026-11-02T23:59:59.999Z',
         },
       })
-      .expect(201);
-    expect(sampleImport.run).toHaveBeenCalledWith(
+      .expect(202);
+    expect(sampleImport.start).toHaveBeenCalledWith(
       expect.objectContaining({
         selection: expect.objectContaining({ sender: 'bhd.com.do' }),
       }),
@@ -181,8 +265,8 @@ describe('Email sample import API (e2e)', () => {
       .post('/api/intelligence/email/sample-import')
       .set('Authorization', `Bearer ${token}`)
       .send({ dryRun: true, selection: { messageIds } })
-      .expect(201);
-    expect(sampleImport.run).toHaveBeenCalledWith(
+      .expect(202);
+    expect(sampleImport.start).toHaveBeenCalledWith(
       expect.objectContaining({ dryRun: true }),
     );
   });
@@ -195,7 +279,7 @@ describe('Email sample import API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ dryRun: true, selection: { messageIds } })
       .expect(400);
-    expect(sampleImport.run).not.toHaveBeenCalled();
+    expect(sampleImport.start).not.toHaveBeenCalled();
   });
 
   it('requires a boolean dryRun', async () => {
@@ -204,6 +288,6 @@ describe('Email sample import API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ selection: { messageIds: ['message-1'] } })
       .expect(400);
-    expect(sampleImport.run).not.toHaveBeenCalled();
+    expect(sampleImport.start).not.toHaveBeenCalled();
   });
 });
