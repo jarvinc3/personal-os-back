@@ -1,10 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { AiConversationMessage } from '@personal-os/contracts';
+import type { AiInvocationContext } from '@personal-os/core';
 import { Prisma, PrismaService } from '@personal-os/database';
-import {
-  aiInvocationContextKey,
-  type AiInvocationContextKeyInput,
-} from './ai-invocation-context-key';
+import { aiInvocationContextKey } from './ai-invocation-context-key';
+
+const LEGACY_CONTEXT_BATCH_SIZE = 50;
+
+function isInvocationContext(value: unknown): value is AiInvocationContext {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as { route?: unknown }).route === 'string'
+  );
+}
 
 @Injectable()
 export class AiConversationStore {
@@ -84,6 +93,21 @@ export class AiConversationStore {
   }
 
   async findLatestByContext(userId: string, contextKey: string) {
+    await this.backfillLegacyContextKeys(userId);
+    const latest = await this.prisma.aiConversation.findFirst({
+      where: { userId, contextKey },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: { id: true },
+    });
+    return latest ? this.findOwned(userId, latest.id) : null;
+  }
+
+  /**
+   * Completes the key of conversations stored before the column existed. Bounded
+   * per query, and it writes `updatedAt` back because Prisma would otherwise
+   * move every migrated row to now and break the latest-by-context order.
+   */
+  private async backfillLegacyContextKeys(userId: string): Promise<void> {
     const legacyConversations = await this.prisma.aiConversation.findMany({
       where: {
         userId,
@@ -91,31 +115,21 @@ export class AiConversationStore {
         invocationContext: { not: Prisma.DbNull },
       },
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      select: { id: true, invocationContext: true },
+      take: LEGACY_CONTEXT_BATCH_SIZE,
+      select: { id: true, updatedAt: true, invocationContext: true },
     });
-    await Promise.all(
-      legacyConversations.map((conversation) => {
-        const context = conversation.invocationContext;
-        if (!context || typeof context !== 'object' || Array.isArray(context)) {
-          return Promise.resolve();
-        }
-        return this.prisma.aiConversation.updateMany({
-          where: { id: conversation.id, userId, contextKey: null },
-          data: {
-            contextKey: aiInvocationContextKey(
-              context as AiInvocationContextKeyInput,
-            ),
-          },
-        });
-      }),
-    );
-
-    const latest = await this.prisma.aiConversation.findFirst({
-      where: { userId, contextKey },
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      select: { id: true },
-    });
-    return latest ? this.findOwned(userId, latest.id) : null;
+    for (const conversation of legacyConversations) {
+      if (!isInvocationContext(conversation.invocationContext)) {
+        continue;
+      }
+      await this.prisma.aiConversation.updateMany({
+        where: { id: conversation.id, userId, contextKey: null },
+        data: {
+          contextKey: aiInvocationContextKey(conversation.invocationContext),
+          updatedAt: conversation.updatedAt,
+        },
+      });
+    }
   }
 
   async setInvocationContext(

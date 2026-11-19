@@ -61,9 +61,10 @@ describe('AiConversationStore', () => {
     );
   });
 
-  it('backfills keys for existing contextual conversations before lookup', async () => {
+  it('backfills keys for existing contextual conversations in bounded batches', async () => {
     const context = { route: '/finance', view: 'transactions' };
     const contextKey = aiInvocationContextKey(context);
+    const storedUpdatedAt = new Date('2026-11-02T00:00:00Z');
     const conversation = {
       id: 'legacy-1',
       title: 'Legacy',
@@ -71,14 +72,18 @@ describe('AiConversationStore', () => {
       summaryUpdatedAt: null,
       invocationContext: context,
       createdAt: new Date('2026-11-01T00:00:00Z'),
-      updatedAt: new Date('2026-11-02T00:00:00Z'),
+      updatedAt: storedUpdatedAt,
       messages: [],
     };
     const prisma = {
       aiConversation: {
-        findMany: jest
-          .fn()
-          .mockResolvedValue([{ id: 'legacy-1', invocationContext: context }]),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'legacy-1',
+            updatedAt: storedUpdatedAt,
+            invocationContext: context,
+          },
+        ]),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findFirst: jest
           .fn()
@@ -91,12 +96,35 @@ describe('AiConversationStore', () => {
     await expect(
       store.findLatestByContext('user-A', contextKey),
     ).resolves.toMatchObject({ id: 'legacy-1' });
+    expect(prisma.aiConversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
     expect(prisma.aiConversation.updateMany).toHaveBeenCalledWith({
       where: { id: 'legacy-1', userId: 'user-A', contextKey: null },
       data: {
         contextKey: contextKey,
+        updatedAt: storedUpdatedAt,
       },
     });
+  });
+
+  it('ignores stored contexts that are not invocable contexts', async () => {
+    const prisma = {
+      aiConversation: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'broken-1', updatedAt: new Date(), invocationContext: null },
+          { id: 'broken-2', updatedAt: new Date(), invocationContext: {} },
+        ]),
+        updateMany: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+    const store = new AiConversationStore(prisma);
+
+    await expect(
+      store.findLatestByContext('user-A', 'c'.repeat(64)),
+    ).resolves.toBeNull();
+    expect(prisma.aiConversation.updateMany).not.toHaveBeenCalled();
   });
 
   it('queries by authenticated owner and orders history by sequence', async () => {

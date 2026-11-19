@@ -302,6 +302,17 @@ describe('Intelligence API (e2e)', () => {
       contextKey,
     );
 
+    conversations.findLatestByContext.mockResolvedValueOnce(conversation);
+    await request(app.getHttpServer())
+      .get(`/api/intelligence/conversations/latest?context=${contextKey}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.conversation.id).toBe('conversation-1');
+        expect(body.data.conversation.messages).toHaveLength(2);
+        expect(JSON.stringify(body)).not.toContain('private');
+      });
+
     await request(app.getHttpServer())
       .get('/api/intelligence/conversations/conversation-1')
       .set('Authorization', `Bearer ${token}`)

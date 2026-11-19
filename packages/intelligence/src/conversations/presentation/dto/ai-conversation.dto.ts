@@ -134,7 +134,7 @@ export class LatestAiConversationQueryDto {
 }
 
 export class AiConversationLatestDto {
-  @ApiPropertyOptional({ type: () => AiConversationDetailDto, nullable: true })
+  @ApiProperty({ type: () => AiConversationDetailDto, nullable: true })
   conversation!: AiConversationDetailDto | null;
 }
 
