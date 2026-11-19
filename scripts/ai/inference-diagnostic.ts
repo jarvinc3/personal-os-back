@@ -6,6 +6,7 @@ import {
 import type { Env } from '@personal-os/config';
 import {
   AiInferenceGateway,
+  AiProviderRateLimiter,
   createAiProviderPool,
 } from '@personal-os/intelligence';
 import type { ConfigService } from '@nestjs/config';
@@ -59,14 +60,26 @@ async function main(): Promise<void> {
     throw new Error('Configure at least one AI provider key in .env');
   }
 
+  const providerRpm: Record<string, number> = {
+    AI_PROVIDER_RPM_GROQ: 30,
+    AI_PROVIDER_RPM_OPENROUTER: 20,
+  };
   const noPersistence = {
     aiInference: { create: async () => undefined },
+    aiProviderMinute: { deleteMany: async () => ({ count: 0 }) },
+    $queryRaw: async () => [{ calls: 1 }],
   } as unknown as PrismaService;
   const config = {
     getOrThrow: () =>
       process.env.DATA_ENCRYPTION_KEY ?? 'local-diagnostic-key-not-persisted',
+    get: (key: string) => providerRpm[key],
   } as unknown as ConfigService<Env, true>;
-  const gateway = new AiInferenceGateway(providers, noPersistence, config);
+  const gateway = new AiInferenceGateway(
+    providers,
+    noPersistence,
+    config,
+    new AiProviderRateLimiter(noPersistence, config),
+  );
 
   try {
     const result = await gateway.infer({
