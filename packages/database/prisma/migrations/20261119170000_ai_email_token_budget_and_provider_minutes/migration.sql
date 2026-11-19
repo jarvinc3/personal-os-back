@@ -5,6 +5,10 @@ ALTER TABLE "ai_email_model_budgets" RENAME TO "ai_email_token_budgets";
 ALTER TABLE "ai_email_token_budgets" RENAME COLUMN "calls" TO "tokens";
 ALTER TABLE "ai_email_token_budgets" RENAME COLUMN "daily_limit" TO "token_limit";
 ALTER TABLE "ai_email_token_budgets" ALTER COLUMN "token_limit" SET DEFAULT 320000;
+ALTER TABLE "ai_email_token_budgets" RENAME CONSTRAINT "ai_email_model_budgets_pkey" TO "ai_email_token_budgets_pkey";
+ALTER TABLE "ai_email_token_budgets" RENAME CONSTRAINT "ai_email_model_budgets_user_id_fkey" TO "ai_email_token_budgets_user_id_fkey";
+ALTER TABLE "ai_email_token_budgets" RENAME CONSTRAINT "ai_email_model_budgets_calls_check" TO "ai_email_token_budgets_tokens_check";
+ALTER TABLE "ai_email_token_budgets" RENAME CONSTRAINT "ai_email_model_budgets_daily_limit_check" TO "ai_email_token_budgets_token_limit_check";
 UPDATE "ai_email_token_budgets" SET "tokens" = "token_limit";
 
 -- Llamadas al proveedor por minuto, compartidas por todas las réplicas.
