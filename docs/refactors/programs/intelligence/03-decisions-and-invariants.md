@@ -193,6 +193,28 @@ Stable known templates should eventually use deterministic parsers + schema vali
 
 LLM is fallback for unknown/ambiguous cases.
 
+### Pilot limits are configuration, not constants
+
+The pilot classification limits belong to environment configuration with measured
+defaults; a limit change must not require a deployment of code.
+
+The first PR of #402 (#408) delivered the per-user minute counter shared through
+PostgreSQL, the atomic daily cost reservation, the truncation of body, subject
+and sender, and the `DISCARDED` state for senders outside the bank list. The
+second PR of #402 must deliver:
+
+- rhythm, initial budget, daily cost cap, truncation and the bank sender list as
+  environment variables with the current values as defaults;
+- a shared per-minute counter per provider, waiting before the provider reaches
+  80 % of its contracted RPM;
+- the DEV measurement of cost per email and the per-user caps expressed in
+  tokens, once the first PR is deployed: the measurement needs the code running,
+  so it cannot precede the deployment.
+
+A sender outside the bank list whose text has no deterministic classification is
+`DISCARDED`, never `REVIEW_REQUIRED`: the pending review queue is for real
+failures and uncertain classifications.
+
 ## Agent decisions
 
 ### Human verification belongs to web UI
