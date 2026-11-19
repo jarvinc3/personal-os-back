@@ -3,12 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import {
-  CLASSIFICATIONS_PER_MINUTE,
-  GLOBAL_COST_ALERT_RATIO,
-  GLOBAL_DAILY_COST_LIMIT_USD,
   globalCostStatus,
-  INITIAL_CLASSIFICATION_BUDGET,
+  readEmailClassificationLimits,
   startOfUtcDay,
+  type EmailClassificationLimits,
 } from './email-classification-limits';
 
 export type EmailUsageRow = {
@@ -124,10 +122,14 @@ export function summarizeEmailUsage({
 
 @Injectable()
 export class EmailUsageService {
+  private readonly limits: EmailClassificationLimits;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<Env, true>,
-  ) {}
+  ) {
+    this.limits = readEmailClassificationLimits(this.config);
+  }
 
   async getUsage({ userId, days }: { userId: string; days: number }) {
     const today = startOfUtcDay(new Date());
@@ -180,10 +182,10 @@ export class EmailUsageService {
         );
       }
     }
-    const [budget, connection, dailyCost] = await Promise.all([
-      this.prisma.aiEmailModelBudget.findFirst({
+    const [tokenBudget, connection, dailyCost] = await Promise.all([
+      this.prisma.aiEmailTokenBudget.findFirst({
         where: { userId, budgetDate: today },
-        select: { calls: true, dailyLimit: true },
+        select: { tokens: true, tokenLimit: true },
       }),
       this.prisma.aiEmailConnection.findUnique({
         where: { userId },
@@ -203,22 +205,20 @@ export class EmailUsageService {
       },
       ...summarizeEmailUsage({ rows, messages, classificationTypes }),
       caps: {
-        perMinute: CLASSIFICATIONS_PER_MINUTE,
+        perMinute: this.limits.classificationsPerMinute,
         initial: {
-          limit: INITIAL_CLASSIFICATION_BUDGET,
+          limit: this.limits.initialBudget,
           remaining: connection?.initialBudgetRemaining ?? 0,
         },
         daily: {
-          limit:
-            budget?.dailyLimit ??
-            this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', { infer: true }),
-          used: budget?.calls ?? 0,
+          limitTokens: this.limits.dailyTokenBudget,
+          usedTokens: tokenBudget?.tokens ?? 0,
         },
         globalCost: {
-          limitUsd: GLOBAL_DAILY_COST_LIMIT_USD,
+          limitUsd: this.limits.dailyCostLimitUsd,
           usedUsd,
-          alertRatio: GLOBAL_COST_ALERT_RATIO,
-          status: globalCostStatus({ costUsd: usedUsd }),
+          alertRatio: this.limits.costAlertRatio,
+          status: globalCostStatus({ costUsd: usedUsd, limits: this.limits }),
         },
       },
     };

@@ -27,6 +27,7 @@ import {
   buildProviderFailureLogDetails,
   providerFailureLogMessage,
 } from '../../shared/provider-failure';
+import { AiProviderRateLimiter } from '../infrastructure/ai-provider-rate-limiter';
 
 const RETENTION_DAYS = 90;
 const FINGERPRINT_VERSION = 'v1';
@@ -176,6 +177,7 @@ export class AiInferenceGateway {
     @Inject(AI_PROVIDER) private readonly providers: AIProviderClient[],
     private readonly prisma: PrismaService,
     config: ConfigService<Env, true>,
+    private readonly rateLimiter: AiProviderRateLimiter,
   ) {
     this.telemetryKey = fingerprintKey(
       config.getOrThrow('DATA_ENCRYPTION_KEY', { infer: true }),
@@ -212,6 +214,15 @@ export class AiInferenceGateway {
     try {
       for (const provider of ordered) {
         if (!provider.chatComplete) {
+          continue;
+        }
+        if (
+          !(await this.rateLimiter.acquire({
+            providerName: provider.name,
+            task: request.task,
+          }))
+        ) {
+          lastErrorCode = 'PROVIDER_RATE_LIMIT';
           continue;
         }
         attempts += 1;

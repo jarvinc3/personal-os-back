@@ -195,7 +195,7 @@ describe('Selección acotada de muestra por lista explícita', () => {
       await prisma.aiDatasetItem.deleteMany({
         where: { userId: { in: userIds } },
       });
-      await prisma.aiEmailModelBudget.deleteMany({
+      await prisma.aiEmailTokenBudget.deleteMany({
         where: { userId: { in: userIds } },
       });
       await prisma.aiEmailMessage.deleteMany({

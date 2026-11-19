@@ -76,18 +76,44 @@ describe('summarizeEmailUsage', () => {
 });
 
 describe('EmailUsageService', () => {
-  it('informa el tope diario configurado aunque no exista la fila de presupuesto', async () => {
+  it('informa el tope diario de tokens aunque no exista la fila del presupuesto', async () => {
     const prisma = {
       aiInference: { findMany: jest.fn().mockResolvedValue([]) },
-      aiEmailModelBudget: { findFirst: jest.fn().mockResolvedValue(null) },
+      aiEmailTokenBudget: { findFirst: jest.fn().mockResolvedValue(null) },
       aiEmailConnection: { findUnique: jest.fn().mockResolvedValue(null) },
       aiEmailDailyCost: { findUnique: jest.fn().mockResolvedValue(null) },
     };
-    const config = { get: jest.fn().mockReturnValue(100) };
+    const config = {
+      get: jest.fn((key: string) => {
+        const values: Record<string, unknown> = {
+          AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: 20,
+          AI_EMAIL_INITIAL_BUDGET: 500,
+          AI_EMAIL_DAILY_TOKEN_BUDGET: 320_000,
+          AI_EMAIL_DAILY_COST_LIMIT_USD: 5,
+          AI_EMAIL_COST_ALERT_RATIO: 0.8,
+          AI_EMAIL_MAX_CONTENT_CHARS: 24_000,
+          AI_EMAIL_MAX_SUBJECT_CHARS: 1_000,
+          AI_EMAIL_MAX_SENDER_CHARS: 320,
+          AI_EMAIL_BANK_SENDER_DOMAINS: ['bhd.com.do'],
+        };
+        return values[key];
+      }),
+    };
     const service = new EmailUsageService(prisma as never, config as never);
 
     const usage = await service.getUsage({ userId: 'user-1', days: 7 });
 
-    expect(usage.caps.daily).toEqual({ limit: 100, used: 0 });
+    expect(usage.caps.daily).toEqual({
+      limitTokens: 320_000,
+      usedTokens: 0,
+    });
+    expect(usage.caps.perMinute).toBe(20);
+    expect(usage.caps.initial).toEqual({ limit: 500, remaining: 0 });
+    expect(usage.caps.globalCost).toEqual({
+      limitUsd: 5,
+      usedUsd: 0,
+      alertRatio: 0.8,
+      status: 'OK',
+    });
   });
 });

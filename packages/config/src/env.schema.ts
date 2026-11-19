@@ -40,6 +40,25 @@ const optionalStrictBoolean = z
     }
   });
 
+/**
+ * Dominios bancarios que el piloto deja llegar al modelo. Son el valor por
+ * defecto de `AI_EMAIL_BANK_SENDER_DOMAINS`; los subdominios se aceptan.
+ */
+const DEFAULT_BANK_SENDER_DOMAINS = [
+  'bhd.com.do',
+  'popular.com.do',
+  'qik.do',
+  'banreservas.com',
+  'scotiabank.com.do',
+  'bancosantacruz.com.do',
+  'bancolopezdeharo.com',
+  'vimenca.com',
+  'bancocaribe.com.do',
+  'promerica.com.do',
+  'bdi.com.do',
+  'alaver.com.do',
+].join(',');
+
 export const envSchema = z
   .object({
     // ── Base de datos ────────────────────────────────────────────
@@ -58,6 +77,9 @@ export const envSchema = z
     // ── IA providers ───────────────────────────
     GROQ_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
+    /** Peticiones por minuto del plan contratado; el piloto usa el 80 %. */
+    AI_PROVIDER_RPM_GROQ: defaultedPositiveInt(30),
+    AI_PROVIDER_RPM_OPENROUTER: defaultedPositiveInt(20),
     AI_GMAIL_CLIENT_ID: optionalApiKey,
     AI_GMAIL_CLIENT_SECRET: optionalApiKey,
     AI_GMAIL_TOKEN_ENCRYPTION_KEY: z
@@ -84,8 +106,41 @@ export const envSchema = z
     ),
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
-    /** Maximum email classification gateway calls per user and UTC day. */
-    AI_EMAIL_DAILY_MODEL_BUDGET: defaultedPositiveInt(100),
+    /** Clasificaciones por minuto y usuario; la tabla compartida las reserva. */
+    AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: defaultedPositiveInt(20),
+    /** Clasificaciones de carga inicial por conexión de Gmail. */
+    AI_EMAIL_INITIAL_BUDGET: defaultedPositiveInt(500),
+    /** Tokens por usuario y día UTC; reemplaza al tope de llamadas diarias. */
+    AI_EMAIL_DAILY_TOKEN_BUDGET: defaultedPositiveInt(320_000),
+    /** Tope global de costo del piloto por día UTC, en dólares. */
+    AI_EMAIL_DAILY_COST_LIMIT_USD: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().positive().default(5),
+    ),
+    /** Proporción del tope global a la que se registra la alerta. */
+    AI_EMAIL_COST_ALERT_RATIO: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().min(0).max(1).default(0.8),
+    ),
+    /** Contenido del correo que se envía al modelo, en caracteres. */
+    AI_EMAIL_MAX_CONTENT_CHARS: defaultedPositiveInt(24_000),
+    /** Asunto del correo que acompaña al contenido, en caracteres. */
+    AI_EMAIL_MAX_SUBJECT_CHARS: defaultedPositiveInt(1_000),
+    /** Remitente del correo que acompaña al contenido, en caracteres. */
+    AI_EMAIL_MAX_SENDER_CHARS: defaultedPositiveInt(320),
+    /** Dominios bancarios del piloto, separados por coma. */
+    AI_EMAIL_BANK_SENDER_DOMAINS: z
+      .string()
+      .default(DEFAULT_BANK_SENDER_DOMAINS)
+      .transform((value) =>
+        value
+          .split(',')
+          .map((domain) => domain.trim().toLowerCase())
+          .filter(Boolean),
+      )
+      .pipe(z.array(z.string()).min(1)),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 

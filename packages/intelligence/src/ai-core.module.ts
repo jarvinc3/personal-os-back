@@ -12,6 +12,7 @@ import { InferenceCompletionAdapter } from './inference/application/inference-co
 import { AiService } from './inference/application/ai.service';
 import { AiInferenceDataService } from './inference/infrastructure/ai-inference-data.service';
 import { AiInferenceRetentionScheduler } from './inference/infrastructure/ai-inference-retention.scheduler';
+import { AiProviderRateLimiter } from './inference/infrastructure/ai-provider-rate-limiter';
 import { createAiProviderPool } from './inference/ai-provider-pool';
 import { AI_PROVIDER } from './shared/ai-provider.token';
 import { AiRolesController } from './roles/ai-roles.controller';
@@ -125,6 +126,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
       inject: [ConfigService],
     },
     AiService,
+    AiProviderRateLimiter,
     AiInferenceGateway,
     InferenceCompletionAdapter,
     AiInferenceDataService,
@@ -149,6 +151,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailSourceService,
     EmailProductProposalCatalogRegistry,
     AiService,
+    AiProviderRateLimiter,
     AiInferenceGateway,
     AiInferenceDataService,
     INFERENCE_COMPLETION,

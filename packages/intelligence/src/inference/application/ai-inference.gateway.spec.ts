@@ -7,6 +7,7 @@ import {
   type StructuredInferenceRequest,
 } from '@personal-os/contracts';
 import { AiInferenceGateway } from './ai-inference.gateway';
+import type { AiProviderRateLimiter } from '../infrastructure/ai-provider-rate-limiter';
 import type { AIService } from '../../shared/ai.types';
 
 const request = (): StructuredInferenceRequest<{ value: string }> => ({
@@ -52,12 +53,18 @@ function providerFailureLogs(
 function build(
   providers: AIService[],
   create = jest.fn().mockResolvedValue({}),
+  acquire = jest.fn().mockResolvedValue(true),
 ) {
   const prisma = { aiInference: { create } } as unknown as PrismaService;
   const config = {
     getOrThrow: () => 'test-data-encryption-key-long-enough',
   } as unknown as ConfigService<Env, true>;
-  return { gateway: new AiInferenceGateway(providers, prisma, config), create };
+  const rateLimiter = { acquire } as unknown as AiProviderRateLimiter;
+  return {
+    gateway: new AiInferenceGateway(providers, prisma, config, rateLimiter),
+    create,
+    acquire,
+  };
 }
 
 describe('AiInferenceGateway', () => {
@@ -708,5 +715,60 @@ describe('AiInferenceGateway', () => {
     await expect(gateway.infer(request())).resolves.toMatchObject({
       provider: 'Groq',
     });
+  });
+
+  it('skips a saturated provider and calls the next one', async () => {
+    const saturated = {
+      name: 'Groq',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const available = {
+      name: 'OpenRouter',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const acquire = jest
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const { gateway } = build([saturated, available], undefined, acquire);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'OpenRouter',
+    });
+    expect(saturated.chatComplete).not.toHaveBeenCalled();
+    expect(available.chatComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails without calling any provider when every provider is saturated', async () => {
+    const groq = {
+      name: 'Groq',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn(),
+    };
+    const openRouter = {
+      name: 'OpenRouter',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn(),
+    };
+    const acquire = jest.fn().mockResolvedValue(false);
+    const { gateway } = build([groq, openRouter], undefined, acquire);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+    });
+    expect(groq.chatComplete).not.toHaveBeenCalled();
+    expect(openRouter.chatComplete).not.toHaveBeenCalled();
   });
 });

@@ -54,18 +54,14 @@ import {
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import {
-  CLASSIFICATIONS_PER_MINUTE,
-  GLOBAL_COST_ALERT_RATIO,
-  GLOBAL_DAILY_COST_LIMIT_USD,
+  estimateClassificationTokens,
   globalCostStatus,
-  INITIAL_CLASSIFICATION_BUDGET,
   isBankSenderDomain,
-  MAX_CLASSIFICATION_COST_USD,
-  MAX_EMAIL_CONTENT_CHARS,
-  MAX_EMAIL_SENDER_CHARS,
-  MAX_EMAIL_SUBJECT_CHARS,
+  maxClassificationCostUsd,
+  readEmailClassificationLimits,
   startOfUtcDay,
   utcDayKey,
+  type EmailClassificationLimits,
 } from './email-classification-limits';
 
 const CLASSIFICATION_TASK = 'EMAIL_CLASSIFICATION';
@@ -133,15 +129,14 @@ type ComputedClassification =
   | { kind: 'rate_limited' }
   | { kind: 'no_classification' };
 
-/** De dónde salió la llamada de modelo que se acaba de reservar. */
-type DailyCallClaim = {
-  source: 'INITIAL' | 'DAILY';
-  completedInitialBudget: boolean;
-};
+/** Cupo de carga inicial reclamado para una conexión de Gmail. */
+type InitialBudgetClaim = { completedInitialBudget: boolean };
 
 /** Cupo concedido para clasificar; `costDate` es el día del costo reservado. */
 type ModelBudgetGrant = {
   costDate: Date;
+  /** Tokens reservados del día; null cuando la llamada sale de la carga inicial. */
+  reservedTokens: number | null;
 };
 
 /** Fila devuelta por la reserva atómica del costo global del día. */
@@ -167,6 +162,7 @@ export type MessageClassificationResult =
 @Injectable()
 export class AiEmailClassificationService {
   private readonly logger = new Logger(AiEmailClassificationService.name);
+  private readonly limits: EmailClassificationLimits;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -182,7 +178,9 @@ export class AiEmailClassificationService {
     @Optional()
     @Inject(NOTIFICATION_INTENT_SINK)
     private readonly notifications?: NotificationIntentSink,
-  ) {}
+  ) {
+    this.limits = readEmailClassificationLimits(this.config);
+  }
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
   async processPendingForUser(userId: string) {
@@ -516,7 +514,7 @@ export class AiEmailClassificationService {
     if (
       auditSample &&
       classification &&
-      isBankSenderDomain(message.fromDomain)
+      isBankSenderDomain(message.fromDomain, this.limits.bankSenderDomains)
     ) {
       await this.measureWithModel({
         userId,
@@ -527,19 +525,26 @@ export class AiEmailClassificationService {
       });
     }
     if (!classification) {
-      if (!isBankSenderDomain(message.fromDomain)) {
+      if (
+        !isBankSenderDomain(message.fromDomain, this.limits.bankSenderDomains)
+      ) {
         await this.discardMessage(userId, message.id);
         return { kind: 'no_classification' };
       }
-      const budget = await this.acquireModelBudget({ userId, modelBudget });
+      const content = this.modelContent(message);
+      const budget = await this.acquireModelBudget({
+        userId,
+        modelBudget,
+        contentChars: content.length,
+      });
       if (!budget) {
         return { kind: 'budget_exhausted' };
       }
       const inferred = await this.classifyWithModelAndSettleCost({
         userId,
         message,
-        content: modelContent(message),
-        costDate: budget.costDate,
+        content,
+        budget,
         recordTelemetry,
         onModelCall,
       });
@@ -625,7 +630,12 @@ export class AiEmailClassificationService {
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<void> {
-    const budget = await this.acquireModelBudget({ userId, modelBudget });
+    const content = this.modelContent(message);
+    const budget = await this.acquireModelBudget({
+      userId,
+      modelBudget,
+      contentChars: content.length,
+    });
     if (!budget) {
       this.logger.warn(
         `Audit sample measurement skipped for message ${message.id}: model budget exhausted`,
@@ -636,8 +646,8 @@ export class AiEmailClassificationService {
       await this.classifyWithModelAndSettleCost({
         userId,
         message,
-        content: modelContent(message),
-        costDate: budget.costDate,
+        content,
+        budget,
         recordTelemetry,
         onModelCall,
       });
@@ -656,14 +666,14 @@ export class AiEmailClassificationService {
     userId,
     message,
     content,
-    costDate,
+    budget,
     recordTelemetry,
     onModelCall,
   }: {
     userId: string;
     message: ClassifiableMessage;
     content: string;
-    costDate: Date;
+    budget: ModelBudgetGrant;
     recordTelemetry?: boolean;
     onModelCall?: () => void;
   }): Promise<StructuredInference<EmailClassification>> {
@@ -679,7 +689,16 @@ export class AiEmailClassificationService {
       ? sumKnownCosts(rejectedCostUsd, inferred.costUsd)
       : inferred.costUsd;
     if (costUsd != null) {
-      await this.settleDailyCost({ date: costDate, costUsd });
+      await this.settleDailyCost({ date: budget.costDate, costUsd });
+    }
+    const usedTokens = inferenceTokens(inferred);
+    if (usedTokens != null && budget.reservedTokens != null) {
+      await this.settleDailyTokens({
+        userId,
+        date: budget.costDate,
+        reservedTokens: budget.reservedTokens,
+        usedTokens,
+      });
     }
     return inferred;
   }
@@ -711,8 +730,8 @@ export class AiEmailClassificationService {
       {
         role: 'user',
         content: JSON.stringify({
-          from: message.fromAddress.slice(0, MAX_EMAIL_SENDER_CHARS),
-          subject: message.subject.slice(0, MAX_EMAIL_SUBJECT_CHARS),
+          from: message.fromAddress.slice(0, this.limits.maxSenderChars),
+          subject: message.subject.slice(0, this.limits.maxSubjectChars),
           emailContent: content,
         }),
       },
@@ -822,22 +841,9 @@ export class AiEmailClassificationService {
     });
   }
 
-  private async hasModelBudget(userId: string): Promise<boolean> {
-    if (await this.isGlobalCostPaused()) {
-      return false;
-    }
-    const today = startOfUtcDay(new Date());
-    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
-      infer: true,
-    });
-    const budget = await this.prisma.aiEmailModelBudget.findFirst({
-      where: { userId, budgetDate: today },
-      select: { calls: true },
-    });
-    if (!budget) {
-      return true;
-    }
-    return budget.calls < dailyLimit;
+  /** La vista previa solo respeta el freno global: no consume el cupo diario. */
+  private async hasModelBudget(): Promise<boolean> {
+    return !(await this.isGlobalCostPaused());
   }
 
   private async resolveKnowledge(
@@ -1136,48 +1142,58 @@ export class AiEmailClassificationService {
   }
 
   /**
-   * Reserva una llamada del presupuesto diario del usuario y el costo máximo del
-   * día. Si el costo global no cabe, la llamada vuelve al presupuesto y la
-   * clasificación no corre. Devuelve el día reservado.
+   * Reserva el cupo del usuario y el costo máximo del día. La primera vez sale
+   * de la carga inicial de la conexión; después, del tope diario de tokens. Si
+   * el costo global no cabe, lo reservado vuelve y la clasificación no corre.
    */
-  private async reserveModelCall(userId: string): Promise<Date | null> {
-    const claim = await this.claimDailyCall(userId);
-    if (!claim) {
+  private async reserveModelCall({
+    userId,
+    contentChars,
+  }: {
+    userId: string;
+    contentChars: number;
+  }): Promise<ModelBudgetGrant | null> {
+    const initialClaim = await this.claimInitialCall(userId);
+    const reservedTokens = initialClaim
+      ? null
+      : await this.reserveDailyTokens({ userId, contentChars });
+    if (reservedTokens === false) {
       await this.notifyDailyBudgetExhausted(userId);
       return null;
     }
     const costDate = await this.reserveDailyCost(userId);
     if (!costDate) {
-      await this.releaseDailyCall({ userId, claim });
+      await this.releaseBudget({ userId, initialClaim, reservedTokens });
       return null;
     }
-    if (claim.completedInitialBudget) {
+    if (initialClaim?.completedInitialBudget) {
       await this.notifyInitialBudgetDepleted(userId);
     }
-    return costDate;
+    return { costDate, reservedTokens };
   }
 
   /**
    * Reserva el costo máximo de la llamada. La clasificación normal además ocupa
-   * una llamada del presupuesto diario; la vista previa solo paga el costo. Un
-   * modelo nunca se llama sin reserva. Null significa que no hay presupuesto.
+   * el cupo del usuario; la vista previa solo paga el costo. Un modelo nunca se
+   * llama sin reserva. Null significa que no hay presupuesto.
    */
   private async acquireModelBudget({
     userId,
     modelBudget,
+    contentChars,
   }: {
     userId: string;
     modelBudget: ModelBudget;
+    contentChars: number;
   }): Promise<ModelBudgetGrant | null> {
     if (modelBudget === 'reserve') {
-      const costDate = await this.reserveModelCall(userId);
-      return costDate ? { costDate } : null;
+      return this.reserveModelCall({ userId, contentChars });
     }
-    if (!(await this.hasModelBudget(userId))) {
+    if (!(await this.hasModelBudget())) {
       return null;
     }
     const costDate = await this.reserveDailyCost(userId);
-    return costDate ? { costDate } : null;
+    return costDate ? { costDate, reservedTokens: null } : null;
   }
 
   /**
@@ -1192,7 +1208,7 @@ export class AiEmailClassificationService {
       ON CONFLICT (user_id, minute) DO UPDATE
         SET calls = ai_email_classification_minutes.calls + 1,
             updated_at = now()
-        WHERE ai_email_classification_minutes.calls < ${CLASSIFICATIONS_PER_MINUTE}::int
+        WHERE ai_email_classification_minutes.calls < ${this.limits.classificationsPerMinute}::int
       RETURNING calls
     `;
     const reservation = reserved[0];
@@ -1212,63 +1228,131 @@ export class AiEmailClassificationService {
     });
   }
 
-  private async claimDailyCall(userId: string): Promise<DailyCallClaim | null> {
+  /** Reclama una clasificación de la carga inicial de la conexión. */
+  private async claimInitialCall(
+    userId: string,
+  ): Promise<InitialBudgetClaim | null> {
     const connection = await this.prisma.aiEmailConnection.findUnique({
       where: { userId },
       select: { initialBudgetRemaining: true },
     });
     const initialRemaining = connection?.initialBudgetRemaining ?? 0;
-    if (initialRemaining > 0) {
-      const claimed = await this.prisma.aiEmailConnection.updateMany({
-        where: { userId, initialBudgetRemaining: { gt: 0 } },
-        data: { initialBudgetRemaining: { decrement: 1 } },
-      });
-      if (claimed.count === 1) {
-        return {
-          source: 'INITIAL',
-          completedInitialBudget: initialRemaining === 1,
-        };
-      }
+    if (initialRemaining <= 0) {
+      return null;
     }
-    const today = startOfUtcDay(new Date());
-    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
-      infer: true,
-    });
-    await this.prisma.aiEmailModelBudget.upsert({
-      where: { userId },
-      create: { userId, budgetDate: today, calls: 0, dailyLimit },
-      update: {},
-    });
-    await this.prisma.aiEmailModelBudget.updateMany({
-      where: { userId, budgetDate: { lt: today } },
-      data: { budgetDate: today, calls: 0, dailyLimit },
-    });
-    const claimed = await this.prisma.aiEmailModelBudget.updateMany({
-      where: { userId, budgetDate: today, calls: { lt: dailyLimit } },
-      data: { calls: { increment: 1 }, dailyLimit },
+    const claimed = await this.prisma.aiEmailConnection.updateMany({
+      where: { userId, initialBudgetRemaining: { gt: 0 } },
+      data: { initialBudgetRemaining: { decrement: 1 } },
     });
     return claimed.count === 1
-      ? { source: 'DAILY', completedInitialBudget: false }
+      ? { completedInitialBudget: initialRemaining === 1 }
       : null;
   }
 
-  private async releaseDailyCall({
+  /**
+   * Reserva tokens del día con un UPDATE condicionado: la fila se bloquea y
+   * solo suma si la reserva todavía cabe, así que dos clasificaciones
+   * concurrentes no pueden pasar el tope juntas. `false` significa que no cabe.
+   */
+  private async reserveDailyTokens({
     userId,
-    claim,
+    contentChars,
   }: {
     userId: string;
-    claim: DailyCallClaim;
+    contentChars: number;
+  }): Promise<number | false> {
+    const date = startOfUtcDay(new Date());
+    const tokenLimit = this.limits.dailyTokenBudget;
+    const reservedTokens = estimateClassificationTokens({
+      limits: this.limits,
+      contentChars,
+    });
+    await this.prisma.aiEmailTokenBudget.upsert({
+      where: { userId },
+      create: { userId, budgetDate: date, tokens: 0, tokenLimit },
+      update: {},
+    });
+    await this.prisma.aiEmailTokenBudget.updateMany({
+      where: { userId, budgetDate: { lt: date } },
+      data: { budgetDate: date, tokens: 0, tokenLimit },
+    });
+    const reserved = await this.prisma.aiEmailTokenBudget.updateMany({
+      where: {
+        userId,
+        budgetDate: date,
+        tokens: { lte: tokenLimit - reservedTokens },
+      },
+      data: { tokens: { increment: reservedTokens }, tokenLimit },
+    });
+    return reserved.count === 1 ? reservedTokens : false;
+  }
+
+  /** Devuelve al cupo lo reservado cuando la llamada no llega a correr. */
+  private async releaseBudget({
+    userId,
+    initialClaim,
+    reservedTokens,
+  }: {
+    userId: string;
+    initialClaim: InitialBudgetClaim | null;
+    reservedTokens: number | null;
   }): Promise<void> {
-    if (claim.source === 'INITIAL') {
+    if (initialClaim) {
       await this.prisma.aiEmailConnection.updateMany({
         where: { userId },
         data: { initialBudgetRemaining: { increment: 1 } },
       });
       return;
     }
-    await this.prisma.aiEmailModelBudget.updateMany({
-      where: { userId, calls: { gt: 0 } },
-      data: { calls: { decrement: 1 } },
+    if (reservedTokens) {
+      await this.releaseDailyTokens({ userId, tokens: reservedTokens });
+    }
+  }
+
+  private async releaseDailyTokens({
+    userId,
+    tokens,
+  }: {
+    userId: string;
+    tokens: number;
+  }): Promise<void> {
+    await this.prisma.aiEmailTokenBudget.updateMany({
+      where: {
+        userId,
+        budgetDate: startOfUtcDay(new Date()),
+        tokens: { gte: tokens },
+      },
+      data: { tokens: { decrement: tokens } },
+    });
+  }
+
+  /**
+   * Ajusta la reserva a los tokens reales de la inferencia contra el día que la
+   * reservó. Si el proveedor no reporta tokens, la reserva se queda completa.
+   */
+  private async settleDailyTokens({
+    userId,
+    date,
+    reservedTokens,
+    usedTokens,
+  }: {
+    userId: string;
+    date: Date;
+    reservedTokens: number;
+    usedTokens: number;
+  }): Promise<void> {
+    const adjustment = reservedTokens - usedTokens;
+    if (adjustment === 0) {
+      return;
+    }
+    await this.prisma.aiEmailTokenBudget.updateMany({
+      where: { userId, budgetDate: date },
+      data: {
+        tokens:
+          adjustment > 0
+            ? { decrement: adjustment }
+            : { increment: -adjustment },
+      },
     });
   }
 
@@ -1279,7 +1363,10 @@ export class AiEmailClassificationService {
     });
     return Boolean(
       dailyCost &&
-      globalCostStatus({ costUsd: Number(dailyCost.costUsd) }) === 'PAUSED',
+      globalCostStatus({
+        costUsd: Number(dailyCost.costUsd),
+        limits: this.limits,
+      }) === 'PAUSED',
     );
   }
 
@@ -1290,6 +1377,7 @@ export class AiEmailClassificationService {
    */
   private async reserveDailyCost(userId: string): Promise<Date | null> {
     const date = startOfUtcDay(new Date());
+    const maxCostUsd = maxClassificationCostUsd(this.limits);
     await this.prisma.aiEmailDailyCost.upsert({
       where: { date },
       create: { date, costUsd: 0 },
@@ -1297,10 +1385,10 @@ export class AiEmailClassificationService {
     });
     const reservations = await this.prisma.$queryRaw<DailyCostReservation[]>`
       UPDATE ai_email_daily_costs
-      SET cost_usd = cost_usd + ${MAX_CLASSIFICATION_COST_USD}::numeric,
+      SET cost_usd = cost_usd + ${maxCostUsd}::numeric,
           updated_at = now()
       WHERE date = ${utcDayKey(date)}::date
-        AND cost_usd + ${MAX_CLASSIFICATION_COST_USD}::numeric <= ${GLOBAL_DAILY_COST_LIMIT_USD}::numeric
+        AND cost_usd + ${maxCostUsd}::numeric <= ${this.limits.dailyCostLimitUsd}::numeric
       RETURNING cost_usd, alerted_at
     `;
     const reservation = reservations[0];
@@ -1336,7 +1424,7 @@ export class AiEmailClassificationService {
       userId,
       key: 'COST_PAUSED',
       title: 'Clasificación en pausa',
-      body: `Se alcanzó el tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+      body: `Se alcanzó el tope diario de ${this.limits.dailyCostLimitUsd} USD; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
     });
   }
 
@@ -1351,7 +1439,10 @@ export class AiEmailClassificationService {
     costUsd: number;
     alertedAt: Date | null;
   }): Promise<void> {
-    if (alertedAt || globalCostStatus({ costUsd }) !== 'ALERT') {
+    if (
+      alertedAt ||
+      globalCostStatus({ costUsd, limits: this.limits }) !== 'ALERT'
+    ) {
       return;
     }
     const alerted = await this.prisma.aiEmailDailyCost.updateMany({
@@ -1365,8 +1456,8 @@ export class AiEmailClassificationService {
     await this.notifyLimit({
       userId,
       key: 'COST_ALERT',
-      title: `Uso de clasificación al ${GLOBAL_COST_ALERT_RATIO * 100} %`,
-      body: `El piloto alcanzó el ${GLOBAL_COST_ALERT_RATIO * 100} % del tope diario de ${GLOBAL_DAILY_COST_LIMIT_USD} USD; quedan ${pending} correos en cola.`,
+      title: `Uso de clasificación al ${this.limits.costAlertRatio * 100} %`,
+      body: `El piloto alcanzó el ${this.limits.costAlertRatio * 100} % del tope diario de ${this.limits.dailyCostLimitUsd} USD; quedan ${pending} correos en cola.`,
     });
   }
 
@@ -1385,7 +1476,7 @@ export class AiEmailClassificationService {
     costUsd: number;
   }): Promise<void> {
     const adjustmentUsd = Number(
-      (MAX_CLASSIFICATION_COST_USD - costUsd).toFixed(6),
+      (maxClassificationCostUsd(this.limits) - costUsd).toFixed(6),
     );
     if (adjustmentUsd === 0) {
       return;
@@ -1407,20 +1498,17 @@ export class AiEmailClassificationService {
       userId,
       key: 'INITIAL_BUDGET',
       title: 'Carga inicial agotada',
-      body: `Se agotó la carga inicial de ${INITIAL_CLASSIFICATION_BUDGET} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+      body: `Se agotó la carga inicial de ${this.limits.initialBudget} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
     });
   }
 
   private async notifyDailyBudgetExhausted(userId: string): Promise<void> {
-    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
-      infer: true,
-    });
     const pending = await this.countUnclassified(userId);
     await this.notifyLimit({
       userId,
       key: 'DAILY_BUDGET',
       title: 'Tope diario de clasificación',
-      body: `Se agotó el tope diario de ${dailyLimit} clasificaciones; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
+      body: `Se agotó el tope diario de ${this.limits.dailyTokenBudget} tokens; quedan ${pending} correos en cola y siguen en el próximo día UTC.`,
     });
   }
 
@@ -1493,6 +1581,14 @@ export class AiEmailClassificationService {
     });
   }
 
+  /** El contenido que ve el modelo, recortado al máximo configurado. */
+  private modelContent(message: ClassifiableMessage): string {
+    return (message.content?.sanitizedBody ?? '').slice(
+      0,
+      this.limits.maxContentChars,
+    );
+  }
+
   private safeErrorDescription(error: unknown) {
     const code = this.safeErrorCode(error);
     if (error instanceof StructuredInferenceOutputError && error.detail) {
@@ -1520,10 +1616,12 @@ function sumKnownCosts(
   return Number((first + second).toFixed(6));
 }
 
-/** El contenido que ve el modelo, recortado al máximo que acepta el flujo. */
-function modelContent(message: ClassifiableMessage): string {
-  return (message.content?.sanitizedBody ?? '').slice(
-    0,
-    MAX_EMAIL_CONTENT_CHARS,
-  );
+/** Tokens facturados de todos los intentos; null si el proveedor no los reporta. */
+function inferenceTokens(
+  inference: StructuredInference<unknown>,
+): number | null {
+  if (inference.inputTokens == null || inference.outputTokens == null) {
+    return null;
+  }
+  return inference.inputTokens + inference.outputTokens;
 }

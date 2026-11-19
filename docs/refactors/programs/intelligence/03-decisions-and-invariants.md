@@ -201,15 +201,24 @@ defaults; a limit change must not require a deployment of code.
 The first PR of #402 (#408) delivered the per-user minute counter shared through
 PostgreSQL, the atomic daily cost reservation, the truncation of body, subject
 and sender, and the `DISCARDED` state for senders outside the bank list. The
-second PR of #402 must deliver:
+second PR moved every limit to `AI_EMAIL_*` variables with the previous values
+as defaults (rhythm, initial budget, daily cap, cost cap and alert ratio,
+truncation and the bank sender list) and added the shared per-minute counter per
+provider.
 
-- rhythm, initial budget, daily cost cap, truncation and the bank sender list as
-  environment variables with the current values as defaults;
-- a shared per-minute counter per provider, waiting before the provider reaches
-  80 % of its contracted RPM;
-- the DEV measurement of cost per email and the per-user caps expressed in
-  tokens, once the first PR is deployed: the measurement needs the code running,
-  so it cannot precede the deployment.
+Measured in DEV before the change, over 660 successful classifications: 2 655
+tokens per email on average, 2 465 on Groq's `qwen/qwen3.8-27b` and 3 506 on
+OpenRouter's `deepseek/deepseek-v4-flash`, at roughly 0.0005 USD per email. The
+daily per-user cap is therefore expressed in tokens, not calls: 320 000 tokens
+per UTC day, around 120 emails. The owner decided that this token cap replaces
+the previous 100-call daily cap; the 500-classification initial budget stays in
+calls because it is a one-time onboarding promise.
+
+Each provider's contracted RPM belongs to the provider account, so the counter
+is shared by every replica and every task (`ai_provider_minutes`). The pilot uses
+80 % of the configured RPM (Groq 30, OpenRouter 20). The email batch waits for
+the next minute instead of receiving a 429; interactive tasks fail fast so a chat
+is never blocked behind the batch.
 
 A sender outside the bank list whose text has no deterministic classification is
 `DISCARDED`, never `REVIEW_REQUIRED`: the pending review queue is for real

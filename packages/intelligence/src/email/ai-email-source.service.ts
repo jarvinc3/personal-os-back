@@ -10,7 +10,6 @@ import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { decryptToken, encryptToken } from './token-encryption.util';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
-import { INITIAL_CLASSIFICATION_BUDGET } from './email-classification-limits';
 import {
   isSenderFilter,
   normalizeSenderFilter,
@@ -411,7 +410,9 @@ export class AiEmailSourceService {
         refreshTokenEncrypted,
         tokenExpiresAt: expiresAt,
         providerCursor: profile.historyId,
-        initialBudgetRemaining: INITIAL_CLASSIFICATION_BUDGET,
+        initialBudgetRemaining: this.config.get('AI_EMAIL_INITIAL_BUDGET', {
+          infer: true,
+        }),
         importStartAt,
         senderFilter,
       },

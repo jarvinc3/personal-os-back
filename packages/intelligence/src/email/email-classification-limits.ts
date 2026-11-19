@@ -1,21 +1,54 @@
+import type { ConfigService } from '@nestjs/config';
+import type { Env } from '@personal-os/config';
 import {
   DEFAULT_MODEL_PRICE_USD_PER_MILLION_TOKENS,
   MODEL_PRICES_USD_PER_MILLION_TOKENS,
 } from '../inference/inference-pricing';
 import { matchesSenderFilter } from './gmail-import-scope';
 
-/** Límites del piloto acordados en #395 y #402. */
-export const CLASSIFICATIONS_PER_MINUTE = 20;
-export const INITIAL_CLASSIFICATION_BUDGET = 500;
-export const GLOBAL_DAILY_COST_LIMIT_USD = 5;
-export const GLOBAL_COST_ALERT_RATIO = 0.8;
+/**
+ * Límites del piloto de clasificación (#402). Salen del entorno
+ * (`AI_EMAIL_*`) y se leen una vez por servicio; cambiar un tope no requiere
+ * desplegar código. Los valores por defecto son los medidos en DEV y viven en
+ * `packages/config/src/env.schema.ts`.
+ */
+export type EmailClassificationLimits = {
+  classificationsPerMinute: number;
+  initialBudget: number;
+  dailyTokenBudget: number;
+  dailyCostLimitUsd: number;
+  costAlertRatio: number;
+  maxContentChars: number;
+  maxSubjectChars: number;
+  maxSenderChars: number;
+  bankSenderDomains: readonly string[];
+};
 
-/** Contenido que se envía al modelo; el resto del correo no viaja. */
-export const MAX_EMAIL_CONTENT_CHARS = 24_000;
-/** Asunto del correo que acompaña al contenido. */
-export const MAX_EMAIL_SUBJECT_CHARS = 1_000;
-/** Remitente del correo que acompaña al contenido. */
-export const MAX_EMAIL_SENDER_CHARS = 320;
+export function readEmailClassificationLimits(
+  config: ConfigService<Env, true>,
+): EmailClassificationLimits {
+  return {
+    classificationsPerMinute: config.get(
+      'AI_EMAIL_CLASSIFICATIONS_PER_MINUTE',
+      { infer: true },
+    ),
+    initialBudget: config.get('AI_EMAIL_INITIAL_BUDGET', { infer: true }),
+    dailyTokenBudget: config.get('AI_EMAIL_DAILY_TOKEN_BUDGET', {
+      infer: true,
+    }),
+    dailyCostLimitUsd: config.get('AI_EMAIL_DAILY_COST_LIMIT_USD', {
+      infer: true,
+    }),
+    costAlertRatio: config.get('AI_EMAIL_COST_ALERT_RATIO', { infer: true }),
+    maxContentChars: config.get('AI_EMAIL_MAX_CONTENT_CHARS', { infer: true }),
+    maxSubjectChars: config.get('AI_EMAIL_MAX_SUBJECT_CHARS', { infer: true }),
+    maxSenderChars: config.get('AI_EMAIL_MAX_SENDER_CHARS', { infer: true }),
+    bankSenderDomains: config.get('AI_EMAIL_BANK_SENDER_DOMAINS', {
+      infer: true,
+    }),
+  };
+}
+
 /**
  * Prompt de sistema, esquema JSON, sobre del correo y la instrucción de
  * reparación. Hoy suman unos 5 100 caracteres; el margen cubre cambios menores.
@@ -27,6 +60,12 @@ const MAX_PROVIDER_ATTEMPTS = 4;
 const MAX_OUTPUT_TOKENS_PER_ATTEMPT = 4_096;
 /** Un carácter UTF-8 ocupa hasta 4 bytes y un token nunca supera un byte. */
 const MAX_BYTES_PER_CHAR = 4;
+/**
+ * Heurística para reservar tokens de entrada antes de la llamada: en texto
+ * español un token ronda 3 caracteres, así que dividir por 3 sobreestima el
+ * consumo y la reserva no se queda corta con contenido denso.
+ */
+const CHARS_PER_TOKEN = 3;
 
 const TOP_INPUT_PRICE_USD_PER_MILLION_TOKENS = Math.max(
   DEFAULT_MODEL_PRICE_USD_PER_MILLION_TOKENS.input,
@@ -43,49 +82,59 @@ const TOP_OUTPUT_PRICE_USD_PER_MILLION_TOKENS = Math.max(
 
 /**
  * Costo máximo que se reserva antes de cada clasificación con modelo. Se
- * calcula desde los topes reales, que el código aplica al recortar: contenido,
- * asunto y remitente, más el sobre del prompt, en el peor caso UTF-8, con los
- * cuatro intentos posibles y la salida que limitan los proveedores, al precio
- * más alto de la tabla. La reserva cubre el costo real; al terminar se ajusta
- * hacia abajo.
+ * calcula desde los topes configurados, que el código aplica al recortar:
+ * contenido, asunto y remitente, más el sobre del prompt, en el peor caso
+ * UTF-8, con los cuatro intentos posibles y la salida que limitan los
+ * proveedores, al precio más alto de la tabla. La reserva cubre el costo real;
+ * al terminar se ajusta hacia abajo.
  */
-export const MAX_CLASSIFICATION_COST_USD =
-  Math.ceil(
+export function maxClassificationCostUsd(
+  limits: EmailClassificationLimits,
+): number {
+  const promptChars =
+    limits.maxContentChars +
+    limits.maxSubjectChars +
+    limits.maxSenderChars +
+    PROMPT_OVERHEAD_CHARS;
+  const worstCaseUsd =
     (MAX_PROVIDER_ATTEMPTS *
-      ((MAX_EMAIL_CONTENT_CHARS +
-        MAX_EMAIL_SUBJECT_CHARS +
-        MAX_EMAIL_SENDER_CHARS +
-        PROMPT_OVERHEAD_CHARS) *
+      (promptChars *
         MAX_BYTES_PER_CHAR *
         TOP_INPUT_PRICE_USD_PER_MILLION_TOKENS +
         MAX_OUTPUT_TOKENS_PER_ATTEMPT *
           TOP_OUTPUT_PRICE_USD_PER_MILLION_TOKENS)) /
-      1_000_000 /
-      0.01,
-  ) * 0.01;
+    1_000_000;
+  return Math.ceil(worstCaseUsd / 0.01) * 0.01;
+}
 
 /**
- * Dominios bancarios que pueden llegar a la IA. La lista es la semilla del
- * piloto; convertirla en configuración por entorno queda reportado en #402.
+ * Tokens que se reservan antes de una llamada: la entrada estimada desde el
+ * contenido que se enviará y la salida máxima por intento. Al terminar se
+ * ajusta a los tokens reales de todos los intentos.
  */
-export const BANK_SENDER_DOMAINS = [
-  'bhd.com.do',
-  'popular.com.do',
-  'qik.do',
-  'banreservas.com',
-  'scotiabank.com.do',
-  'bancosantacruz.com.do',
-  'bancolopezdeharo.com',
-  'vimenca.com',
-  'bancocaribe.com.do',
-  'promerica.com.do',
-  'bdi.com.do',
-  'alaver.com.do',
-];
+export function estimateClassificationTokens({
+  limits,
+  contentChars,
+}: {
+  limits: EmailClassificationLimits;
+  contentChars: number;
+}): number {
+  const promptChars =
+    contentChars +
+    limits.maxSubjectChars +
+    limits.maxSenderChars +
+    PROMPT_OVERHEAD_CHARS;
+  return (
+    Math.ceil(promptChars / CHARS_PER_TOKEN) + MAX_OUTPUT_TOKENS_PER_ATTEMPT
+  );
+}
 
-export function isBankSenderDomain(fromDomain: string): boolean {
+export function isBankSenderDomain(
+  fromDomain: string,
+  bankSenderDomains: readonly string[],
+): boolean {
   const domain = fromDomain.trim().toLowerCase();
-  return BANK_SENDER_DOMAINS.some((bankDomain) =>
+  return bankSenderDomains.some((bankDomain) =>
     matchesSenderFilter({ fromDomain: domain, senderFilter: bankDomain }),
   );
 }
@@ -105,17 +154,18 @@ export type GlobalCostStatus = 'OK' | 'ALERT' | 'PAUSED';
 
 export function globalCostStatus({
   costUsd,
-  limitUsd = GLOBAL_DAILY_COST_LIMIT_USD,
-  alertRatio = GLOBAL_COST_ALERT_RATIO,
+  limits,
 }: {
   costUsd: number;
-  limitUsd?: number;
-  alertRatio?: number;
+  limits: Pick<
+    EmailClassificationLimits,
+    'dailyCostLimitUsd' | 'costAlertRatio'
+  >;
 }): GlobalCostStatus {
-  if (costUsd >= limitUsd) {
+  if (costUsd >= limits.dailyCostLimitUsd) {
     return 'PAUSED';
   }
-  if (costUsd >= limitUsd * alertRatio) {
+  if (costUsd >= limits.dailyCostLimitUsd * limits.costAlertRatio) {
     return 'ALERT';
   }
   return 'OK';
