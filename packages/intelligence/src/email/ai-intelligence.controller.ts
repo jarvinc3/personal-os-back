@@ -30,6 +30,7 @@ import { GmailSyncService } from './gmail-sync.service';
 import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
 import { ConnectGmailDto } from './dto/connect-gmail.dto';
 import { EmailSampleImportDto } from './dto/email-sample-import.dto';
+import { ListEmailMessagesQueryDto } from './dto/list-email-messages-query.dto';
 import { SyncBhdScopeDto } from './dto/sync-bhd-scope.dto';
 import {
   AiEmailConnectResponseDto,
@@ -79,9 +80,14 @@ export class AiIntelligenceController {
   @ApiOkResponse({ type: AiEmailMessagePageResponseDto })
   messages(
     @CurrentUser() user: { sub: string },
-    @Query('cursor') cursor?: string,
+    @Query() query: ListEmailMessagesQueryDto,
   ) {
-    return this.email.listMessages(user.sub, cursor);
+    return this.email.listMessages({
+      userId: user.sub,
+      cursor: query.cursor,
+      q: query.q,
+      status: query.status,
+    });
   }
 
   @Get('messages/:messageId')

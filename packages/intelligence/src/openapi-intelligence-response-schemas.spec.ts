@@ -16,6 +16,7 @@ import { AiRolesService } from './roles/ai-roles.service';
 import { AiRolesController } from './roles/ai-roles.controller';
 import { AiSignalsController } from './signals/ai-signals.controller';
 import { AiSignalsService } from './signals/ai-signals.service';
+import { AI_EMAIL_MESSAGE_STATUS_FILTERS } from './email/dto/list-email-messages-query.dto';
 
 type OperationObject = {
   responses?: Record<
@@ -204,6 +205,25 @@ describe('OpenAPI response schemas of intelligence', () => {
       expect(schema.properties).toHaveProperty('hasMore');
       expect(schema.properties?.items).toMatchObject({ type: 'array' });
     }
+  });
+
+  it('declares the search and status filters of the messages list', () => {
+    const operation = document.paths['/api/intelligence/messages']?.get as
+      | {
+          parameters?: Array<{
+            name: string;
+            schema?: { enum?: unknown[] };
+          }>;
+        }
+      | undefined;
+    const parameters = operation?.parameters ?? [];
+
+    expect(parameters.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(['q', 'status', 'cursor']),
+    );
+    expect(
+      parameters.find(({ name }) => name === 'status')?.schema?.enum,
+    ).toEqual([...AI_EMAIL_MESSAGE_STATUS_FILTERS]);
   });
 
   it('limits a verification selection to 20 message ids in OpenAPI', () => {
