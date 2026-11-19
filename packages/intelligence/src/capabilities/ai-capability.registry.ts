@@ -319,10 +319,13 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
         if (
           !candidate.resolveEntity ||
           !(await this.isAvailable(candidate, ctx))
-        )
-          {continue;}
+        ) {
+          continue;
+        }
         const resolved = await candidate.resolveEntity(ctx, ref);
-        if (resolved !== null) {return resolved;}
+        if (resolved !== null) {
+          return resolved;
+        }
       }
     }
     return null;

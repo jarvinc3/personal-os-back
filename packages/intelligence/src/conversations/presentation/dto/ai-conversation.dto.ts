@@ -7,26 +7,15 @@ import {
   Matches,
   ValidateNested,
   IsUUID,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { AiActionPolicy } from '@personal-os/contracts';
-
-export class SendAiConversationMessageDto {
-  @ApiProperty({ example: '¿Cuánto gasté este mes?' })
-  @IsString()
-  @Length(1, 4000)
-  @Matches(/\S/)
-  content!: string;
-
-  @ApiPropertyOptional({ type: () => AiInvocationContextDto })
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => AiInvocationContextDto)
-  context?: AiInvocationContextDto;
-}
+import { AI_INVOCATION_ENTITY_TYPES } from '@personal-os/core';
 
 export class AiInvocationEntityRefDto {
-  @ApiProperty()
+  @ApiProperty({ enum: AI_INVOCATION_ENTITY_TYPES })
+  @IsIn(AI_INVOCATION_ENTITY_TYPES)
   @IsString()
   @Length(1, 80)
   type!: string;
@@ -64,6 +53,20 @@ export class AiInvocationContextDto {
   @IsOptional()
   @IsObject()
   filters?: Record<string, unknown>;
+}
+
+export class SendAiConversationMessageDto {
+  @ApiProperty({ example: '¿Cuánto gasté este mes?' })
+  @IsString()
+  @Length(1, 4000)
+  @Matches(/\S/)
+  content!: string;
+
+  @ApiPropertyOptional({ type: () => AiInvocationContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => AiInvocationContextDto)
+  context?: AiInvocationContextDto;
 }
 
 export class CreateAiConversationDto {

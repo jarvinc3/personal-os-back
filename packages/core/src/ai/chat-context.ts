@@ -27,11 +27,27 @@ export type ChatContext = {
 };
 
 /** Context supplied by the active web route when opening or invoking the agent. */
+export const AI_INVOCATION_ENTITY_TYPES = [
+  'transaction',
+  'account',
+  'card',
+  'loan',
+  'budget',
+  'savings_goal',
+  'receivable',
+  'subscription',
+  'merchant',
+  'category',
+] as const;
+
+export type AiInvocationEntityRefType =
+  (typeof AI_INVOCATION_ENTITY_TYPES)[number];
+
 export type AiInvocationContext = {
   route: string;
   view?: string;
   sheet?: string;
-  entityRef?: EntityRef;
+  entityRef?: { type: AiInvocationEntityRefType; id: string };
   filters?: Record<string, unknown>;
 };
 

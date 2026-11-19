@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import type { AiInvocationContext } from '@personal-os/core';
 
 function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) {return value.map(canonicalize);}
+  if (Array.isArray(value)) {
+    return value.map(canonicalize);
+  }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
       Object.entries(value)
