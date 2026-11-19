@@ -13,6 +13,7 @@ import {
 import { randomUUID } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
+import type { AiInvocationEntityRefType } from '@personal-os/core';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
 import {
@@ -28,7 +29,7 @@ type InvocationContextInput = {
   route: string;
   view?: string;
   sheet?: string;
-  entityRef?: { type: string; id: string };
+  entityRef?: { type: AiInvocationEntityRefType; id: string };
   filters?: Record<string, unknown>;
 };
 

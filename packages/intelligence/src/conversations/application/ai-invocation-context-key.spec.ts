@@ -17,4 +17,28 @@ describe('aiInvocationContextKey', () => {
     expect(first).toBe(reordered);
     expect(first).not.toBe(otherRoute);
   });
+
+  it('ordena claves sin depender del locale del runtime', () => {
+    const localeCompare = jest
+      .spyOn(String.prototype, 'localeCompare')
+      .mockImplementation(() => {
+        throw new Error('No debe consultar el locale del runtime');
+      });
+    try {
+      expect(
+        aiInvocationContextKey({
+          route: '/finance',
+          filters: { ä: 'uno', z: 'dos' },
+        }),
+      ).toBe(
+        aiInvocationContextKey({
+          filters: { z: 'dos', ä: 'uno' },
+          route: '/finance',
+        }),
+      );
+      expect(localeCompare).not.toHaveBeenCalled();
+    } finally {
+      localeCompare.mockRestore();
+    }
+  });
 });

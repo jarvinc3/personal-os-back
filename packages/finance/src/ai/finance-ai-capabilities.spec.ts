@@ -79,6 +79,14 @@ describe('FinanceAiCapabilities', () => {
     ]);
   });
 
+  it('rechaza los tipos fuera del contrato resoluble en vez de tratarlos como entidad ausente', async () => {
+    const { service, entities } = setup();
+    await expect(
+      service.resolveEntity(ctx, { type: 'email_message', id: 'mail-1' }),
+    ).rejects.toThrow('Tipo de entidad no soportado');
+    expect(entities.lookup).not.toHaveBeenCalled();
+  });
+
   it('rejects an invalid month and reports disabled Finance as unavailable', async () => {
     const { service, analytics } = setup('America/Santo_Domingo', false);
     const [definition] = service.describe();

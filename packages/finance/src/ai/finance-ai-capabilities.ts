@@ -1,22 +1,36 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
   AiCapabilityDefinition,
   AiExecutionContext,
   JsonObject,
 } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
+import type { AiInvocationEntityRefType } from '@personal-os/core';
 import { z } from 'zod';
 import { AnalyticsService } from '../analytics/application/analytics.service';
 import type { FinanceAiCapabilitiesPort } from '../contracts';
 import { FinanceEntityLookupService } from '../entities/application/finance-entity-lookup.service';
-import {
-  FINANCE_ENTITY_TYPES,
-  type FinanceEntityType,
-} from '../entities/domain/entity-reference';
+import type { FinanceEntityType } from '../entities/domain/entity-reference';
 
 const monthlySummaryInput = z
   .object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) })
   .strict();
+
+const financeEntityTypeByInvocationType: Record<
+  AiInvocationEntityRefType,
+  FinanceEntityType
+> = {
+  transaction: 'transaction',
+  account: 'account',
+  card: 'card',
+  loan: 'loan',
+  budget: 'budget',
+  savings_goal: 'savingsGoal',
+  receivable: 'receivable',
+  subscription: 'subscription',
+  merchant: 'merchant',
+  category: 'category',
+};
 
 function localDateToUtc(
   year: number,
@@ -161,12 +175,15 @@ export class FinanceAiCapabilities implements FinanceAiCapabilitiesPort {
     ctx: AiExecutionContext,
     ref: { type: string; id: string },
   ): Promise<JsonObject | null> {
-    const type = ref.type === 'savings_goal' ? 'savingsGoal' : ref.type;
-    if (!FINANCE_ENTITY_TYPES.includes(type as FinanceEntityType)) {
-      return null;
+    if (!Object.hasOwn(financeEntityTypeByInvocationType, ref.type)) {
+      throw new BadRequestException(
+        `Tipo de entidad no soportado: ${ref.type}`,
+      );
     }
+    const type =
+      financeEntityTypeByInvocationType[ref.type as AiInvocationEntityRefType];
     const [entity] = await this.entities.lookup(ctx.userId, [
-      { type: type as FinanceEntityType, id: ref.id },
+      { type, id: ref.id },
     ]);
     return entity && typeof entity === 'object' && !Array.isArray(entity)
       ? (entity as JsonObject)

@@ -12,13 +12,14 @@ import {
 import { Type } from 'class-transformer';
 import type { AiActionPolicy } from '@personal-os/contracts';
 import { AI_INVOCATION_ENTITY_TYPES } from '@personal-os/core';
+import type { AiInvocationEntityRefType } from '@personal-os/core';
 
 export class AiInvocationEntityRefDto {
   @ApiProperty({ enum: AI_INVOCATION_ENTITY_TYPES })
   @IsIn(AI_INVOCATION_ENTITY_TYPES)
   @IsString()
   @Length(1, 80)
-  type!: string;
+  type!: AiInvocationEntityRefType;
 
   @ApiProperty({ format: 'uuid' })
   @IsUUID()
