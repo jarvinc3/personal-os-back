@@ -264,7 +264,7 @@ export class AiOrchestrator {
         );
       }
     }
-    return context as unknown as Record<string, unknown>;
+    return context;
   }
 
   private availableCapabilities(): AiCapabilityDescriptor[] {
