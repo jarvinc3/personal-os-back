@@ -11,6 +11,9 @@ import {
   type AiExecutionContext,
 } from '@personal-os/contracts';
 import { randomUUID } from 'node:crypto';
+import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@personal-os/database';
+import type { AiInvocationEntityRefType } from '@personal-os/core';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
 import {
@@ -21,6 +24,14 @@ import {
 const MAX_TOOL_ROUNDS = 4;
 const SUMMARY_AFTER_MESSAGES = 24;
 const SUMMARY_RECENT_MESSAGES = 12;
+
+type InvocationContextInput = {
+  route: string;
+  view?: string;
+  sheet?: string;
+  entityRef?: { type: AiInvocationEntityRefType; id: string };
+  filters?: Record<string, unknown>;
+};
 
 @Injectable()
 export class AiOrchestrator {
@@ -34,8 +45,32 @@ export class AiOrchestrator {
     private readonly actions: AiActionsService,
   ) {}
 
-  async sendMessage(userId: string, conversationId: string, content: string) {
+  async createConversation(userId: string, context?: InvocationContextInput) {
+    const resolved = await this.validateInvocationContext(userId, context);
+    return this.conversations.create(
+      userId,
+      resolved as Prisma.InputJsonValue | undefined,
+    );
+  }
+
+  async sendMessage(
+    userId: string,
+    conversationId: string,
+    content: string,
+    context?: InvocationContextInput,
+  ) {
+    const resolvedContext = await this.validateInvocationContext(
+      userId,
+      context,
+    );
     const initial = await this.conversations.findOwned(userId, conversationId);
+    if (resolvedContext) {
+      await this.conversations.setInvocationContext(
+        userId,
+        conversationId,
+        resolvedContext as Prisma.InputJsonValue,
+      );
+    }
     const hadUserMessages = initial.messages.some(
       (message) => message.role === 'user',
     );
@@ -74,6 +109,7 @@ export class AiOrchestrator {
       descriptors,
       history,
       summary: latest.summary,
+      invocationContext: resolvedContext ?? latest.invocationContext,
     });
     const definitions: AiToolSpec[] = descriptors.map((descriptor) => ({
       name: descriptor.id,
@@ -197,6 +233,39 @@ export class AiOrchestrator {
         createdAt: action.createdAt,
       })),
     };
+  }
+
+  private async validateInvocationContext(
+    userId: string,
+    context?: InvocationContextInput,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (!context) {
+      return undefined;
+    }
+    if (JSON.stringify(context).length > 6000) {
+      throw new BadRequestException('Contexto de invocación demasiado largo');
+    }
+    if (context.entityRef) {
+      if (!this.capabilities.resolveEntity) {
+        throw new BadRequestException(
+          'No se puede resolver la entidad indicada',
+        );
+      }
+      const entity = await this.capabilities.resolveEntity(
+        {
+          userId,
+          invocationId: randomUUID(),
+          correlationId: 'context-validation',
+        },
+        context.entityRef,
+      );
+      if (!entity) {
+        throw new BadRequestException(
+          'La entidad no existe o no pertenece al usuario',
+        );
+      }
+    }
+    return context;
   }
 
   private availableCapabilities(): AiCapabilityDescriptor[] {

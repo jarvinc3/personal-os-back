@@ -8,6 +8,9 @@ describe('FinanceAiCapabilities', () => {
   };
 
   function setup(timezone = 'America/New_York', enabled = true) {
+    const entities = {
+      lookup: jest.fn().mockResolvedValue([{ id: 'goal-1' }]),
+    };
     const analytics = {
       getAnalyticsSummary: jest.fn().mockResolvedValue({
         baseCurrency: 'USD',
@@ -22,9 +25,14 @@ describe('FinanceAiCapabilities', () => {
       user: { findUnique: jest.fn().mockResolvedValue({ timezone }) },
     };
     return {
-      service: new FinanceAiCapabilities(analytics as never, prisma as never),
+      service: new FinanceAiCapabilities(
+        analytics as never,
+        prisma as never,
+        entities as never,
+      ),
       analytics,
       prisma,
+      entities,
     };
   }
 
@@ -59,6 +67,24 @@ describe('FinanceAiCapabilities', () => {
       },
       select: { id: true },
     });
+  });
+
+  it('resuelve savings_goal del contrato de chat con el tipo de lookup Finance', async () => {
+    const { service, entities } = setup();
+    await expect(
+      service.resolveEntity(ctx, { type: 'savings_goal', id: 'goal-1' }),
+    ).resolves.toEqual({ id: 'goal-1' });
+    expect(entities.lookup).toHaveBeenCalledWith('user-1', [
+      { type: 'savingsGoal', id: 'goal-1' },
+    ]);
+  });
+
+  it('rechaza los tipos fuera del contrato resoluble en vez de tratarlos como entidad ausente', async () => {
+    const { service, entities } = setup();
+    await expect(
+      service.resolveEntity(ctx, { type: 'email_message', id: 'mail-1' }),
+    ).rejects.toThrow('Tipo de entidad no soportado');
+    expect(entities.lookup).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid month and reports disabled Finance as unavailable', async () => {

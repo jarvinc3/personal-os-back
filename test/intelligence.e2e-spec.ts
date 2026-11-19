@@ -233,6 +233,12 @@ describe('Intelligence API (e2e)', () => {
     append: jest.fn().mockResolvedValue(undefined),
   };
   const orchestrator = {
+    createConversation: jest.fn().mockResolvedValue({
+      id: 'conversation-1',
+      title: 'Nueva conversación',
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.createdAt,
+    }),
     sendMessage: jest.fn().mockResolvedValue({
       conversationId: 'conversation-1',
       answer: 'Gastaste RD$1,250.',
@@ -271,7 +277,10 @@ describe('Intelligence API (e2e)', () => {
       .post('/api/intelligence/conversations')
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
-    expect(conversations.create).toHaveBeenCalledWith('user-123');
+    expect(orchestrator.createConversation).toHaveBeenCalledWith(
+      'user-123',
+      undefined,
+    );
 
     await request(app.getHttpServer())
       .get('/api/intelligence/conversations')
@@ -297,6 +306,7 @@ describe('Intelligence API (e2e)', () => {
       'user-123',
       'conversation-1',
       '¿Cuánto gasté?',
+      undefined,
     );
 
     const anotherUserToken = createTestJwt({ sub: 'user-B' });
