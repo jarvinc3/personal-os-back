@@ -13,7 +13,6 @@ import {
 import { randomUUID } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
-import type { AiInvocationContextDto } from '../presentation/dto/ai-conversation.dto';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
 import {
@@ -24,6 +23,14 @@ import {
 const MAX_TOOL_ROUNDS = 4;
 const SUMMARY_AFTER_MESSAGES = 24;
 const SUMMARY_RECENT_MESSAGES = 12;
+
+type InvocationContextInput = {
+  route: string;
+  view?: string;
+  sheet?: string;
+  entityRef?: { type: string; id: string };
+  filters?: Record<string, unknown>;
+};
 
 @Injectable()
 export class AiOrchestrator {
@@ -37,7 +44,7 @@ export class AiOrchestrator {
     private readonly actions: AiActionsService,
   ) {}
 
-  async createConversation(userId: string, context?: AiInvocationContextDto) {
+  async createConversation(userId: string, context?: InvocationContextInput) {
     const resolved = await this.validateInvocationContext(userId, context);
     return this.conversations.create(
       userId,
@@ -49,7 +56,7 @@ export class AiOrchestrator {
     userId: string,
     conversationId: string,
     content: string,
-    context?: AiInvocationContextDto,
+    context?: InvocationContextInput,
   ) {
     const resolvedContext = await this.validateInvocationContext(
       userId,
@@ -229,7 +236,7 @@ export class AiOrchestrator {
 
   private async validateInvocationContext(
     userId: string,
-    context?: AiInvocationContextDto,
+    context?: InvocationContextInput,
   ): Promise<Record<string, unknown> | undefined> {
     if (!context) {
       return undefined;
