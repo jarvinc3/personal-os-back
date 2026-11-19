@@ -46,6 +46,8 @@ export type ViewSuggestionView = {
   action: ViewSuggestionActionView | null;
 };
 
+type PendingSuggestion = GeneratedSuggestion & { suggestionKey: string };
+
 /**
  * Lista las sugerencias activas de una vista. Si la caché venció, pide al
  * modelo; sin cupo, ritmo o presupuesto devuelve una fila vacía sin error.
@@ -173,46 +175,14 @@ export class ViewSuggestionsService {
         limit: MAX_TRACKED_DISMISSAL_KEYS,
       }),
     );
-    const expiresAt = new Date(
-      now.getTime() +
-        this.config.get('AI_VIEW_SUGGESTION_TTL_MINUTES', { infer: true }) *
-          60_000,
-    );
-    const pending = candidates
-      .filter((candidate) => !knownKeys.has(viewSuggestionKey(candidate.label)))
-      .slice(0, MAX_VIEW_SUGGESTIONS)
-      .map((candidate) => ({
-        ...candidate,
-        suggestionKey: viewSuggestionKey(candidate.label),
-      }));
+    const pending = this.selectNewSuggestions({ candidates, knownKeys });
     if (pending.length) {
-      const created = await this.suggestions.createMany({
+      await this.storeSuggestions({
         userId,
-        ...scope,
-        suggestions: pending,
-        expiresAt,
+        scope,
+        pending,
+        expiresAt: this.expiresAt(now),
       });
-      const candidateByKey = new Map(
-        pending.map((candidate) => [candidate.suggestionKey, candidate]),
-      );
-      for (const suggestion of created) {
-        const candidate = candidateByKey.get(suggestion.suggestionKey);
-        if (!candidate) {
-          continue;
-        }
-        const actionId = await this.proposeAction({
-          userId,
-          suggestionId: suggestion.id,
-          action: candidate.action,
-        });
-        if (actionId) {
-          await this.suggestions.setActionId({
-            userId,
-            suggestionId: suggestion.id,
-            actionId,
-          });
-        }
-      }
     }
     const active = await this.suggestions.findActive({
       userId,
@@ -221,6 +191,83 @@ export class ViewSuggestionsService {
       limit: MAX_VIEW_SUGGESTIONS,
     });
     return this.withActions(userId, active);
+  }
+
+  /** Descarta las claves ya vistas y los repetidos del lote, y aplica el tope. */
+  private selectNewSuggestions({
+    candidates,
+    knownKeys,
+  }: {
+    candidates: GeneratedSuggestion[];
+    knownKeys: ReadonlySet<string>;
+  }): PendingSuggestion[] {
+    const takenKeys = new Set(knownKeys);
+    const selected: PendingSuggestion[] = [];
+    for (const candidate of candidates) {
+      if (selected.length >= MAX_VIEW_SUGGESTIONS) {
+        break;
+      }
+      const suggestionKey = viewSuggestionKey(candidate.label);
+      if (takenKeys.has(suggestionKey)) {
+        continue;
+      }
+      takenKeys.add(suggestionKey);
+      selected.push({ ...candidate, suggestionKey });
+    }
+    return selected;
+  }
+
+  /** Guarda el lote y deja la acción propuesta de cada fila nueva. */
+  private async storeSuggestions({
+    userId,
+    scope,
+    pending,
+    expiresAt,
+  }: {
+    userId: string;
+    scope: ViewSuggestionScope;
+    pending: PendingSuggestion[];
+    expiresAt: Date;
+  }): Promise<void> {
+    const created = await this.suggestions.createMany({
+      userId,
+      ...scope,
+      suggestions: pending.map(({ suggestionKey, label, prompt }) => ({
+        suggestionKey,
+        label,
+        prompt,
+      })),
+      expiresAt,
+    });
+    const candidateByKey = new Map(
+      pending.map((candidate) => [candidate.suggestionKey, candidate]),
+    );
+    for (const suggestion of created) {
+      const candidate = candidateByKey.get(suggestion.suggestionKey);
+      if (!candidate) {
+        continue;
+      }
+      const actionId = await this.proposeAction({
+        userId,
+        suggestionId: suggestion.id,
+        action: candidate.action,
+      });
+      if (actionId) {
+        await this.suggestions.setActionId({
+          userId,
+          suggestionId: suggestion.id,
+          actionId,
+        });
+      }
+    }
+  }
+
+  private expiresAt(now: Date): Date {
+    return new Date(
+      now.getTime() +
+        this.config.get('AI_VIEW_SUGGESTION_TTL_MINUTES', { infer: true }) *
+          60_000,
+    );
   }
 
   private async proposeAction({

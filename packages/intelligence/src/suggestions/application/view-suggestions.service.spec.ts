@@ -241,6 +241,24 @@ describe('ViewSuggestionsService', () => {
     expect(budget.releaseDailyCall).toHaveBeenCalledWith('user-A');
   });
 
+  it('deduplica etiquetas repetidas dentro del mismo lote', async () => {
+    const { service, store, generator } = fixture();
+    generator.generate.mockResolvedValue({
+      suggestions: [
+        { label: 'Revisá el presupuesto', prompt: '¿Cómo va el presupuesto?' },
+        { label: '  revisá   el presupuesto ', prompt: 'Otra vez' },
+      ],
+      costUsd: 0.0004,
+    });
+
+    await service.resolveForView({ userId: 'user-A', route: '/finance' });
+
+    const insertCall = store.createMany.mock.calls[0][0] as {
+      suggestions: unknown[];
+    };
+    expect(insertCall.suggestions).toHaveLength(1);
+  });
+
   it('does not store a suggestion whose key was already dismissed', async () => {
     const { service, store, generator } = fixture();
     const label = 'Revisá el presupuesto';
