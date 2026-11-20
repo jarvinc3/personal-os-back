@@ -24,7 +24,12 @@ const LIMITS: EmailClassificationLimits = {
   maxContentChars: 24_000,
   maxSubjectChars: 1_000,
   maxSenderChars: 320,
-  bankSenderDomains: ['bhd.com.do', 'popular.com.do'],
+  bankSenderDomains: [
+    'bhd.com.do',
+    'popular.com.do',
+    'popularenlinea.com',
+    'qik.com.do',
+  ],
 };
 
 function fixture(
@@ -444,6 +449,70 @@ describe('AiEmailClassificationService', () => {
     expect(evidence.excerpt.transaction).toMatchObject({
       currency: 'USD',
       currencyEvidence: expect.stringContaining('modelo propuso DOP'),
+    });
+  });
+
+  it('grounds a Popular payroll currency from the text', async () => {
+    const { service, prisma } = fixture({
+      fromAddress: 'avisos@popularenlinea.com',
+      fromDomain: 'popularenlinea.com',
+      subject: 'Aviso de depósito de nómina',
+      body: 'Se ha depositado a su cuenta la suma de RD$ 45,000.00 por concepto de nómina. Referencia 000000001.',
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 45_000,
+          currency: 'USD',
+          direction: 'CREDIT',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).toMatchObject({
+      currency: 'DOP',
+      currencyEvidence: expect.stringContaining('modelo propuso USD'),
+    });
+    const signal = prisma.aiSignal.createMany.mock.calls[0][0].data[0] as {
+      payload: { transaction: Record<string, unknown> };
+    };
+    expect(signal.payload.transaction).toMatchObject({ currency: 'DOP' });
+  });
+
+  it('grounds a Qik deposit currency from the text', async () => {
+    const { service, prisma } = fixture({
+      fromAddress: 'no-reply@mail.qik.com.do',
+      fromDomain: 'mail.qik.com.do',
+      subject: 'Depósito ACH',
+      body: 'Se ha acreditado a su cuenta Qik un depósito de RD$ 6,000.00. Referencia 000000002.',
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 6_000,
+          currency: 'USD',
+          direction: 'CREDIT',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).toMatchObject({
+      currency: 'DOP',
+      currencyEvidence: expect.stringContaining('modelo propuso USD'),
     });
   });
 

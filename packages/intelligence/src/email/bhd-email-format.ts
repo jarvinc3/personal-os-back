@@ -2,11 +2,11 @@ import type { EmailProductHints } from '@personal-os/contracts';
 import {
   CARD_ALERT_PURCHASE_TYPE,
   collapseWhitespace,
-  extractBhdCurrency,
   extractBhdTransactionDate,
   isBhdEmail,
   readBhdCardAlertRow,
 } from './bhd-email-grounding';
+import { extractCurrencyFromText } from './email-currency-grounding';
 import {
   validateEmailClassification,
   type EmailClassification,
@@ -263,7 +263,7 @@ function readVerifiedDateAndCurrency({
   amount: number;
   receivedAt: Date;
 }): Pick<BhdTransaction, 'currency' | 'transactionDate'> {
-  const currency = extractBhdCurrency(text, amount);
+  const currency = extractCurrencyFromText(text, amount);
   const transactionDate = extractBhdTransactionDate(text, receivedAt);
   return {
     ...(currency ? { currency: currency.code } : {}),
