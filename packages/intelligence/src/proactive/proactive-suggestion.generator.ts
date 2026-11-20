@@ -1,5 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import type { JsonObject } from '@personal-os/contracts';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  AI_CAPABILITY_REGISTRY,
+  type AiCapabilityDescriptor,
+  type AiCapabilityRegistryPort,
+  type InferenceMessage,
+  type JsonObject,
+} from '@personal-os/contracts';
 import { AiInferenceGateway } from '../inference/application/ai-inference.gateway';
 import { inferenceCostUsd } from '../inference/inference-pricing';
 
@@ -27,13 +33,15 @@ const PROMPT_VERSION = 'proactive-v1';
 const SCHEMA_VERSION = '1';
 const MAX_TITLE_CHARS = 80;
 const MAX_BODY_CHARS = 280;
+const MAX_ACTIONS_IN_PROMPT = 5;
+const MAX_ACTIONS_PROMPT_CHARS = 4_000;
 
 const SYSTEM_PROMPT = [
   'Sos el asistente de Personal OS. Un evento del usuario quedó esperando una decisión y tenés que ofrecer una ayuda breve.',
   'Escribí un título de máximo 80 caracteres y un cuerpo de máximo 280, en español, sin emojis.',
   'No inventes datos: no conocés el monto, el comercio, fechas ni identificadores del evento.',
   'Si no podés ayudar con este evento, devolvé el cuerpo vacío.',
-  'Solo podés proponer una acción si aparece en la lista de acciones disponibles y podés completar todos sus argumentos con datos ciertos. Hoy la lista llega vacía, así que devolvé action en null.',
+  'Solo podés proponer una acción si aparece en la lista de acciones disponibles y podés completar todos sus argumentos con datos ciertos.',
   'Respondé solo con el JSON del esquema.',
 ].join('\n');
 
@@ -111,7 +119,11 @@ function toAction(value: unknown): GeneratedProactiveAction | undefined {
  */
 @Injectable()
 export class ProactiveSuggestionGenerator {
-  constructor(private readonly inference: AiInferenceGateway) {}
+  constructor(
+    private readonly inference: AiInferenceGateway,
+    @Inject(AI_CAPABILITY_REGISTRY)
+    private readonly capabilities: AiCapabilityRegistryPort,
+  ) {}
 
   async generate({
     userId,
@@ -121,13 +133,7 @@ export class ProactiveSuggestionGenerator {
   }: ProactiveReasoningInput): Promise<GeneratedProactiveSuggestion> {
     const completion = await this.inference.infer({
       task: TASK,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: JSON.stringify({ signalType, reviewReason }),
-        },
-      ],
+      messages: this.buildMessages({ signalType, reviewReason }),
       jsonSchema: SUGGESTION_JSON_SCHEMA,
       validate: validateSuggestion,
       promptVersion: PROMPT_VERSION,
@@ -144,5 +150,55 @@ export class ProactiveSuggestionGenerator {
         outputTokens: completion.outputTokens,
       }),
     };
+  }
+
+  private buildMessages({
+    signalType,
+    reviewReason,
+  }: {
+    signalType: string;
+    reviewReason: string;
+  }): InferenceMessage[] {
+    const actions = this.describeActionCapabilities();
+    const actionBlock = actions.length
+      ? `\n\nAcciones disponibles (JSON):\n${JSON.stringify(actions)}`
+      : '\n\nNo hay acciones disponibles: devolvé siempre action en null.';
+    return [
+      { role: 'system', content: `${SYSTEM_PROMPT}${actionBlock}` },
+      {
+        role: 'user',
+        content: `Evento (JSON):\n${JSON.stringify({ signalType, reviewReason })}`,
+      },
+    ];
+  }
+
+  /**
+   * Solo se ofrecen capacidades de escritura con confirmación, así una
+   * sugerencia nunca propone un cambio que no pase por la política AI-10.
+   */
+  private describeActionCapabilities(): Array<{
+    id: string;
+    moduleSlug: string;
+    description: string;
+    inputSchema: JsonObject;
+  }> {
+    const actions = this.capabilities
+      .discover()
+      .filter(
+        (capability: AiCapabilityDescriptor) =>
+          capability.effect === 'WRITE' &&
+          capability.actionPolicy === 'CONFIRM_REQUIRED',
+      )
+      .slice(0, MAX_ACTIONS_IN_PROMPT)
+      .map((capability) => ({
+        id: capability.id,
+        moduleSlug: capability.moduleSlug,
+        description: capability.description,
+        inputSchema: capability.inputSchema,
+      }));
+    if (JSON.stringify(actions).length > MAX_ACTIONS_PROMPT_CHARS) {
+      return [];
+    }
+    return actions;
   }
 }

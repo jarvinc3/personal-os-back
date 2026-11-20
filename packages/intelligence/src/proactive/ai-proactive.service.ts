@@ -13,6 +13,7 @@ import { ViewSuggestionBudgetService } from '../suggestions/application/view-sug
 import {
   ProactiveSuggestionGenerator,
   type GeneratedProactiveAction,
+  type ProactiveReasoningInput,
 } from './proactive-suggestion.generator';
 import {
   ProactiveSuggestionStore,
@@ -168,12 +169,9 @@ export class AiProactiveService {
     };
   }
 
-  private async reason(input: {
-    userId: string;
-    signalId: string;
-    signalType: string;
-    reviewReason: string;
-  }): Promise<ReasoningAttempt> {
+  private async reason(
+    input: ProactiveReasoningInput,
+  ): Promise<ReasoningAttempt> {
     try {
       return {
         outcome: 'GENERATED',
