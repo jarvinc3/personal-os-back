@@ -25,6 +25,7 @@ import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
 import { groundBhdClassification, isBhdEmail } from './bhd-email-grounding';
 import { groundClassificationCurrency } from './email-currency-grounding';
 import { parseBhdFixedFormat } from './bhd-email-format';
+import { groundAccountLast4FromText } from './email-account-last4-grounding';
 import {
   EMAIL_CLASSIFICATION_JSON_SCHEMA,
   EMAIL_CLASSIFICATION_VERSIONS,
@@ -560,21 +561,30 @@ export class AiEmailClassificationService {
     if (!classification) {
       return { kind: 'no_classification' };
     }
+    const body = message.content?.sanitizedBody ?? '';
     const grounded = groundClassificationCurrency({
       classification: groundBhdClassification({
         classification,
         fromDomain: message.fromDomain,
         subject: message.subject,
-        body: message.content?.sanitizedBody ?? '',
+        body,
         receivedAt: message.receivedAt,
       }),
       subject: message.subject,
-      body: message.content?.sanitizedBody ?? '',
+      body,
     });
+    const accountGrounded =
+      method === 'MODEL'
+        ? groundAccountLast4FromText({
+            classification: grounded,
+            subject: message.subject,
+            body,
+          })
+        : grounded;
     return {
       kind: 'computed',
       classification: withSuggestedTransactionDate({
-        classification: grounded,
+        classification: accountGrounded,
         receivedAt: message.receivedAt,
       }),
       method,
