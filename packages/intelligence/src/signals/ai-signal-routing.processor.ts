@@ -6,6 +6,7 @@ import { PrismaService } from '@personal-os/database';
 import { QueueNames } from '@personal-os/core';
 import { AiSignalsService } from './ai-signals.service';
 import { AiSignalConsumerRegistry } from './ai-signal-consumer.registry';
+import { AiProactiveService } from '../proactive/ai-proactive.service';
 
 type RouteJob = { signalId: string; userId: string };
 
@@ -18,6 +19,7 @@ export class AiSignalRoutingProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly consumers: AiSignalConsumerRegistry,
     private readonly signals: AiSignalsService,
+    private readonly proactive: AiProactiveService,
   ) {
     super();
   }
@@ -42,6 +44,12 @@ export class AiSignalRoutingProcessor extends WorkerHost {
     };
     const result = await consumer.consume(signal);
     await this.signals.recordConsumerOutcome(row.userId, row.id, result);
+    // La proactividad mira la señal ya consumida: su relevancia depende del
+    // resultado que dejó el consumidor del dominio.
+    await this.proactive.consider({
+      userId: row.userId,
+      signalId: row.id,
+    });
     this.logger.debug(`Routed signal ${row.id}: ${result.outcome}`);
   }
 }
