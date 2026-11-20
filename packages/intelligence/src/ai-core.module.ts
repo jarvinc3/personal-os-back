@@ -65,6 +65,10 @@ import { ViewSuggestionDataService } from './suggestions/application/view-sugges
 import { ViewSuggestionGenerator } from './suggestions/application/view-suggestion.generator';
 import { ViewSuggestionBudgetService } from './suggestions/application/view-suggestion-budget.service';
 import { ViewSuggestionStore } from './suggestions/infrastructure/view-suggestion.store';
+import { AiProactiveService } from './proactive/ai-proactive.service';
+import { ProactiveSuggestionStore } from './proactive/proactive.store';
+import { ProactiveSuggestionGenerator } from './proactive/proactive-suggestion.generator';
+import { ProactiveSuggestionsController } from './proactive/proactive-suggestions.controller';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -96,6 +100,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiConversationController,
     AiActionsController,
     ViewSuggestionsController,
+    ProactiveSuggestionsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -130,6 +135,9 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiConversationDataService,
     ViewSuggestionStore,
     ViewSuggestionBudgetService,
+    ProactiveSuggestionStore,
+    ProactiveSuggestionGenerator,
+    AiProactiveService,
     ViewSuggestionGenerator,
     ViewSuggestionsService,
     ViewSuggestionDataService,
@@ -169,6 +177,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     ViewSuggestionsService,
     ViewSuggestionDataService,
     ViewSuggestionStore,
+    AiProactiveService,
     AiSignalConsumerRegistry,
     AiRolesService,
     AiConsentService,

@@ -24,10 +24,14 @@ describe('AiSignalRoutingProcessor', () => {
       get: jest.fn().mockReturnValue({ domain: 'FINANCE', consume }),
     };
     const signals = { recordConsumerOutcome: jest.fn() };
+    const proactive = {
+      consider: jest.fn().mockResolvedValue({ outcome: 'IGNORED' }),
+    };
     const processor = new AiSignalRoutingProcessor(
       prisma as never,
       registry as never,
       signals as never,
+      proactive as never,
     );
 
     await processor.process({
@@ -47,6 +51,10 @@ describe('AiSignalRoutingProcessor', () => {
       'signal-1',
       expect.objectContaining({ outcome: 'APPLIED' }),
     );
+    expect(proactive.consider).toHaveBeenCalledWith({
+      userId: 'user-1',
+      signalId: 'signal-1',
+    });
   });
 
   it('does not reprocess a signal outside ROUTED state', async () => {
@@ -57,15 +65,18 @@ describe('AiSignalRoutingProcessor', () => {
     };
     const registry = { get: jest.fn() };
     const signals = { recordConsumerOutcome: jest.fn() };
+    const proactive = { consider: jest.fn() };
     const processor = new AiSignalRoutingProcessor(
       prisma as never,
       registry as never,
       signals as never,
+      proactive as never,
     );
     await processor.process({
       data: { signalId: 'signal-1', userId: 'user-1' },
     } as never);
     expect(registry.get).not.toHaveBeenCalled();
     expect(signals.recordConsumerOutcome).not.toHaveBeenCalled();
+    expect(proactive.consider).not.toHaveBeenCalled();
   });
 });
