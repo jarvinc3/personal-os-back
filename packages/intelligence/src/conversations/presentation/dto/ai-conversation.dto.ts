@@ -8,6 +8,7 @@ import {
   ValidateNested,
   IsUUID,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import type { AiActionPolicy } from '@personal-os/contracts';
@@ -62,6 +63,21 @@ export class SendAiConversationMessageDto {
   @Length(1, 4000)
   @Matches(/\S/)
   content!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Identidad del turno para reintentar sin duplicar el mensaje del usuario',
+  })
+  @IsOptional()
+  @IsUUID()
+  clientMessageId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Responde text/event-stream con los eventos del turno',
+  })
+  @IsOptional()
+  @IsBoolean()
+  stream?: boolean;
 
   @ApiPropertyOptional({ type: () => AiInvocationContextDto })
   @IsOptional()

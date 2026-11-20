@@ -189,19 +189,23 @@ enum AiConversationMessageRole {
 }
 
 model AiConversationMessage {
-  id             String                    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  conversationId String                    @map("conversation_id")
-  userId         String                    @map("user_id")
-  sequence       Int                       @default(autoincrement())
-  role           AiConversationMessageRole
-  content        String                    @db.Text
-  name           String?
-  toolCallId     String?                   @map("tool_call_id")
-  toolCalls      Json?                     @map("tool_calls")
-  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  conversation   AiConversation            @relation(fields: [conversationId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  id              String                    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  conversationId  String                    @map("conversation_id")
+  userId          String                    @map("user_id")
+  sequence        Int                       @default(autoincrement())
+  role            AiConversationMessageRole
+  content         String                    @db.Text
+  name            String?
+  toolCallId      String?                   @map("tool_call_id")
+  toolCalls       Json?                     @map("tool_calls")
+  clientMessageId String?                   @map("client_message_id")
+  provider        String?
+  model           String?
+  createdAt       DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  conversation    AiConversation            @relation(fields: [conversationId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([conversationId, sequence], map: "ai_conversation_messages_conversation_sequence_key")
+  @@unique([conversationId, clientMessageId, role], map: "ai_conversation_messages_turn_key")
   @@index([userId, conversationId, sequence], map: "ai_conversation_messages_user_order_idx")
   @@map("ai_conversation_messages")
 }

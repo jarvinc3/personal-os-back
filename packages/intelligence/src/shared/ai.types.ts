@@ -26,6 +26,13 @@ export interface AiToolDefinition {
   targetModule: string;
 }
 
+export type ChatStreamInput = {
+  messages: ChatMessage[];
+  tools?: AiToolDefinition[];
+  signal?: AbortSignal;
+  onContent: (chunk: string) => void;
+};
+
 export interface AIService {
   name: string;
   model: string;
@@ -33,4 +40,5 @@ export interface AIService {
     messages: ChatMessage[],
     tools?: AiToolDefinition[],
   ) => Promise<ChatCompletionResult>;
+  chatStream?: (input: ChatStreamInput) => Promise<ChatCompletionResult>;
 }

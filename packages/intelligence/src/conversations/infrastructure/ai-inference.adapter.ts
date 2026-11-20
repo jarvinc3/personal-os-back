@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  AiConversationCompletion,
   AiConversationInferencePort,
   AiConversationMessage,
+  AiConversationStreamRequest,
   AiToolCall,
   AiToolSpec,
   JsonObject,
 } from '@personal-os/contracts';
 import { AiService } from '../../inference/application/ai.service';
-import type { AiToolDefinition, ChatMessage } from '../../shared/ai.types';
+import type {
+  AiToolDefinition,
+  ChatCompletionResult,
+  ChatMessage,
+} from '../../shared/ai.types';
 
 function toAgentToolCalls(
   calls: readonly { id: string; name: string; arguments: unknown }[],
@@ -28,6 +34,29 @@ function toAgentToolCalls(
   });
 }
 
+function toProviderTools(
+  tools?: readonly AiToolSpec[],
+): AiToolDefinition[] | undefined {
+  return tools?.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: tool.parameters,
+    mutating: tool.effect === 'WRITE',
+    targetModule: tool.moduleSlug,
+  }));
+}
+
+function toAgentCompletion(
+  completion: ChatCompletionResult & { provider: string; model: string },
+): AiConversationCompletion {
+  return {
+    content: completion.content,
+    toolCalls: toAgentToolCalls(completion.toolCalls),
+    provider: completion.provider,
+    model: completion.model,
+  };
+}
+
 @Injectable()
 export class AiInferenceAdapter implements AiConversationInferencePort {
   constructor(private readonly inference: AiService) {}
@@ -35,31 +64,34 @@ export class AiInferenceAdapter implements AiConversationInferencePort {
   async complete(
     messages: readonly AiConversationMessage[],
     tools?: readonly AiToolSpec[],
-  ) {
-    const providerTools: AiToolDefinition[] | undefined = tools?.map(
-      (tool) => ({
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-        mutating: tool.effect === 'WRITE',
-        targetModule: tool.moduleSlug,
-      }),
-    );
-    const result = await this.inference.chatComplete(
+  ): Promise<AiConversationCompletion> {
+    const completion = await this.inference.chatComplete(
       messages as ChatMessage[],
       undefined,
-      providerTools,
+      toProviderTools(tools),
     );
-    return {
-      content: result.content,
-      toolCalls: toAgentToolCalls(result.toolCalls),
-      provider: result.provider,
-      model: result.model,
-    };
+    return toAgentCompletion(completion);
+  }
+
+  async stream({
+    messages,
+    tools,
+    signal,
+    onContent,
+    onReset,
+  }: AiConversationStreamRequest): Promise<AiConversationCompletion> {
+    const completion = await this.inference.chatStream({
+      messages: messages as ChatMessage[],
+      tools: toProviderTools(tools),
+      signal,
+      onContent,
+      onReset,
+    });
+    return toAgentCompletion(completion);
   }
 
   async summarize(messages: readonly AiConversationMessage[]): Promise<string> {
-    const result = await this.complete([
+    const completion = await this.complete([
       {
         role: 'system',
         content:
@@ -67,6 +99,6 @@ export class AiInferenceAdapter implements AiConversationInferencePort {
       },
       ...messages,
     ]);
-    return result.content.trim();
+    return completion.content.trim();
   }
 }

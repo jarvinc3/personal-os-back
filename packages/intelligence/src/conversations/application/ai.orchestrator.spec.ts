@@ -40,7 +40,9 @@ function setup() {
   };
   const store = {
     findOwned: jest.fn().mockResolvedValue(conversation),
+    findTurn: jest.fn().mockResolvedValue({ user: null, assistant: null }),
     append: jest.fn().mockResolvedValue(undefined),
+    appendTurn: jest.fn().mockResolvedValue(undefined),
     setTitleFromFirstMessage: jest.fn().mockResolvedValue(undefined),
     setInvocationContext: jest.fn().mockResolvedValue(undefined),
     create: jest.fn().mockResolvedValue({ id: 'conversation-1' }),
@@ -51,6 +53,7 @@ function setup() {
   };
   const inference: jest.Mocked<AiConversationInferencePort> = {
     complete: jest.fn(),
+    stream: jest.fn(),
     summarize: jest.fn().mockResolvedValue('Resumen privado'),
   };
   const capabilities: jest.Mocked<AiCapabilityRegistryPort> = {
@@ -102,7 +105,12 @@ describe('AiOrchestrator', () => {
       },
       filters: { month: '2026-11' },
     };
-    await service.sendMessage('user-1', 'conversation-1', 'contexto', context);
+    await service.sendMessage({
+      userId: 'user-1',
+      conversationId: 'conversation-1',
+      content: 'contexto',
+      context,
+    });
     expect(store.setInvocationContext).toHaveBeenCalledWith(
       'user-1',
       'conversation-1',
@@ -131,11 +139,16 @@ describe('AiOrchestrator', () => {
     const { service, store, capabilities } = setup();
     capabilities.resolveEntity!.mockResolvedValue(null);
     await expect(
-      service.sendMessage('user-1', 'conversation-1', 'contexto', {
-        route: '/finance',
-        entityRef: {
-          type: 'account',
-          id: '00000000-0000-4000-8000-000000000002',
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: 'contexto',
+        context: {
+          route: '/finance',
+          entityRef: {
+            type: 'account',
+            id: '00000000-0000-4000-8000-000000000002',
+          },
         },
       }),
     ).rejects.toThrow('no existe o no pertenece');
@@ -166,7 +179,11 @@ describe('AiOrchestrator', () => {
       });
 
     await expect(
-      service.sendMessage('user-1', 'conversation-1', '¿Cuánto gasté?'),
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+      }),
     ).resolves.toMatchObject({
       conversationId: 'conversation-1',
       answer: 'Gastaste RD$1,250 este mes.',
@@ -199,10 +216,19 @@ describe('AiOrchestrator', () => {
       readCapability.id,
       { month: '2026-11' },
     );
-    expect(store.append).toHaveBeenCalledWith(
-      'user-1',
-      'conversation-1',
-      expect.objectContaining({ role: 'tool', toolCallId: 'call-1' }),
+    expect(store.appendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.objectContaining({
+              role: 'tool',
+              toolCallId: 'call-1',
+            }),
+          }),
+        ]),
+      }),
     );
   });
 
@@ -242,7 +268,11 @@ describe('AiOrchestrator', () => {
     });
 
     await expect(
-      service.sendMessage('user-1', 'conversation-1', 'Haz el cambio'),
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: 'Haz el cambio',
+      }),
     ).resolves.toMatchObject({
       answer: 'Puedo hacerlo cuando lo confirmes.',
       actions: [{ id: 'action-1', outcome: 'PENDING_CONFIRMATION' }],
@@ -282,7 +312,11 @@ describe('AiOrchestrator', () => {
       });
 
     await expect(
-      service.sendMessage('user-1', 'conversation-1', '¿Cuánto gasté?'),
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+      }),
     ).resolves.toMatchObject({
       answer: expect.stringContaining('desactivado'),
     });
@@ -309,7 +343,11 @@ describe('AiOrchestrator', () => {
       model: 'model-1',
     });
 
-    await service.sendMessage('user-1', 'conversation-1', 'otra pregunta');
+    await service.sendMessage({
+      userId: 'user-1',
+      conversationId: 'conversation-1',
+      content: 'otra pregunta',
+    });
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(inference.summarize).toHaveBeenCalled();
@@ -317,6 +355,197 @@ describe('AiOrchestrator', () => {
       'user-1',
       'conversation-1',
       'Resumen privado',
+    );
+  });
+
+  it('replays a saved turn without calling the model again', async () => {
+    const { service, store, inference } = setup();
+    const createdAt = new Date('2026-11-19T10:00:00Z');
+    store.findTurn.mockResolvedValue({
+      user: {
+        id: 'message-user',
+        role: 'user',
+        content: '¿Cuánto gasté?',
+        clientMessageId: 'turn-1',
+        provider: null,
+        model: null,
+        createdAt,
+      },
+      assistant: {
+        id: 'message-assistant',
+        role: 'assistant',
+        content: 'Gastaste RD$1,250.',
+        clientMessageId: 'turn-1',
+        provider: 'Groq',
+        model: 'model-1',
+        createdAt,
+      },
+    });
+    const events: Array<{ type: string }> = [];
+
+    await expect(
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+        clientMessageId: 'turn-1',
+        onEvent: (event) => events.push(event),
+      }),
+    ).resolves.toMatchObject({
+      answer: 'Gastaste RD$1,250.',
+      provider: 'Groq',
+      model: 'model-1',
+    });
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(inference.complete).not.toHaveBeenCalled();
+    expect(events.map((event) => event.type)).toEqual([
+      'start',
+      'chunk',
+      'done',
+    ]);
+  });
+
+  it('retries a failed turn without appending the user message twice', async () => {
+    const { service, store, inference } = setup();
+    const createdAt = new Date('2026-11-19T10:00:00Z');
+    store.findTurn.mockResolvedValue({
+      user: {
+        id: 'message-user',
+        role: 'user',
+        content: '¿Cuánto gasté?',
+        clientMessageId: 'turn-1',
+        provider: null,
+        model: null,
+        createdAt,
+      },
+      assistant: null,
+    });
+    inference.complete.mockResolvedValue({
+      content: 'Gastaste RD$1,250.',
+      toolCalls: [],
+      provider: 'Groq',
+      model: 'model-1',
+    });
+
+    await expect(
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+        clientMessageId: 'turn-1',
+      }),
+    ).resolves.toMatchObject({ answer: 'Gastaste RD$1,250.' });
+    expect(store.append).not.toHaveBeenCalled();
+    expect(store.appendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.objectContaining({
+              role: 'assistant',
+              content: 'Gastaste RD$1,250.',
+            }),
+            clientMessageId: 'turn-1',
+            provider: 'Groq',
+            model: 'model-1',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('rejects the same client message id with different content', async () => {
+    const { service, store, inference } = setup();
+    store.findTurn.mockResolvedValue({
+      user: {
+        id: 'message-user',
+        role: 'user',
+        content: 'Otro mensaje',
+        clientMessageId: 'turn-1',
+        provider: null,
+        model: null,
+        createdAt: new Date('2026-11-19T10:00:00Z'),
+      },
+      assistant: null,
+    });
+
+    await expect(
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+        clientMessageId: 'turn-1',
+      }),
+    ).rejects.toThrow('otro contenido');
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(inference.complete).not.toHaveBeenCalled();
+    expect(store.append).not.toHaveBeenCalled();
+    expect(store.appendTurn).not.toHaveBeenCalled();
+  });
+
+  it('streams chunks and resets when a tool call follows partial text', async () => {
+    const { service, store, inference, capabilities } = setup();
+    inference.stream
+      .mockImplementationOnce(({ onContent }) => {
+        onContent('Voy a revisar');
+        return Promise.resolve({
+          content: 'Voy a revisar',
+          toolCalls: [
+            {
+              id: 'call-1',
+              name: readCapability.id,
+              arguments: { month: '2026-11' },
+            },
+          ],
+          provider: 'Groq',
+          model: 'model-1',
+        });
+      })
+      .mockImplementationOnce(({ onContent }) => {
+        onContent('Gastaste RD$1,250.');
+        return Promise.resolve({
+          content: 'Gastaste RD$1,250.',
+          toolCalls: [],
+          provider: 'Groq',
+          model: 'model-1',
+        });
+      });
+    const events: Array<{ type: string; content?: string }> = [];
+
+    await expect(
+      service.sendMessage({
+        userId: 'user-1',
+        conversationId: 'conversation-1',
+        content: '¿Cuánto gasté?',
+        onEvent: (event) => events.push(event),
+      }),
+    ).resolves.toMatchObject({ answer: 'Gastaste RD$1,250.' });
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(inference.complete).not.toHaveBeenCalled();
+    expect(events.map((event) => event.type)).toEqual([
+      'start',
+      'chunk',
+      'status',
+      'reset',
+      'chunk',
+      'done',
+    ]);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(capabilities.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      readCapability.id,
+      { month: '2026-11' },
+    );
+    expect(store.appendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            message: expect.objectContaining({
+              role: 'tool',
+              toolCallId: 'call-1',
+            }),
+          }),
+        ]),
+      }),
     );
   });
 });
