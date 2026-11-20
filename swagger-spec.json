@@ -536,9 +536,35 @@
         "operationId": "AiIntelligenceController_messages",
         "parameters": [
           {
-            "name": "cursor",
-            "required": true,
+            "name": "q",
+            "required": false,
             "in": "query",
+            "description": "Texto contenido en el asunto o el remitente, sin distinguir mayúsculas",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Estado del correo importado",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "INGESTED",
+                "QUEUED",
+                "PROCESSED",
+                "REVIEW_REQUIRED",
+                "FAILED"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor opaco de la página anterior",
             "schema": {
               "type": "string"
             }
@@ -616,12 +642,47 @@
           }
         },
         "responses": {
-          "201": {
+          "202": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiEmailSampleImportResponseDto"
+                  "$ref": "#/components/schemas/AiEmailSampleImportJobResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/sample-import/{jobId}": {
+      "get": {
+        "operationId": "AiIntelligenceController_sampleImportStatus",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailSampleImportJobResponseDto"
                 }
               }
             }
@@ -641,6 +702,16 @@
       "post": {
         "operationId": "AiIntelligenceController_connect",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectGmailDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -674,6 +745,42 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AiEmailSyncResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/sync-bhd": {
+      "post": {
+        "operationId": "AiIntelligenceController_syncBhd",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncBhdScopeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncBhdResponseDto"
                 }
               }
             }
@@ -787,6 +894,35 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/usage": {
+      "get": {
+        "operationId": "EmailUsageController_get",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Uso agregado y restante de los topes"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Uso y costo de clasificación por día, hora, banco y tipo",
         "tags": [
           "intelligence"
         ]
@@ -1827,6 +1963,16 @@
       "post": {
         "operationId": "AiConversationController_create",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAiConversationDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -1837,6 +1983,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Contexto inválido o entidad no accesible"
           }
         },
         "security": [
@@ -1873,6 +2022,46 @@
           }
         ],
         "summary": "Listar las conversaciones propias",
+        "tags": [
+          "intelligence-conversations"
+        ]
+      }
+    },
+    "/api/intelligence/conversations/latest": {
+      "get": {
+        "operationId": "AiConversationController_latest",
+        "parameters": [
+          {
+            "name": "context",
+            "required": true,
+            "in": "query",
+            "description": "SHA-256 hex de la clave de contexto canónica",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiConversationLatestDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La clave de contexto debe ser SHA-256 hexadecimal"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Recuperar la conversación propia más reciente de un contexto",
         "tags": [
           "intelligence-conversations"
         ]
@@ -1983,6 +2172,9 @@
           }
         },
         "responses": {
+          "200": {
+            "description": "Flujo text/event-stream con start, status, chunk, reset, done y error cuando stream=true"
+          },
           "201": {
             "description": "",
             "content": {
@@ -2008,7 +2200,7 @@
             "access-token": []
           }
         ],
-        "summary": "Enviar un mensaje y ejecutar capacidades de lectura disponibles",
+        "summary": "Enviar un mensaje, ejecutar capacidades y responder JSON o text/event-stream",
         "tags": [
           "intelligence-conversations"
         ]
@@ -2113,6 +2305,208 @@
         "summary": "Cancelar una acción pendiente del agente",
         "tags": [
           "intelligence-actions"
+        ]
+      }
+    },
+    "/api/intelligence/view-suggestions": {
+      "get": {
+        "operationId": "ViewSuggestionsController_resolveForView",
+        "parameters": [
+          {
+            "name": "route",
+            "required": true,
+            "in": "query",
+            "description": "Ruta de la vista; la clave no incluye filtros ni entidad",
+            "schema": {
+              "example": "/finance/transactions",
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "required": false,
+            "in": "query",
+            "description": "Vista dentro de la ruta",
+            "schema": {
+              "example": "transactions",
+              "type": "string"
+            }
+          },
+          {
+            "name": "sheet",
+            "required": false,
+            "in": "query",
+            "description": "Sheet abierto sobre la ruta",
+            "schema": {
+              "example": "filters",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewSuggestionsListDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ruta o vista inválida, o vista y sheet a la vez"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar las sugerencias activas de la vista del usuario",
+        "tags": [
+          "intelligence-view-suggestions"
+        ]
+      }
+    },
+    "/api/intelligence/view-suggestions/{suggestionId}": {
+      "delete": {
+        "operationId": "ViewSuggestionsController_dismiss",
+        "parameters": [
+          {
+            "name": "suggestionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewSuggestionDismissedDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Sugerencia no encontrada"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Descartar una sugerencia propia de forma persistente",
+        "tags": [
+          "intelligence-view-suggestions"
+        ]
+      }
+    },
+    "/api/intelligence/proactive-suggestions": {
+      "get": {
+        "operationId": "ProactiveSuggestionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProactiveSuggestionsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/finance/imports/review": {
+      "get": {
+        "operationId": "ImportReviewController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportReviewItemResponseDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Imports de correo que esperan una decisión humana",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/imports/review/{id}/resolve": {
+      "post": {
+        "operationId": "ImportReviewController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveImportReviewDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReviewResolutionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Fija fecha o destino, enlaza el reverso o descarta un import",
+        "tags": [
+          "finance"
         ]
       }
     },
@@ -9551,6 +9945,17 @@
           "emailAddress": {
             "type": "string"
           },
+          "importStartAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "description": "Fecha UTC desde la que se importa correo. Null sin elección."
+          },
+          "senderFilter": {
+            "type": "string",
+            "nullable": true,
+            "description": "Dominio de remitente que limita la importación."
+          },
           "initialSyncCompletedAt": {
             "type": "string",
             "nullable": true,
@@ -9698,8 +10103,10 @@
             "enum": [
               "INGESTED",
               "QUEUED",
+              "CLASSIFYING",
               "PROCESSED",
               "REVIEW_REQUIRED",
+              "DISCARDED",
               "FAILED"
             ]
           },
@@ -9966,8 +10373,10 @@
             "enum": [
               "INGESTED",
               "QUEUED",
+              "CLASSIFYING",
               "PROCESSED",
               "REVIEW_REQUIRED",
+              "DISCARDED",
               "FAILED"
             ]
           },
@@ -10061,6 +10470,21 @@
       "EmailSampleImportDto": {
         "type": "object",
         "properties": {}
+      },
+      "AiEmailSampleImportProgressDto": {
+        "type": "object",
+        "properties": {
+          "processed": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "processed",
+          "total"
+        ]
       },
       "AiEmailSampleSelectionDto": {
         "type": "object",
@@ -10521,6 +10945,83 @@
           "items"
         ]
       },
+      "AiEmailSampleImportJobResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "dryRun": {
+            "type": "boolean"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/AiEmailSampleImportProgressDto"
+          },
+          "result": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiEmailSampleImportResponseDto"
+              }
+            ]
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "dryRun",
+          "progress",
+          "result",
+          "error",
+          "createdAt",
+          "startedAt",
+          "finishedAt"
+        ]
+      },
+      "ConnectGmailDto": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "TODAY",
+              "LAST_MONTH",
+              "LAST_3_MONTHS"
+            ],
+            "description": "Desde cuándo importar: hoy, el último mes o los últimos 3 meses."
+          },
+          "senderFilter": {
+            "type": "object",
+            "example": "bhd.com.do",
+            "description": "Limita la importación a un dominio de remitente."
+          }
+        }
+      },
       "AiEmailConnectResponseDto": {
         "type": "object",
         "properties": {
@@ -10545,6 +11046,47 @@
         "required": [
           "connected",
           "syncStarted"
+        ]
+      },
+      "SyncBhdScopeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "SyncBhdResponseDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "query": {
+            "type": "string"
+          },
+          "found": {
+            "type": "number"
+          },
+          "imported": {
+            "type": "number"
+          },
+          "skipped": {
+            "type": "number"
+          },
+          "nextPageToken": {
+            "type": "string",
+            "nullable": true
+          },
+          "estimatedTotal": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "connected",
+          "query",
+          "found",
+          "imported",
+          "skipped",
+          "nextPageToken",
+          "estimatedTotal"
         ]
       },
       "ResetEmailCorpusDto": {
@@ -12227,6 +12769,67 @@
           "data"
         ]
       },
+      "AiInvocationEntityRefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "transaction",
+              "account",
+              "card",
+              "loan",
+              "budget",
+              "savings_goal",
+              "receivable",
+              "subscription",
+              "merchant",
+              "category"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      },
+      "AiInvocationContextDto": {
+        "type": "object",
+        "properties": {
+          "route": {
+            "type": "string",
+            "example": "/finance/products/transactions"
+          },
+          "view": {
+            "type": "string"
+          },
+          "sheet": {
+            "type": "string"
+          },
+          "entityRef": {
+            "$ref": "#/components/schemas/AiInvocationEntityRefDto"
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "route"
+        ]
+      },
+      "CreateAiConversationDto": {
+        "type": "object",
+        "properties": {
+          "context": {
+            "$ref": "#/components/schemas/AiInvocationContextDto"
+          }
+        }
+      },
       "AiConversationCreatedDto": {
         "type": "object",
         "properties": {
@@ -12314,6 +12917,15 @@
           "title": {
             "type": "string"
           },
+          "context": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiInvocationContextDto"
+              }
+            ]
+          },
           "messages": {
             "type": "array",
             "items": {
@@ -12337,12 +12949,40 @@
           "updatedAt"
         ]
       },
+      "AiConversationLatestDto": {
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiConversationDetailDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "conversation"
+        ]
+      },
       "SendAiConversationMessageDto": {
         "type": "object",
         "properties": {
           "content": {
             "type": "string",
             "example": "¿Cuánto gasté este mes?"
+          },
+          "clientMessageId": {
+            "type": "string",
+            "description": "Identidad del turno para reintentar sin duplicar el mensaje del usuario"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "Responde text/event-stream con los eventos del turno"
+          },
+          "context": {
+            "$ref": "#/components/schemas/AiInvocationContextDto"
           }
         },
         "required": [
@@ -12528,6 +13168,291 @@
         "required": [
           "outcome",
           "action"
+        ]
+      },
+      "ViewSuggestionActionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actionType": {
+            "type": "string"
+          },
+          "targetModule": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "AUTO_ALLOWED",
+              "CONFIRM_REQUIRED",
+              "FORBIDDEN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "actionType",
+          "targetModule",
+          "policy",
+          "status",
+          "payload"
+        ]
+      },
+      "ViewSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "action": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ViewSuggestionActionDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "prompt"
+        ]
+      },
+      "ViewSuggestionsListDto": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewSuggestionDto"
+            }
+          }
+        },
+        "required": [
+          "suggestions"
+        ]
+      },
+      "ViewSuggestionDismissedDto": {
+        "type": "object",
+        "properties": {
+          "dismissed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dismissed"
+        ]
+      },
+      "ProactiveSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "signalId": {
+            "type": "string"
+          },
+          "signalType": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "actionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "signalId",
+          "signalType",
+          "title",
+          "body",
+          "actionId",
+          "createdAt"
+        ]
+      },
+      "ProactiveSuggestionLimitsDto": {
+        "type": "object",
+        "properties": {
+          "discarded": {
+            "type": "number"
+          },
+          "windowStartedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "discarded",
+          "windowStartedAt"
+        ]
+      },
+      "ProactiveSuggestionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "suggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProactiveSuggestionDto"
+            }
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ProactiveSuggestionLimitsDto"
+          }
+        },
+        "required": [
+          "suggestions",
+          "limits"
+        ]
+      },
+      "ImportReviewItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "signalId": {
+            "type": "string"
+          },
+          "sourceEmailMessageId": {
+            "type": "string"
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "candidate": {
+            "type": "object"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "signalId",
+          "sourceEmailMessageId",
+          "reviewReason",
+          "candidate",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ResolveImportReviewDto": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "SET_DATE",
+              "SET_DESTINATION",
+              "LINK_REVERSAL",
+              "DISCARD"
+            ],
+            "description": "SET_DATE fija la fecha, SET_DESTINATION elige cuenta o tarjeta, LINK_REVERSAL enlaza el original y DISCARD descarta el import."
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de operación para SET_DATE"
+          },
+          "accountId": {
+            "type": "string",
+            "description": "Cuenta de destino para SET_DESTINATION"
+          },
+          "cardId": {
+            "type": "string",
+            "description": "Tarjeta de destino para SET_DESTINATION"
+          },
+          "originalTransactionId": {
+            "type": "string",
+            "description": "Movimiento original para LINK_REVERSAL"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Motivo obligatorio para DISCARD",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "ImportReviewResolutionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "IMPORTED",
+              "DUPLICATE",
+              "REVERSED",
+              "DISMISSED"
+            ]
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "IMPORTED",
+              "DUPLICATE",
+              "REVERSED",
+              "DISMISSED"
+            ]
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "outcome",
+          "transactionId",
+          "reviewReason"
         ]
       },
       "ExchangeRateResponseDto": {
@@ -14678,6 +15603,11 @@
           },
           "statementId": {
             "type": "string"
+          },
+          "duplicateAcknowledged": {
+            "type": "boolean",
+            "default": false,
+            "description": "Confirma el pago aunque ya exista uno importado por correo con los mismos datos."
           }
         },
         "required": [
@@ -14724,6 +15654,11 @@
           },
           "statementId": {
             "type": "string"
+          },
+          "duplicateAcknowledged": {
+            "type": "boolean",
+            "default": false,
+            "description": "Confirma el pago aunque ya exista uno importado por correo con los mismos datos."
           }
         }
       },

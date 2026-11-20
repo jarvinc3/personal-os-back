@@ -5,6 +5,7 @@ import { AI_ROLES } from '../roles/ai-role.decorator';
 const EMAIL_PROCESSING_STATUSES = [
   'INGESTED',
   'QUEUED',
+  'CLASSIFYING',
   'PROCESSED',
   'REVIEW_REQUIRED',
   'DISCARDED',
