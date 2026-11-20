@@ -756,6 +756,42 @@ describe('AiEmailClassificationService direct message operations', () => {
     expectNoWrites(prisma);
   });
 
+  it('grounds the account last4 from the text over the model value', async () => {
+    const { service, inference } = fixture({
+      fromDomain: 'popular.com.do',
+      subject: 'Notificación de transferencia',
+      body: 'Detalle de la transacción Cuenta: ******0024 Monto: RD$ 1,000.00',
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 1_000,
+          currency: 'DOP',
+          direction: 'DEBIT',
+          movementClass: 'TRANSFER_OUT',
+          accountNumberLast4: '9999',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'MODEL',
+      classification: {
+        transaction: { accountNumberLast4: '0024' },
+      },
+    });
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+  });
+
   it('previews a recognized BHD card alert without calling the model', async () => {
     const { service, inference, prisma } = fixture({
       fromDomain: 'bhd.com.do',
