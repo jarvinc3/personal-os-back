@@ -1,7 +1,8 @@
 /**
- * Anclaje de los correos BHD. También expone los lectores del texto (fecha,
- * moneda y fila de la alerta de tarjeta) que usa la clasificación determinista de
- * `bhd-email-format`, porque los dos leen el mismo correo.
+ * Anclaje específico de los correos BHD (fecha, reversos y movimiento). La
+ * moneda vive en `email-currency-grounding` y se aplica a cualquier remitente.
+ * Este módulo también expone los lectores de fecha y de la fila de la alerta de
+ * tarjeta que usa `bhd-email-format`.
  */
 import {
   validateEmailClassification,
@@ -13,7 +14,6 @@ const BHD_DOMAIN = 'bhd.com.do';
 const BHD_UTC_OFFSET_HOURS = 4;
 const BHD_MAX_TRANSACTION_AGE_MS = 31 * 24 * 60 * 60 * 1_000;
 const BHD_MAX_FUTURE_MS = 24 * 60 * 60 * 1_000;
-const CURRENCY_CONTEXT_CHARS = 40;
 
 const AM_PM_PATTERN = String.raw`(a\.?\s*m\.?|p\.?\s*m\.?)`;
 const DATE_TIME_PATTERN = String.raw`(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(?:[-|]|a\s+las)?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*${AM_PM_PATTERN}`;
@@ -32,23 +32,9 @@ type BhdDateParts = {
   second: number;
 };
 
-type BhdCurrency = {
-  code: 'DOP' | 'USD';
-  marker: string;
-};
-
 type BhdReversal = {
   status: 'REVERSED' | 'REFUNDED' | 'CHARGEBACK';
 };
-
-const CURRENCY_MARKERS = [
-  { code: 'DOP', marker: 'RD$', pattern: /\bRD\s*\$/gi },
-  { code: 'DOP', marker: 'DOP', pattern: /\bDOP\b/gi },
-  { code: 'DOP', marker: 'RD', pattern: /\bRD\b/gi },
-  { code: 'USD', marker: 'US$', pattern: /\bUS\s*\$/gi },
-  { code: 'USD', marker: 'USD', pattern: /\bUSD\b/gi },
-  { code: 'USD', marker: 'US', pattern: /\bUS\b/gi },
-] as const;
 
 const REVERSAL_PATTERNS = [
   {
@@ -170,7 +156,6 @@ export function groundBhdClassification({
   const transaction = groundBhdTransaction({
     transaction: classification.transaction,
     transactionDate: extractBhdTransactionDate(text, receivedAt),
-    currency: extractBhdCurrency(text, classification.transaction.amount),
     reversal: detectBhdReversal(text),
     declaredMovement: readBhdDeclaredMovement({
       text,
@@ -192,22 +177,17 @@ type BhdDeclaredMovement = Required<
 function groundBhdTransaction({
   transaction,
   transactionDate,
-  currency,
   reversal,
   declaredMovement,
 }: {
   transaction: BhdTransaction;
   transactionDate: Date | null;
-  currency: BhdCurrency | null;
   reversal: BhdReversal | null;
   declaredMovement: BhdDeclaredMovement | null;
 }): BhdTransaction {
   let grounded = transactionDate
     ? { ...transaction, transactionDate: transactionDate.toISOString() }
     : withoutField(transaction, 'transactionDate');
-  grounded = currency
-    ? withBhdCurrency({ transaction: grounded, currency })
-    : withoutField(grounded, 'currency');
   grounded = declaredMovement ? { ...grounded, ...declaredMovement } : grounded;
   if (reversal) {
     grounded = {
@@ -250,25 +230,6 @@ function readBhdDeclaredMovement({
 
 function isTransferMovementClass(movementClass: string | undefined): boolean {
   return TRANSFER_MOVEMENT_CLASSES.some((known) => known === movementClass);
-}
-
-function withBhdCurrency({
-  transaction,
-  currency,
-}: {
-  transaction: BhdTransaction;
-  currency: BhdCurrency;
-}): BhdTransaction {
-  const modelCurrency = transaction.currency;
-  return {
-    ...transaction,
-    currency: currency.code,
-    ...(modelCurrency && modelCurrency !== currency.code
-      ? {
-          currencyEvidence: `El texto indica ${currency.code} (${currency.marker}); el modelo propuso ${modelCurrency}.`,
-        }
-      : {}),
-  };
 }
 
 function withoutField<T extends object>(value: T, field: keyof T): T {
@@ -368,90 +329,6 @@ function bhdLocalDateToUtc(parts: BhdDateParts, receivedAt: Date): Date | null {
     return null;
   }
   return utc;
-}
-
-export function extractBhdCurrency(
-  text: string,
-  amount: number | undefined,
-): BhdCurrency | null {
-  const normalized = collapseWhitespace(text);
-  const amountIndex = findAmountIndex(normalized, amount);
-  const candidates = CURRENCY_MARKERS.flatMap(({ code, marker, pattern }) =>
-    [...normalized.matchAll(pattern)]
-      .map((match) => ({
-        code,
-        marker,
-        index: match.index ?? 0,
-      }))
-      .filter(({ index }) =>
-        isUsableCurrencyMarker({ marker, index, amountIndex }),
-      ),
-  );
-  if (!candidates.length) {
-    return null;
-  }
-  if (amountIndex === null) {
-    const codes = new Set(candidates.map(({ code }) => code));
-    return codes.size === 1
-      ? { code: candidates[0].code, marker: candidates[0].marker }
-      : null;
-  }
-  const ranked = candidates
-    .map((candidate) => ({
-      ...candidate,
-      distance: Math.abs(candidate.index - amountIndex),
-    }))
-    .sort((left, right) => left.distance - right.distance);
-  const best = ranked[0];
-  if (
-    ranked.some(
-      ({ code, distance }) => code !== best.code && distance === best.distance,
-    )
-  ) {
-    return null;
-  }
-  return { code: best.code, marker: best.marker };
-}
-
-function findAmountIndex(
-  text: string,
-  amount: number | undefined,
-): number | null {
-  if (amount === undefined || !Number.isFinite(amount) || amount <= 0) {
-    return null;
-  }
-  for (const variant of amountVariants(amount)) {
-    const index = text.indexOf(variant);
-    if (index >= 0) {
-      return index;
-    }
-  }
-  return null;
-}
-
-function amountVariants(amount: number): string[] {
-  const fixed = amount.toFixed(2);
-  const [whole, decimals] = fixed.split('.');
-  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return [fixed, `${grouped}.${decimals}`, whole, grouped];
-}
-
-function isUsableCurrencyMarker({
-  marker,
-  index,
-  amountIndex,
-}: {
-  marker: string;
-  index: number;
-  amountIndex: number | null;
-}): boolean {
-  if (marker !== 'RD' && marker !== 'US') {
-    return true;
-  }
-  return (
-    amountIndex !== null &&
-    Math.abs(index - amountIndex) <= CURRENCY_CONTEXT_CHARS
-  );
 }
 
 function detectBhdReversal(text: string): BhdReversal | null {

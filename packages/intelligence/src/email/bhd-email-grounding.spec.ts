@@ -5,6 +5,7 @@ import {
   type EmailClassification,
 } from './email-classification.util';
 import { groundBhdClassification } from './bhd-email-grounding';
+import { groundClassificationCurrency } from './email-currency-grounding';
 
 const receivedAt = new Date('2026-11-06T15:12:00.000Z');
 const FIXTURES_DIRECTORY = resolve(__dirname, '../../test/fixtures/bhd-emails');
@@ -40,18 +41,22 @@ function groundModelProposal({
   fixture: BhdEmailFixture;
   transaction: Record<string, unknown>;
 }): EmailClassification {
-  return groundBhdClassification({
-    classification: validateEmailClassification({
-      relevance: true,
-      semanticType: 'FIN_TRANSACTION',
-      routes: ['FINANCE'],
-      transaction: { kind: 'TRANSACTION', ...transaction },
-      confidence: 0.9,
+  return groundClassificationCurrency({
+    classification: groundBhdClassification({
+      classification: validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION', ...transaction },
+        confidence: 0.9,
+      }),
+      fromDomain: 'bhd.com.do',
+      subject: fixture.subject,
+      body: fixture.text,
+      receivedAt: new Date(fixture.date),
     }),
-    fromDomain: 'bhd.com.do',
     subject: fixture.subject,
     body: fixture.text,
-    receivedAt: new Date(fixture.date),
   });
 }
 
@@ -87,12 +92,16 @@ function ground({
   receivedAt?: Date;
   transaction?: Partial<NonNullable<EmailClassification['transaction']>>;
 }): EmailClassification {
-  return groundBhdClassification({
-    classification: classification(transaction),
-    fromDomain,
+  return groundClassificationCurrency({
+    classification: groundBhdClassification({
+      classification: classification(transaction),
+      fromDomain,
+      subject: 'BHD Notificación de Transacciones',
+      body,
+      receivedAt: messageReceivedAt,
+    }),
     subject: 'BHD Notificación de Transacciones',
     body,
-    receivedAt: messageReceivedAt,
   });
 }
 
@@ -262,14 +271,14 @@ describe('BHD email grounding', () => {
     expect(input).toEqual(snapshot);
   });
 
-  it('does not apply BHD rules to another sender', () => {
+  it('does not apply BHD date rules to another sender but grounds the currency', () => {
     const grounded = ground({
       body: 'Monto: RD$ 138.79\nFecha: 06/11/2026 11:12 am',
       fromDomain: 'example.com',
     });
 
     expect(grounded.transaction).toMatchObject({
-      currency: 'USD',
+      currency: 'DOP',
       transactionDate: '2026-06-11T11:12:00.000Z',
     });
   });

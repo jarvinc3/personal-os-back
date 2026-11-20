@@ -23,6 +23,7 @@ import {
 } from '../evidence/dataset.constants';
 import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
 import { groundBhdClassification, isBhdEmail } from './bhd-email-grounding';
+import { groundClassificationCurrency } from './email-currency-grounding';
 import { parseBhdFixedFormat } from './bhd-email-format';
 import {
   EMAIL_CLASSIFICATION_JSON_SCHEMA,
@@ -559,12 +560,16 @@ export class AiEmailClassificationService {
     if (!classification) {
       return { kind: 'no_classification' };
     }
-    const grounded = groundBhdClassification({
-      classification,
-      fromDomain: message.fromDomain,
+    const grounded = groundClassificationCurrency({
+      classification: groundBhdClassification({
+        classification,
+        fromDomain: message.fromDomain,
+        subject: message.subject,
+        body: message.content?.sanitizedBody ?? '',
+        receivedAt: message.receivedAt,
+      }),
       subject: message.subject,
       body: message.content?.sanitizedBody ?? '',
-      receivedAt: message.receivedAt,
     });
     return {
       kind: 'computed',
