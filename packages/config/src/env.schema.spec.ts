@@ -91,7 +91,9 @@ describe('envSchema AI limits', () => {
     const parsed = parseEnv(validBaseEnv);
 
     expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('bhd.com.do');
-    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(12);
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('popularenlinea.com');
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('qik.com.do');
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(14);
   });
 
   it('parses the bank sender list and normalizes each domain', () => {
@@ -113,7 +115,7 @@ describe('envSchema AI limits', () => {
     });
 
     expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toContain('bhd.com.do');
-    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(12);
+    expect(parsed.AI_EMAIL_BANK_SENDER_DOMAINS).toHaveLength(14);
   });
 
   it('parses numeric strings', () => {
