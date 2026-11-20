@@ -105,4 +105,27 @@ describe('Email classification limits', () => {
     expect(isBankSenderDomain('bhd.com.do', ['otro-banco.com'])).toBe(false);
     expect(isBankSenderDomain('otro-banco.com', ['otro-banco.com'])).toBe(true);
   });
+
+  it('acepta los remitentes reales de Popular y Qik del piloto', () => {
+    const pilotDomains = [
+      'bhd.com.do',
+      'popular.com.do',
+      'popularenlinea.com',
+      'qik.do',
+      'qik.com.do',
+    ];
+
+    expect(isBankSenderDomain('popularenlinea.com', pilotDomains)).toBe(true);
+    expect(isBankSenderDomain('alertas.popularenlinea.com', pilotDomains)).toBe(
+      true,
+    );
+    expect(isBankSenderDomain('mail.qik.com.do', pilotDomains)).toBe(true);
+    expect(isBankSenderDomain('qik.com.do', pilotDomains)).toBe(true);
+    expect(isBankSenderDomain('notpopularenlinea.com', pilotDomains)).toBe(
+      false,
+    );
+    expect(isBankSenderDomain('otro-banco-qik.com.do', pilotDomains)).toBe(
+      false,
+    );
+  });
 });

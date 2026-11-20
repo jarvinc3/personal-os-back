@@ -43,11 +43,16 @@ const optionalStrictBoolean = z
 /**
  * Dominios bancarios que el piloto deja llegar al modelo. Son el valor por
  * defecto de `AI_EMAIL_BANK_SENDER_DOMAINS`; los subdominios se aceptan.
+ *
+ * Popular envía desde `popularenlinea.com` (no desde `popular.com.do`) y Qik
+ * desde `mail.qik.com.do`, que cuelga de `qik.com.do`.
  */
 const DEFAULT_BANK_SENDER_DOMAINS = [
   'bhd.com.do',
   'popular.com.do',
+  'popularenlinea.com',
   'qik.do',
+  'qik.com.do',
   'banreservas.com',
   'scotiabank.com.do',
   'bancosantacruz.com.do',
