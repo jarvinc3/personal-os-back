@@ -207,6 +207,7 @@ export class EmailUsageService {
       caps: {
         perMinute: this.limits.classificationsPerMinute,
         initial: {
+          connected: connection !== null,
           limit: this.limits.initialBudget,
           remaining: connection?.initialBudgetRemaining ?? 0,
         },
