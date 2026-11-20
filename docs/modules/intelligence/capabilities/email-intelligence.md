@@ -65,6 +65,8 @@ Verificar un correo o un lote de revisión reclasifica además los correos ya cl
 
 Repetir la misma verificación con el mismo veredicto, etiquetas y nota no agrega otra fila append-only: reutiliza la última idéntica y vuelve a intentar la reclasificación. Si la reclasificación falla, la petición responde error después de guardar la verificación; el reintento es seguro, libera los correos que quedaron en `CLASSIFYING` y no duplica evidencia.
 
+Los avisos de depósito de nómina de Popular (`popularenlinea.com`, plantillas v1 y v2) no traen el monto ni la moneda en el texto (#431). En los 20 avisos de DEV, incluidos los 3 que quedaron en `AMOUNT_MISSING` en el piloto del 20 nov, el cuerpo saneado, el canónico, el snippet y el HTML crudo no contienen ninguna cifra con forma de monto: los únicos números son los últimos 4 del carnet, los de la cuenta y el teléfono del banco. La clasificación deja la transacción sin `amount` y el import queda en revisión con `AMOUNT_MISSING`, y con `CURRENCY_MISSING` cuando tampoco hay moneda; el valor no se estima ni se toma de otro correo. Los ejemplos saneados están en `packages/finance/test/fixtures/bank-emails/popular/` con `expected.amount: null`. Ver el informe del piloto en #384.
+
 ## Propuestas de productos detectados (#368)
 
 El proceso de propuestas lee mensajes y señales ya persistidos; no inicia OAuth,
