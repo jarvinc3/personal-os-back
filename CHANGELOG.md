@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #419: el contrato OpenAPI versionado se regenera desde el código de `develop` y vuelve a coincidir con el documento que la API escribe al arrancar fuera de producción: 183 rutas y 296 schemas, con los endpoints de sugerencias, el filtro `q`/`status` de la lista de correos y el resumen de uso. El estado del correo en el contrato incluye `CLASSIFYING` en el resumen y en el detalle, que ya guardaba el enum de la base y el detalle devolvía; el filtro de la lista conserva sus cinco estados.
 - #406: el CI corre en los runners self-hosted con `pull_request`; los PRs usan el workflow del merge y el push a `develop` o `master` el de la rama.
 - #399: la propuesta de cuenta detectada en un correo BHD toma los cuatro dígitos finales del token completo —un IBAN enmascarado como `DO26BCBH000000000XXXXXXX0016` propone `0016`, no `0000`—, confirma ese número contra `accountNumberLast4` de la señal y no crea propuesta ni evidencia cuando no coincide; la evidencia guarda la etiqueta y el lado que aportaron el número. Las propuestas ya existentes no cambian.
 - #396: la prueba de borrado de datos de IA revisa solo los campos que pueden filtrar datos personales del update —`notes`, `correctedPayload`, `structuralKeys` y `structuralPayload`— en vez de buscar subcadenas en todo el objeto. El UUID aleatorio del tombstone ya no puede contener el monto ni los cuatro últimos dígitos y hacer fallar la prueba sin que haya una fuga. Sin cambio de comportamiento.

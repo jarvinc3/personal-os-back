@@ -213,6 +213,23 @@ describe('OpenAPI response schemas of intelligence', () => {
     }
   });
 
+  it('publishes CLASSIFYING as a message status but not as a list filter', () => {
+    const schemas = document.components?.schemas ?? {};
+    const responseStatuses = (name: string) => {
+      const schema = schemas[name] as
+        { properties?: Record<string, Record<string, unknown>> } | undefined;
+      return (schema?.properties?.processingStatus?.enum as unknown[]) ?? [];
+    };
+
+    expect(responseStatuses('AiEmailMessageSummaryResponseDto')).toContain(
+      'CLASSIFYING',
+    );
+    expect(responseStatuses('AiEmailMessageResponseDto')).toContain(
+      'CLASSIFYING',
+    );
+    expect(AI_EMAIL_MESSAGE_STATUS_FILTERS).not.toContain('CLASSIFYING');
+  });
+
   it('declares the search and status filters of the messages list', () => {
     const operation = document.paths['/api/intelligence/messages']?.get as
       | {
