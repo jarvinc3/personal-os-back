@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #431: la documentación de clasificación aclara que los avisos de depósito de nómina de Popular no traen monto ni moneda en el texto, tampoco en el HTML crudo. En los 20 avisos revisados no hay ninguna cifra con forma de monto, así que la clasificación deja la transacción sin `amount` y el import queda en revisión con `AMOUNT_MISSING`; el valor no se estima ni se completa desde otro correo. Los ejemplos saneados del repo ya lo registran con `expected.amount: null`.
 - #430: la clasificación ancla la moneda al texto del correo para cualquier remitente con transacción. `RD$`, `DOP` o `RD` cerca del monto dejan `DOP`; `US$`, `USD` o `US` dejan `USD`. Si el texto contradice al modelo, gana el texto y `currencyEvidence` conserva la diferencia; sin marcador, la transacción queda sin moneda y la importación va a revisión. El anclaje BHD de fecha y reversos no cambia.
 
 - #423: `GET /intelligence/email/usage` distingue la carga inicial sin Gmail conectado de la agotada. `caps.initial` gana `connected`: en `false` no hay conexión y la web puede ocultar o explicar la fila; en `true` con `remaining: 0` la carga está agotada de verdad. `limit` y `remaining` se mantienen, así que la vista actual sigue funcionando sin cambios de tipo. Sin migración.
