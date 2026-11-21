@@ -14,6 +14,7 @@ import {
   httpExceptionDetails,
   toErrorField,
 } from '../exceptions/http-error.util';
+import { requestLogPath } from '../observability/request-log';
 
 type PrismaKnownErrorLike = Error & {
   code?: string;
@@ -37,6 +38,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<{
       url: string;
+      originalUrl?: string;
+      baseUrl?: string;
+      route?: { path?: string | string[] };
       id?: string;
       method: string;
       user?: { sub?: string };
@@ -56,7 +60,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       {
         requestId: request.id,
         method: request.method,
-        path: request.url,
+        path: requestLogPath(request),
         statusCode,
         error,
         message:
@@ -86,7 +90,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   /**
    * 4xx are expected client flow and would only add noise; only 5xx reach
-   * Sentry. The query string is dropped so a token never travels with it.
+   * Sentry. The query string and path parameters are replaced by the matched
+   * route template so a token never travels with the event.
    */
   private reportToSentry({
     exception,
@@ -94,7 +99,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     statusCode,
   }: {
     exception: unknown;
-    request: { url: string; method: string; user?: { sub?: string } };
+    request: {
+      url: string;
+      originalUrl?: string;
+      baseUrl?: string;
+      route?: { path?: string | string[] };
+      method: string;
+      user?: { sub?: string };
+    };
     statusCode: number;
   }): void {
     const userId = request.user?.sub;
@@ -102,7 +114,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(userId ? { user: { id: userId } } : {}),
       extra: {
         method: request.method,
-        path: request.url.split('?')[0],
+        path: requestLogPath(request),
         statusCode,
       },
     });

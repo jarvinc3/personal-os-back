@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { Observable, tap } from 'rxjs';
+import { requestLogPath } from '../observability/request-log';
 
 @Injectable()
 export class LoggingInterceptor implements NestInterceptor {
@@ -16,7 +17,10 @@ export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<{
       method: string;
-      url: string;
+      url?: string;
+      originalUrl?: string;
+      baseUrl?: string;
+      route?: { path?: string | string[] };
       id?: string;
       user?: { sub?: string };
     }>();
@@ -33,7 +37,7 @@ export class LoggingInterceptor implements NestInterceptor {
           this.logger.info(
             {
               method: request.method,
-              path: request.url,
+              path: requestLogPath(request),
               statusCode: response.statusCode,
               durationMs,
               requestId: request.id,
@@ -47,7 +51,7 @@ export class LoggingInterceptor implements NestInterceptor {
           this.logger.error(
             {
               method: request.method,
-              path: request.url,
+              path: requestLogPath(request),
               statusCode: response.statusCode,
               durationMs,
               requestId: request.id,
