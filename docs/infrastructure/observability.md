@@ -12,4 +12,6 @@ Source maps: `pnpm sentry:sourcemaps` (`scripts/sentry/upload-sourcemaps.mjs`) s
 
 Pino (`nestjs-pino`) con `requestId` en el envelope. Fallos de workers Bull vía `@OnWorkerEvent('failed')`.
 
+Cada petición deja una sola línea con su estado HTTP real. `LoggingInterceptor` registra las que responden (`HTTP request completed`, nivel `info`, con `durationMs`); `AllExceptionsFilter` registra las que fallan (`HTTP request failed`) porque también ve los rechazos de guards y middleware, que corren antes del interceptor. El nivel sigue al estado: 4xx salen como `warn` y sin stack; 5xx como `error` con stack y evento en Sentry. Cuando el interceptor llegó a arrancar la petición, la línea del fallo reutiliza su `durationMs`.
+
 Los fallos de proveedores de IA registran una línea por intento con proveedor, modelo, estado HTTP, reintento, fallback y causa; el mensaje se sanea, se trunca y omite el cuerpo del proveedor.

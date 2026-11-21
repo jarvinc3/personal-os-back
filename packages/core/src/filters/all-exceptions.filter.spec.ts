@@ -9,10 +9,15 @@ jest.mock('@sentry/nestjs', () => ({
 
 const captureExceptionMock = captureException as unknown as jest.Mock;
 
+const loggerMock = {
+  setContext: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+};
+
 function createFilter(nodeEnv = 'production'): AllExceptionsFilter {
-  const logger = { setContext: jest.fn(), error: jest.fn() };
   const config = { get: jest.fn().mockReturnValue(nodeEnv) };
-  return new AllExceptionsFilter(logger as never, config as never);
+  return new AllExceptionsFilter(loggerMock as never, config as never);
 }
 
 type TestResponse = {
@@ -21,7 +26,11 @@ type TestResponse = {
   destroy: jest.Mock;
 };
 
-function run(exception: unknown, headersSent = false): TestResponse {
+function run(
+  exception: unknown,
+  headersSent = false,
+  startedAt?: number,
+): TestResponse {
   const json = jest.fn();
   const status = jest.fn().mockReturnValue({ json });
   const destroy = jest.fn();
@@ -31,6 +40,7 @@ function run(exception: unknown, headersSent = false): TestResponse {
         url: '/finance/accounts?token=abc',
         id: 'req-1',
         method: 'GET',
+        startedAt,
       }),
       getResponse: () => ({ headersSent, status, destroy }),
     }),
@@ -99,5 +109,77 @@ describe('AllExceptionsFilter response writing', () => {
     run(new Error('turn failed'), true);
 
     expect(captureExceptionMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AllExceptionsFilter failure log', () => {
+  beforeEach(() => {
+    captureExceptionMock.mockClear();
+    loggerMock.error.mockClear();
+    loggerMock.warn.mockClear();
+  });
+
+  it('logs a 400 as a warning without a stack', () => {
+    run(new BadRequestException('Cursor inválido'), false, Date.now() - 5);
+
+    expect(loggerMock.error).not.toHaveBeenCalled();
+    expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: HttpStatus.BAD_REQUEST,
+        path: '/finance/accounts',
+        message: 'Cursor inválido',
+      }),
+      'HTTP request failed',
+    );
+    const logFields = loggerMock.warn.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(logFields).not.toHaveProperty('stack');
+  });
+
+  it('logs a 500 as an error with the stack', () => {
+    run(new Error('database down'), false, Date.now() - 5);
+
+    expect(loggerMock.warn).not.toHaveBeenCalled();
+    expect(loggerMock.error).toHaveBeenCalledTimes(1);
+    const [fields, message] = loggerMock.error.mock.calls[0] as [
+      Record<string, unknown>,
+      string,
+    ];
+    expect(message).toBe('HTTP request failed');
+    expect(fields.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(typeof fields.stack).toBe('string');
+  });
+
+  it('reports the duration when the interceptor timed the request', () => {
+    run(new BadRequestException('Cursor inválido'), false, Date.now() - 25);
+
+    const logFields = loggerMock.warn.mock.calls[0][0] as {
+      durationMs?: number;
+    };
+    expect(logFields.durationMs).toBeGreaterThanOrEqual(20);
+  });
+
+  it('omits the duration when a guard rejected the request before the interceptor', () => {
+    run(new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED));
+
+    const logFields = loggerMock.warn.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(logFields).not.toHaveProperty('durationMs');
+  });
+
+  it('logs a guard rejection once, as a warning and with the real status', () => {
+    run(new HttpException('Authentication required', HttpStatus.UNAUTHORIZED));
+
+    expect(loggerMock.error).not.toHaveBeenCalled();
+    expect(loggerMock.warn).toHaveBeenCalledTimes(1);
+    expect(loggerMock.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ statusCode: HttpStatus.UNAUTHORIZED }),
+      'HTTP request failed',
+    );
   });
 });

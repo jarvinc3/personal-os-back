@@ -14,7 +14,10 @@ import {
   httpExceptionDetails,
   toErrorField,
 } from '../exceptions/http-error.util';
-import { requestLogPath } from '../observability/request-log';
+import {
+  requestDurationMs,
+  requestLogPath,
+} from '../observability/request-log';
 
 type PrismaKnownErrorLike = Error & {
   code?: string;
@@ -44,6 +47,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       id?: string;
       method: string;
       user?: { sub?: string };
+      startedAt?: number;
     }>();
     const response = ctx.getResponse<{
       headersSent: boolean;
@@ -58,23 +62,30 @@ export class AllExceptionsFilter implements ExceptionFilter {
       isProduction,
     );
 
-    this.logger.error(
-      {
-        requestId: request.id,
-        method: request.method,
-        path: requestLogPath(request),
-        statusCode,
-        error,
-        responseStarted: response.headersSent,
-        message:
-          exception instanceof Error ? exception.message : String(exception),
-        stack: exception instanceof Error ? exception.stack : undefined,
-      },
-      'Unhandled exception',
-    );
+    const durationMs = requestDurationMs(request, Date.now());
+    const isServerError = statusCode >= SERVER_ERROR_MIN_STATUS;
+    const failureLog = {
+      requestId: request.id,
+      method: request.method,
+      path: requestLogPath(request),
+      statusCode,
+      error,
+      responseStarted: response.headersSent,
+      ...(durationMs === undefined ? {} : { durationMs }),
+      message:
+        exception instanceof Error ? exception.message : String(exception),
+      ...(isServerError && exception instanceof Error
+        ? { stack: exception.stack }
+        : {}),
+    };
 
-    if (statusCode >= SERVER_ERROR_MIN_STATUS) {
+    // One line per failed request: 4xx are expected client flow and only 5xx
+    // are incidents, so both the level and Sentry follow the real status.
+    if (isServerError) {
+      this.logger.error(failureLog, 'HTTP request failed');
       this.reportToSentry({ exception, request, statusCode });
+    } else {
+      this.logger.warn(failureLog, 'HTTP request failed');
     }
 
     const errorCode =

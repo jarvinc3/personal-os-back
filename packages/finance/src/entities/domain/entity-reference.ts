@@ -13,6 +13,7 @@ export const FINANCE_ENTITY_TYPE = {
   SUBSCRIPTION: 'subscription',
   MERCHANT: 'merchant',
   CATEGORY: 'category',
+  INSTITUTION: 'institution',
 } as const;
 
 export type FinanceEntityType =

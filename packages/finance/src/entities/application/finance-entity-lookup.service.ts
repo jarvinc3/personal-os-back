@@ -93,6 +93,8 @@ export class FinanceEntityLookupService {
         return this.merchants.lookupMerchants(userId, ids);
       case FINANCE_ENTITY_TYPE.CATEGORY:
         return this.categories.lookupCategories(userId, ids);
+      case FINANCE_ENTITY_TYPE.INSTITUTION:
+        return this.catalog.lookupInstitutions(userId, ids);
     }
   }
 }

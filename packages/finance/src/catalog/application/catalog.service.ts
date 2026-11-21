@@ -399,6 +399,15 @@ export class CatalogService {
     );
   }
 
+  /** Same public shape as the institutions list, loaded in batch. */
+  async lookupInstitutions(
+    userId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, ReturnType<CatalogService['mapInstitution']>>> {
+    const rows = await this.repo.findInstitutionsByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, this.mapInstitution(row)]));
+  }
+
   async createAccount(userId: string, dto: CreateAccountDto) {
     const institutionId = await this.resolveAccountInstitutionId(
       userId,
