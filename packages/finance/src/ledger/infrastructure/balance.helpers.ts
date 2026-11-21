@@ -44,20 +44,10 @@ export async function applyCardBalanceDelta(
     return;
   }
 
-  const balanceRow = await tx.finCardBalance.findFirst({
-    where: { cardId, currency },
-  });
-
-  if (balanceRow) {
-    await tx.finCardBalance.update({
-      where: { id: balanceRow.id },
-      data: { balance: { increment: delta } },
-    });
-    return;
-  }
-
-  await tx.finCardBalance.create({
-    data: { cardId, currency, balance: delta },
+  await tx.finCardBalance.upsert({
+    where: { cardId_currency: { cardId, currency } },
+    create: { cardId, currency, balance: delta },
+    update: { balance: { increment: delta } },
   });
 }
 

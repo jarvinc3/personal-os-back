@@ -83,9 +83,23 @@ Evidencia: `packages/core/src/events/outbox/outbox-relay.spec.ts`,
 
 ## Crons (VERIFICADO)
 
-| Cron               | Handler                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------- |
-| `EVERY_30_SECONDS` | `OutboxRelay` (Core)                                                               |
-| `EVERY_MINUTE`     | `AuthDeletionOutboxProcessor`                                                      |
-| `EVERY_5_MINUTES`  | `AiActionsReaperService` (RUNNING > 15 min)                                        |
-| `EVERY_6_HOURS`    | `GmailAutoSyncScheduler` (opt-in `emailSync.automatic`; LLM solo con mails nuevos) |
+Los 14 `@Cron` registrados por los módulos, de menor a mayor cadencia:
+
+| Cron               | Handler                                    | Qué hace                                                         |
+| ------------------ | ------------------------------------------ | ---------------------------------------------------------------- |
+| `EVERY_30_SECONDS` | `OutboxRelay` (Core)                       | Reclama y despacha los eventos del outbox                        |
+| `EVERY_MINUTE`     | `AuthDeletionOutboxProcessor` (Users)      | Procesa los borrados de Auth pendientes                          |
+| `EVERY_5_MINUTES`  | `AiActionsReaperService` (Intelligence)    | Marca como fallidas las acciones `RUNNING` de más de 15 min      |
+| `EVERY_HOUR`       | `WeeklySummaryScheduler` (Finance)         | Envía el resumen semanal en el día y la hora locales del usuario |
+| `EVERY_DAY_AT_1AM` | `CardStatementsScheduler` (Finance)        | Sincroniza los estados de cuenta de las tarjetas de crédito      |
+| `EVERY_DAY_AT_2AM` | `BudgetRecurringScheduler` (Finance)       | Crea el período siguiente de cada presupuesto recurrente         |
+| `EVERY_DAY_AT_2AM` | `DeletionJournalRetentionScheduler`        | Purga el diario de borrados fuera de su retención de 30 días     |
+| `EVERY_DAY_AT_2AM` | `AiEmailRetentionScheduler` (Intelligence) | Purga el contenido crudo de correos fuera de retención           |
+| `EVERY_DAY_AT_3AM` | `IdempotencyKeyRetentionScheduler` (Core)  | Purga por tandas las claves de idempotencia vencidas             |
+| `EVERY_DAY_AT_3AM` | `RecurringDetectionScheduler` (Finance)    | Detecta patrones recurrentes y emite sus alertas                 |
+| `EVERY_DAY_AT_3AM` | `AiInferenceRetentionScheduler`            | Purga las inferencias de IA vencidas                             |
+| `EVERY_DAY_AT_4AM` | `BalanceIntegrityScheduler` (Finance)      | Barrido nocturno de desvíos de saldo, usuario por usuario        |
+| `EVERY_DAY_AT_6AM` | `SubscriptionRemindersScheduler` (Finance) | Recordatorios de renovación y cargos de suscripción perdidos     |
+| `EVERY_DAY_AT_7AM` | `CardPaymentRemindersScheduler` (Finance)  | Aviso previo al pago de un estado de cuenta cerrado              |
+
+Gmail no usa `@Cron`: `GmailSyncService` corre con `setInterval` cada `AI_EMAIL_SYNC_INTERVAL_MINUTES`, más un watchdog de sincronizaciones estancadas. No arranca en `NODE_ENV=test` ni sin OAuth configurado.

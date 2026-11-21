@@ -58,6 +58,8 @@ NEXT_PUBLIC_LOGO_DEV_PUBLISHABLE_KEY=pk_...   # solo para vista previa en el bus
 | Dos usuarios suben el mismo dominio | El `upload` con `upsert: false` trata “ya existe” como éxito               |
 | Logo desactualizado                 | Sobrescribir `brands/{domain}.png` (script admin); se actualiza para todos |
 | Usuario sube logo propio            | `customLogoPath` tiene prioridad y no afecta al archivo compartido         |
+| Formato no permitido o más de 1 MB  | `400 Bad Request` con el motivo en el mensaje                              |
+| Storage sin configurar              | `503 Service Unavailable`; la subida no toca el producto                   |
 
 ## Consumidores
 

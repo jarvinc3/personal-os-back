@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   HealthCheckError,
@@ -8,8 +8,13 @@ import {
 import Redis from 'ioredis';
 import { type Env, isBullMqEnabled } from '@personal-os/config';
 
+const PROBE_TIMEOUT_MS = 2000;
+
 @Injectable()
-export class RedisHealthIndicator {
+export class RedisHealthIndicator implements OnModuleDestroy {
+  /** Una sola conexión para todas las sondas; se rehace si la anterior murió. */
+  private client: Redis | null = null;
+
   constructor(
     private readonly healthIndicatorService: HealthIndicatorService,
     private readonly configService: ConfigService<Env, true>,
@@ -40,25 +45,54 @@ export class RedisHealthIndicator {
       );
     }
 
-    const client = new Redis(redisUrl, {
-      connectTimeout: 2000,
-      maxRetriesPerRequest: 1,
-      lazyConnect: true,
-    });
+    const client = this.connect(redisUrl);
 
     try {
-      await client.connect();
       const pong = await client.ping();
       if (pong !== 'PONG') {
         throw new Error('Unexpected Redis ping response');
       }
       return indicator.up();
     } catch (error: unknown) {
+      this.discard(client);
       const message =
         error instanceof Error ? error.message : 'Redis connection failed';
       throw new HealthCheckError('Redis check failed', indicator.down(message));
-    } finally {
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    const client = this.client;
+    this.client = null;
+    if (!client) {
+      return;
+    }
+    try {
+      await client.quit();
+    } catch {
+      // La conexión ya no existe: se descarta el socket en vez de esperarlo.
       client.disconnect();
     }
+  }
+
+  private connect(redisUrl: string): Redis {
+    if (this.client && this.client.status !== 'end') {
+      return this.client;
+    }
+    this.client = new Redis(redisUrl, {
+      connectTimeout: PROBE_TIMEOUT_MS,
+      commandTimeout: PROBE_TIMEOUT_MS,
+      maxRetriesPerRequest: 1,
+      // Una sonda no reintenta sola: la siguiente crea una conexión nueva.
+      retryStrategy: () => null,
+    });
+    return this.client;
+  }
+
+  private discard(client: Redis): void {
+    if (this.client === client) {
+      this.client = null;
+    }
+    client.disconnect();
   }
 }

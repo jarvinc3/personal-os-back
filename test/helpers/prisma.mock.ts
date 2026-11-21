@@ -573,6 +573,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
+      upsert: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },

@@ -17,7 +17,9 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio e
 
 ## `packages/core/src/` (VERIFICADO)
 
-Registrado en `CoreModule`: `JwtAuthGuard`, `EnabledModuleGuard`, `CustomThrottlerGuard`, `LoggingInterceptor`, `ClassSerializerInterceptor`, `TransformInterceptor`, `TimeoutInterceptor`, `AiMetricsInterceptor`, `AllExceptionsFilter`.
+Registrado en `CoreModule`: `JwtAuthGuard`, `EnabledModuleGuard`, `CustomThrottlerGuard`, `IdempotencyInterceptor`, `ClassSerializerInterceptor`, `TransformInterceptor`, `TimeoutInterceptor`, `LoggingInterceptor`, `AllExceptionsFilter`.
+
+Cifrado compartido: `packages/core/src/crypto/aes-gcm.util.ts` (`encryptSecret`, `decryptSecret`, `deriveSecretKey`). Lo usan el número de cuenta de Finanzas y los tokens de Gmail de Inteligencia, así que el formato `iv | tag | ciphertext` y la derivación `sha256(secreto)` viven en un solo lugar.
 
 Normalización `error`/`message`: `packages/core/src/exceptions/http-error.util.ts`. No hay `src/shared/` a nivel raíz.
 
