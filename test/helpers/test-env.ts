@@ -43,6 +43,7 @@ export function applyTestEnv(): void {
   process.env.REDIS_URL = 'redis://127.0.0.1:1';
   process.env.REDIS_ENABLED = 'false';
   process.env.ENCRYPTION_KEY = 'test-encryption-key-minimum-32-chars!!';
+  process.env.OAUTH_STATE_SECRET = 'test-oauth-state-secret-minimum-32chars';
   process.env.DATA_ENCRYPTION_KEY =
     'test-data-encryption-key-minimum-32-chars!!';
   process.env.EMAIL_DELIVERY_ENABLED = 'false';

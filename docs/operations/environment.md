@@ -8,7 +8,7 @@ Notas operativas:
 - `CORS_ORIGIN` debe incluir el origin de `personal-os-web` (`http://localhost:3000` en el ejemplo)
 - `CORS_ORIGIN_PATTERNS` acepta los previews de rama de Vercel en dev con patrones anclados, por ejemplo `^https://personal-os-web-git-[a-z0-9-]+-collado-studios\.vercel\.app$`; en production la variable no se acepta y `CORS_ORIGIN` sigue siendo la única fuente
 - `PUBLIC_WEB_URL` es la base de los links de cobros compartidos (`<PUBLIC_WEB_URL>/c/<token>`). En producción debe ser el dominio de la web; sin valor se usa el primer origin de `CORS_ORIGIN`
-- Production: `REDIS_URL` + `OAUTH_STATE_SECRET` obligatorios
+- Production: `REDIS_URL` + `OAUTH_STATE_SECRET` obligatorios; `OAUTH_STATE_SECRET` también con Gmail configurado
 - Production: `DATABASE_SSL_REJECT_UNAUTHORIZED=false` obligatorio. La cadena de certificados del pooler de Supabase no pasa la verificación estricta; quitar la variable tumbó prod el 2026-10-22. El arreglo correcto a futuro es cargar el CA de Supabase en `DATABASE_SSL_CA` y volver a `true`
 - Sentry es opcional: sin `SENTRY_DSN` no se inicializa; `SENTRY_AUTH_TOKEN` solo sirve para subir source maps y sin él el build no falla
 

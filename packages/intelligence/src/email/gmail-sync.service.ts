@@ -219,7 +219,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const oauthDiagnostics = this.source.oauthDiagnostics();
     if (!oauthDiagnostics.configured) {
       this.logger.warn(
-        `Gmail OAuth is not configured (${oauthDiagnostics.status}); automatic sync is disabled until the API restarts with AI_GMAIL_CLIENT_ID, AI_GMAIL_CLIENT_SECRET, AI_GMAIL_REDIRECT_URI and AI_GMAIL_TOKEN_ENCRYPTION_KEY set.`,
+        `Gmail OAuth is not configured (${oauthDiagnostics.status}); automatic sync is disabled until the API restarts with AI_GMAIL_CLIENT_ID, AI_GMAIL_CLIENT_SECRET, AI_GMAIL_REDIRECT_URI, AI_GMAIL_TOKEN_ENCRYPTION_KEY and OAUTH_STATE_SECRET set.`,
       );
       return;
     }

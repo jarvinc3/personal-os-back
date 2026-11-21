@@ -10,9 +10,9 @@ Checklist verificable en `main.ts` + guards:
 - WS CORS = `CORS_ORIGIN`; en non-prod también `CORS_ORIGIN_PATTERNS` (previews de rama)
 - CORS REST = `CORS_ORIGIN`; en non-prod también `CORS_ORIGIN_PATTERNS`. Un origen no permitido responde sin cabeceras CORS (sin 500) y una petición sin `Origin` (navegación directa a Swagger, curl) pasa sin cabeceras CORS
 - `/api/health` y `/api/health/ready` (y `/startup`) públicos; ready/startup sanitizan el contrato
-- Separar `OAUTH_STATE_SECRET` de `ENCRYPTION_KEY` (schema exige OAuth secret en prod)
+- Separar `OAUTH_STATE_SECRET` de `AI_GMAIL_TOKEN_ENCRYPTION_KEY` (el schema exige state en producción y con Gmail configurado)
 - JWT vía JWKS, no `SUPABASE_JWT_SECRET`
-- Gmail: tokens cifrados con `ENCRYPTION_KEY`; scope read-only; state JWT
+- Gmail: tokens cifrados con `AI_GMAIL_TOKEN_ENCRYPTION_KEY`; scope read-only; state HMAC con `OAUTH_STATE_SECRET`
 - Cuentas: número cifrado con `DATA_ENCRYPTION_KEY` (AES-256-GCM) + hash HMAC para unicidad; la API solo expone `accountNumberLast4`. Ambas claves son independientes: rotar una no afecta a la otra.
 - Finance REST y tools: `EnabledModuleGuard` / `assertModuleEnabled`
 

@@ -91,6 +91,11 @@ export const envSchema = z
       .string()
       .min(32, 'AI_GMAIL_TOKEN_ENCRYPTION_KEY must be at least 32 chars')
       .optional(),
+    /** Firma el state OAuth de Gmail; no cifra tokens. */
+    OAUTH_STATE_SECRET: z
+      .string()
+      .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
+      .optional(),
     AI_GMAIL_REDIRECT_URI: z
       .string()
       .optional()
@@ -411,6 +416,35 @@ export const envSchema = z
         message:
           'AI_GMAIL_TOKEN_ENCRYPTION_KEY is required when Gmail OAuth is configured',
         path: ['AI_GMAIL_TOKEN_ENCRYPTION_KEY'],
+      });
+    }
+
+    const gmailOAuthConfigured = Boolean(
+      data.AI_GMAIL_CLIENT_ID ||
+      data.AI_GMAIL_CLIENT_SECRET ||
+      data.AI_GMAIL_REDIRECT_URI,
+    );
+    if (
+      (data.NODE_ENV === 'production' || gmailOAuthConfigured) &&
+      !data.OAUTH_STATE_SECRET
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'OAUTH_STATE_SECRET is required in production and when Gmail OAuth is configured',
+        path: ['OAUTH_STATE_SECRET'],
+      });
+    }
+    if (
+      data.OAUTH_STATE_SECRET &&
+      data.AI_GMAIL_TOKEN_ENCRYPTION_KEY &&
+      data.OAUTH_STATE_SECRET === data.AI_GMAIL_TOKEN_ENCRYPTION_KEY
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'OAUTH_STATE_SECRET must differ from AI_GMAIL_TOKEN_ENCRYPTION_KEY',
+        path: ['OAUTH_STATE_SECRET'],
       });
     }
 
