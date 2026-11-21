@@ -1211,8 +1211,8 @@ describe('AiEmailClassificationService shared limits', () => {
     );
   });
 
-  it('does not reserve tokens when the call comes from the initial budget', async () => {
-    const { service, prisma } = fixture();
+  it('counts the initial budget call in the daily tokens', async () => {
+    const { service, inference, prisma } = fixture();
     prisma.aiEmailConnection.findUnique = jest
       .fn()
       .mockResolvedValue({ initialBudgetRemaining: 2 });
@@ -1222,10 +1222,37 @@ describe('AiEmailClassificationService shared limits', () => {
 
     await service.processPendingForUser('user-1');
 
-    expect(prisma.aiEmailTokenBudget.upsert).not.toHaveBeenCalled();
+    expect(inference.infer).toHaveBeenCalled();
+    expect(prisma.aiEmailTokenBudget.upsert).toHaveBeenCalled();
+    expect(prisma.aiEmailTokenBudget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tokens: expect.objectContaining({ increment: expect.any(Number) }),
+        }),
+      }),
+    );
     expect(prisma.aiEmailConnection.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { initialBudgetRemaining: { decrement: 1 } },
+      }),
+    );
+  });
+
+  it('returns the welcome classification when the daily token cap does not fit', async () => {
+    const { service, inference, prisma } = fixture({ budgetAvailable: false });
+    prisma.aiEmailConnection.findUnique = jest
+      .fn()
+      .mockResolvedValue({ initialBudgetRemaining: 2 });
+    prisma.aiEmailConnection.updateMany = jest
+      .fn()
+      .mockResolvedValue({ count: 1 });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailConnection.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { initialBudgetRemaining: { increment: 1 } },
       }),
     );
   });

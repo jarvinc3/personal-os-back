@@ -1173,9 +1173,10 @@ export class AiEmailClassificationService {
   }
 
   /**
-   * Reserva el cupo del usuario y el costo máximo del día. La primera vez sale
-   * de la carga inicial de la conexión; después, del tope diario de tokens. Si
-   * el costo global no cabe, lo reservado vuelve y la clasificación no corre.
+   * Reserva el cupo del usuario y el costo máximo del día. Toda clasificación
+   * con modelo, también la de la carga inicial, ocupa el tope diario de tokens;
+   * la carga inicial solo limita cuántas clasificaciones de bienvenida quedan.
+   * Si el costo global no cabe, lo reservado vuelve y la clasificación no corre.
    */
   private async reserveModelCall({
     userId,
@@ -1185,10 +1186,12 @@ export class AiEmailClassificationService {
     contentChars: number;
   }): Promise<ModelBudgetGrant | null> {
     const initialClaim = await this.claimInitialCall(userId);
-    const reservedTokens = initialClaim
-      ? null
-      : await this.reserveDailyTokens({ userId, contentChars });
+    const reservedTokens = await this.reserveDailyTokens({
+      userId,
+      contentChars,
+    });
     if (reservedTokens === false) {
+      await this.releaseInitialCall({ userId, claim: initialClaim });
       await this.notifyDailyBudgetExhausted(userId);
       return null;
     }
@@ -1318,7 +1321,7 @@ export class AiEmailClassificationService {
     return reserved.count === 1 ? reservedTokens : false;
   }
 
-  /** Devuelve al cupo lo reservado cuando la llamada no llega a correr. */
+  /** Devuelve la bienvenida y los tokens cuando la llamada no llega a correr. */
   private async releaseBudget({
     userId,
     initialClaim,
@@ -1328,16 +1331,26 @@ export class AiEmailClassificationService {
     initialClaim: InitialBudgetClaim | null;
     reservedTokens: number | null;
   }): Promise<void> {
-    if (initialClaim) {
-      await this.prisma.aiEmailConnection.updateMany({
-        where: { userId },
-        data: { initialBudgetRemaining: { increment: 1 } },
-      });
-      return;
-    }
+    await this.releaseInitialCall({ userId, claim: initialClaim });
     if (reservedTokens) {
       await this.releaseDailyTokens({ userId, tokens: reservedTokens });
     }
+  }
+
+  private async releaseInitialCall({
+    userId,
+    claim,
+  }: {
+    userId: string;
+    claim: InitialBudgetClaim | null;
+  }): Promise<void> {
+    if (!claim) {
+      return;
+    }
+    await this.prisma.aiEmailConnection.updateMany({
+      where: { userId },
+      data: { initialBudgetRemaining: { increment: 1 } },
+    });
   }
 
   private async releaseDailyTokens({
