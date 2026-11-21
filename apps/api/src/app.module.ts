@@ -114,10 +114,29 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
                   },
                 }
               : undefined,
+          // El interceptor registra la plantilla de ruta; el log automático de
+          // pino-http vuelca la URL cruda y con ella los tokens del path.
+          autoLogging: false,
+          // Sin los objetos req/res en el logger hijo, ningún log arrastra la
+          // URL cruda. El interceptor ya aporta método, ruta, estado y requestId.
+          quietReqLogger: true,
+          quietResLogger: true,
           redact: [
             'req.headers.authorization',
+            'req.headers.cookie',
+            'req.headers["x-api-key"]',
             'req.body.password',
             'req.body.token',
+            'req.body.code',
+            'req.body.state',
+            'req.body.accessToken',
+            'req.body.access_token',
+            'req.body.refreshToken',
+            'req.body.refresh_token',
+            'req.query.code',
+            'req.query.state',
+            'req.query.token',
+            'req.query.access_token',
           ],
           genReqId: (req) => {
             const requestIdHeader = req.headers['x-request-id'];

@@ -8,6 +8,7 @@ export * from './events/event.constants';
 export * from './events/outbox/outbox-relay';
 export * from './events/outbox/prisma-domain-event-outbox';
 export * from './exceptions/module-disabled';
+export * from './observability/request-log';
 export * from './observability/sentry-scrubber';
 export * from './pagination/pagination.dto';
 export * from './queues/bull-board.imports';
