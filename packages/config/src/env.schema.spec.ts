@@ -7,8 +7,8 @@ const validBaseEnv: Record<string, unknown> = {
   GOOGLE_CLIENT_ID: 'test-google-client-id',
   GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
   GOOGLE_REDIRECT_URI: 'http://localhost:3100/auth/google/callback',
-  ENCRYPTION_KEY: 'test-encryption-key-minimum-32-chars!!',
   DATA_ENCRYPTION_KEY: 'test-data-encryption-key-minimum-32-chars!!',
+  OAUTH_STATE_SECRET: 'test-oauth-state-secret-minimum-32chars',
   CORS_ORIGIN: 'http://localhost:5173',
   NODE_ENV: 'test',
   GROQ_API_KEY: 'test-groq-key',
@@ -200,11 +200,52 @@ describe('envSchema Gmail OAuth encryption key', () => {
       AI_GMAIL_REDIRECT_URI:
         'http://localhost:3100/api/intelligence/email/oauth/callback',
       AI_GMAIL_TOKEN_ENCRYPTION_KEY: 'test-gmail-token-encryption-key-32-chars',
+      OAUTH_STATE_SECRET: 'test-oauth-state-secret-minimum-32chars',
     });
 
     expect(parsed.AI_GMAIL_TOKEN_ENCRYPTION_KEY).toBe(
       'test-gmail-token-encryption-key-32-chars',
     );
+    expect(parsed.OAUTH_STATE_SECRET).toBe(
+      'test-oauth-state-secret-minimum-32chars',
+    );
+  });
+
+  it('requires the state secret when Gmail is configured', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'development',
+        AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+        AI_GMAIL_TOKEN_ENCRYPTION_KEY:
+          'test-gmail-token-encryption-key-32-chars',
+        OAUTH_STATE_SECRET: undefined,
+      }),
+    ).toThrow(/OAUTH_STATE_SECRET is required/);
+  });
+
+  it('rejects reusing the token encryption key as the state secret', () => {
+    const reusedSecret = 'a'.repeat(32);
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'development',
+        AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+        AI_GMAIL_TOKEN_ENCRYPTION_KEY: reusedSecret,
+        OAUTH_STATE_SECRET: reusedSecret,
+      }),
+    ).toThrow(/OAUTH_STATE_SECRET must differ/);
+  });
+
+  it('requires the state secret in production even without Gmail', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'production',
+        REDIS_URL: 'redis://localhost:6379',
+        OAUTH_STATE_SECRET: undefined,
+      }),
+    ).toThrow(/OAUTH_STATE_SECRET is required/);
   });
 });
 

@@ -470,7 +470,8 @@ export class AiEmailSourceService {
       this.config.get('AI_GMAIL_CLIENT_ID', { infer: true }) &&
       this.config.get('AI_GMAIL_CLIENT_SECRET', { infer: true }) &&
       this.config.get('AI_GMAIL_REDIRECT_URI', { infer: true }) &&
-      this.config.get('AI_GMAIL_TOKEN_ENCRYPTION_KEY', { infer: true }),
+      this.config.get('AI_GMAIL_TOKEN_ENCRYPTION_KEY', { infer: true }) &&
+      this.config.get('OAUTH_STATE_SECRET', { infer: true }),
     );
     return {
       configured,
@@ -782,7 +783,7 @@ export class AiEmailSourceService {
   private sign(payload: string): string {
     return createHmac(
       'sha256',
-      this.config.getOrThrow('AI_GMAIL_TOKEN_ENCRYPTION_KEY', { infer: true }),
+      this.config.getOrThrow('OAUTH_STATE_SECRET', { infer: true }),
     )
       .update(payload)
       .digest('base64url');

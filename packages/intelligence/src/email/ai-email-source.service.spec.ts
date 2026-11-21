@@ -424,6 +424,7 @@ describe('AiEmailSourceService', () => {
             AI_GMAIL_CLIENT_SECRET: 'client-secret',
             AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
             AI_GMAIL_TOKEN_ENCRYPTION_KEY: 'a'.repeat(32),
+            OAUTH_STATE_SECRET: 'b'.repeat(32),
           })[key],
       ),
     };
@@ -441,6 +442,36 @@ describe('AiEmailSourceService', () => {
     });
     expect(JSON.stringify(diagnostics)).not.toContain('client-secret');
     expect(JSON.stringify(diagnostics)).not.toContain('client-id');
+  });
+
+  it('rechaza un state firmado con otro secreto', async () => {
+    const oauthConfig = (key: string) =>
+      ({
+        AI_GMAIL_CLIENT_ID: 'client-id',
+        AI_GMAIL_CLIENT_SECRET: 'client-secret',
+        AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+      })[key];
+    const makeConfig = (stateSecret: string) => ({
+      get: jest.fn(oauthConfig),
+      getOrThrow: jest.fn().mockReturnValue(stateSecret),
+    });
+    const issuer = new AiEmailSourceService(
+      {} as never,
+      makeConfig('a'.repeat(32)) as never,
+    );
+    const state = new URL(
+      issuer.createAuthorizationUrl({ userId: 'user-1' }),
+    ).searchParams.get('state');
+    const verifier = new AiEmailSourceService(
+      {} as never,
+      makeConfig('b'.repeat(32)) as never,
+    );
+    global.fetch = jest.fn();
+
+    await expect(
+      verifier.completeAuthorization('code', state ?? ''),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('reporta la configuración OAuth incompleta', () => {

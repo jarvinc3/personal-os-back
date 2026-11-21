@@ -29,7 +29,6 @@ env:
   GOOGLE_CLIENT_ID: test-google-client-id
   GOOGLE_CLIENT_SECRET: test-google-client-secret
   GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
-  ENCRYPTION_KEY: test-encryption-key-minimum-32-chars!!
   DATA_ENCRYPTION_KEY: test-data-encryption-key-minimum-32-chars!!
   OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
   GROQ_API_KEY: ''

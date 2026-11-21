@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #443: `OAUTH_STATE_SECRET` firma el state de Gmail y queda separada de `AI_GMAIL_TOKEN_ENCRYPTION_KEY`; el schema la exige en producción y con Gmail configurado, y rechaza reutilizar la clave de tokens. Se retira `ENCRYPTION_KEY`, que el código no usaba.
 - #442: pruebas de comportamiento del verificador JWT de producción (firma RS256, vencimiento, emisor, audiencia, algoritmo, `kid` y `sub`) y del handshake del WebSocket (sin token, token inválido y room por usuario).
 - #438: el `wake` del outbox y su cron registran un fallo de base y resuelven, en vez de dejar una promesa rechazada que podía terminar el proceso. El cron de 30 s sigue siendo el reintento; los productores pueden seguir llamando `wake` con `void`.
 - #453: la prueba de caída del outbox espera hasta 30 s a que arranque el worker hijo, en vez de 10 s. El plazo solo aplica al arranque de la prueba; un worker que de verdad no llega sigue fallando.

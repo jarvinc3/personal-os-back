@@ -19,9 +19,9 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `AI_EMAIL_BANK_SENDER_DOMAINS`                                                            | Dominios CSV con al menos uno; default la lista del piloto                              |
 | `AI_PROVIDER_RPM_GROQ` / `AI_PROVIDER_RPM_OPENROUTER`                                     | Enteros > 0; RPM contratado por proveedor, defaults 30 y 20                             |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`                       | Requeridas (Gmail OAuth)                                                                |
-| `ENCRYPTION_KEY`                                                                          | ≥32; solo tokens OAuth de Gmail                                                         |
-| `DATA_ENCRYPTION_KEY`                                                                     | ≥32; cifra números de cuenta en reposo (distinta de `ENCRYPTION_KEY`)                   |
-| `OAUTH_STATE_SECRET`                                                                      | ≥32; **obligatoria en production**                                                      |
+| `AI_GMAIL_TOKEN_ENCRYPTION_KEY`                                                           | ≥32; cifra tokens OAuth de Gmail; obligatoria con Gmail configurado                     |
+| `DATA_ENCRYPTION_KEY`                                                                     | ≥32; cifra números de cuenta en reposo (distinta de `AI_GMAIL_TOKEN_ENCRYPTION_KEY`)    |
+| `OAUTH_STATE_SECRET`                                                                      | ≥32; firma el state OAuth; obligatoria en production y con Gmail configurado            |
 | `NODE_ENV`                                                                                | `development` \| `production` \| `test` (default `development`)                         |
 | `PORT`                                                                                    | Default **3100** en schema y `.env.example`                                             |
 | `CORS_ORIGIN`                                                                             | URLs CSV                                                                                |
