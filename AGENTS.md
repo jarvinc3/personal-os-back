@@ -5,11 +5,12 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 ## Orden de lectura
 
 1. Este archivo.
-2. [docs/README.md](docs/README.md) — mapa del repositorio.
-3. [docs/documentation-standard.md](docs/documentation-standard.md) — taxonomía, IDs, anti-duplicación.
-4. El módulo o área que vas a tocar bajo `docs/modules/` o `docs/infrastructure/`.
-5. Código y pruebas citados en esos documentos. No inferir desde nombres.
-6. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
+2. [CODING_GUIDELINES.md](CODING_GUIDELINES.md) — antes de escribir o cambiar código.
+3. [docs/README.md](docs/README.md) — mapa del repositorio.
+4. [docs/documentation-standard.md](docs/documentation-standard.md) — taxonomía, IDs, anti-duplicación.
+5. El módulo o área que vas a tocar bajo `docs/modules/` o `docs/infrastructure/`.
+6. Código y pruebas citados en esos documentos. No inferir desde nombres.
+7. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
    - [docs/versionado.md](docs/versionado.md) - política de versionado beta `0.x` (obligatoria; manda sobre la guía del changelog).
 
 Si una afirmación no está `VERIFICADO`, no la trates como comportamiento vigente: compruébala en código o abre un issue.
@@ -54,6 +55,7 @@ Lo decidido y no implementado se abre como issue con label `roadmap`; no se deja
 | Tools IA                                         | `packages/intelligence/src/capabilities/ai-capability.registry.ts` + proveedores `packages/<módulo>/src/ai/`     |
 | API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 | Prefijo de versión de la API                     | [ADR-007](docs/decisions/ADR-007-sin-prefijo-de-version.md) — sin `/v1`                                          |
+| Oficio del código                                | [CODING_GUIDELINES.md](CODING_GUIDELINES.md) — tipado estricto, límites, async, NestJS/Prisma, logs y dinero     |
 
 ## Changelog y versión
 
@@ -116,6 +118,7 @@ Los agentes nunca aplican migraciones ni resets a PROD.
 ## Checklist al cambiar comportamiento
 
 - [ ] En cambios de código, correr `pnpm lint`, `pnpm test` y `pnpm test:e2e`; los PRs solo documentales siguen la excepción descrita en «Pruebas obligatorias».
+- [ ] Si cambiaste código, leíste [CODING_GUIDELINES.md](CODING_GUIDELINES.md) y el cambio cumple sus límites, su tipado y sus reglas de NestJS y Prisma.
 - [ ] Correr `pnpm format:check`; un archivo sin formato o un test en rojo bloquea el cierre.
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
 - [ ] Si el cambio no se puede verificar, abre un issue con el detalle.
