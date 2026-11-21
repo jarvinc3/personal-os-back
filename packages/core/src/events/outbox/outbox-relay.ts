@@ -30,14 +30,27 @@ export class OutboxRelay implements DomainEventRelay {
     this.running = true;
     try {
       await this.processBatch();
+    } catch (error) {
+      this.logger.error(
+        `outbox cron failed; the next tick retries: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       this.running = false;
     }
   }
 
-  /** Delivers now after a commit; the cron covers a failed or skipped wake. */
+  /**
+   * Delivers now after a commit; the cron covers a failed or skipped wake.
+   * This boundary must not reject: producers call it with `void`.
+   */
   async wake(): Promise<void> {
-    await this.processBatch();
+    try {
+      await this.processBatch();
+    } catch (error) {
+      this.logger.error(
+        `outbox wake failed; the 30s cron retries: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /** Exposed for tests and the cron handler. */

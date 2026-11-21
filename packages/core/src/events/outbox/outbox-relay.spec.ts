@@ -121,4 +121,27 @@ describe('OutboxRelay', () => {
     await relay.wake();
     expect(emitAsync).toHaveBeenCalledTimes(1);
   });
+
+  it('resuelve el wake cuando la base falla y deja el reintento al cron', async () => {
+    const updateMany = jest.fn().mockRejectedValue(new Error('db down'));
+    const relay = new OutboxRelay(
+      { domainEventOutbox: { findFirst: jest.fn(), updateMany } } as never,
+      { emitAsync: jest.fn() } as never,
+    );
+
+    await expect(relay.wake()).resolves.toBeUndefined();
+    expect(updateMany).toHaveBeenCalled();
+  });
+
+  it('resuelve el cron cuando la base falla y libera la guarda', async () => {
+    const updateMany = jest.fn().mockRejectedValue(new Error('db down'));
+    const relay = new OutboxRelay(
+      { domainEventOutbox: { findFirst: jest.fn(), updateMany } } as never,
+      { emitAsync: jest.fn() } as never,
+    );
+
+    await expect(relay.handleCron()).resolves.toBeUndefined();
+    await expect(relay.handleCron()).resolves.toBeUndefined();
+    expect(updateMany).toHaveBeenCalledTimes(2);
+  });
 });
