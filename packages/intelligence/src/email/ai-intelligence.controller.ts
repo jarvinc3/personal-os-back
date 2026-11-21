@@ -83,6 +83,7 @@ export class AiIntelligenceController {
     return this.email.listMessages({
       userId: user.sub,
       cursor: query.cursor,
+      limit: query.limit,
       q: query.q,
       status: query.status,
     });

@@ -752,6 +752,29 @@ describe('AiEmailSourceService.listMessages', () => {
     });
   });
 
+  it('respeta el tamaño de página pedido por el cliente', async () => {
+    const rows = Array.from({ length: 4 }, (_, index) =>
+      messageRow(`message-${index}`, new Date(Date.UTC(2026, 9, 1, 10, index))),
+    );
+    const { prisma, service } = makeListService(rows);
+
+    const page = await service.listMessages({ userId: 'user-1', limit: 3 });
+
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 4 }),
+    );
+    expect(page.items).toHaveLength(3);
+    expect(page.hasMore).toBe(true);
+    expect(
+      JSON.parse(
+        Buffer.from(page.nextCursor ?? '', 'base64url').toString('utf8'),
+      ),
+    ).toEqual({
+      receivedAt: rows[2].receivedAt.toISOString(),
+      id: 'message-2',
+    });
+  });
+
   it.each([
     'no-es-un-cursor',
     Buffer.from(JSON.stringify({ id: 7 })).toString('base64url'),

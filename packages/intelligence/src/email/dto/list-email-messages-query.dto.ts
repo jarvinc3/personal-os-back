@@ -1,11 +1,24 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import {
   AI_EMAIL_MESSAGE_STATUS_FILTERS,
   INVALID_EMAIL_MESSAGE_STATUS_MESSAGE,
   type AiEmailMessageStatus,
 } from '../ai-email-message-status';
+import {
+  EMAIL_MESSAGES_DEFAULT_PAGE_SIZE,
+  EMAIL_MESSAGES_MAX_PAGE_SIZE,
+  INVALID_EMAIL_MESSAGES_LIMIT_MESSAGE,
+} from '../email-messages-pagination.constants';
 
 function trimToUndefined(value: unknown): string | undefined {
   if (typeof value !== 'string') {
@@ -43,4 +56,19 @@ export class ListEmailMessagesQueryDto {
   @IsOptional()
   @IsString()
   cursor?: string;
+
+  @ApiPropertyOptional({
+    description: 'Cantidad de correos por página',
+    minimum: 1,
+    maximum: EMAIL_MESSAGES_MAX_PAGE_SIZE,
+    default: EMAIL_MESSAGES_DEFAULT_PAGE_SIZE,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: INVALID_EMAIL_MESSAGES_LIMIT_MESSAGE })
+  @Min(1, { message: INVALID_EMAIL_MESSAGES_LIMIT_MESSAGE })
+  @Max(EMAIL_MESSAGES_MAX_PAGE_SIZE, {
+    message: INVALID_EMAIL_MESSAGES_LIMIT_MESSAGE,
+  })
+  limit: number = EMAIL_MESSAGES_DEFAULT_PAGE_SIZE;
 }
