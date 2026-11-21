@@ -59,6 +59,7 @@ export class ListEmailMessagesQueryDto {
 
   @ApiPropertyOptional({
     description: 'Cantidad de correos por página',
+    type: 'integer',
     minimum: 1,
     maximum: EMAIL_MESSAGES_MAX_PAGE_SIZE,
     default: EMAIL_MESSAGES_DEFAULT_PAGE_SIZE,
