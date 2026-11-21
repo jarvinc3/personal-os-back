@@ -92,26 +92,62 @@ const buildConfig = () => ({
   }),
 });
 
-const buildPrisma = (connection: { initialBudgetRemaining: number } | null) =>
+const buildPrisma = (
+  connection: { initialBudgetRemaining: number } | null,
+  inferenceRows: unknown[] = [],
+) =>
   ({
-    aiInference: { findMany: jest.fn().mockResolvedValue([]) },
-    aiEmailTokenBudget: { findFirst: jest.fn().mockResolvedValue(null) },
+    aiInference: { findMany: jest.fn().mockResolvedValue(inferenceRows) },
     aiEmailConnection: { findUnique: jest.fn().mockResolvedValue(connection) },
     aiEmailDailyCost: { findUnique: jest.fn().mockResolvedValue(null) },
   }) as never;
 
+function inferenceRow({
+  inputTokens,
+  outputTokens,
+  costUsd,
+  createdAt,
+}: {
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  createdAt: Date;
+}) {
+  return {
+    provider: 'Groq',
+    model: 'qwen/qwen3.8-27b',
+    status: 'SUCCEEDED',
+    inputTokens,
+    outputTokens,
+    costUsd,
+    sourceId: null,
+    createdAt,
+  };
+}
+
 describe('EmailUsageService', () => {
-  it('informa el tope diario de tokens aunque no exista la fila del presupuesto', async () => {
-    const service = new EmailUsageService(
-      buildPrisma(null),
-      buildConfig() as never,
-    );
+  it('muestra en el tope diario los tokens del día UTC que pinta la tabla', async () => {
+    const prisma = buildPrisma(null, [
+      inferenceRow({
+        inputTokens: 1_400,
+        outputTokens: 235,
+        costUsd: 0.0019,
+        createdAt: new Date(),
+      }),
+      inferenceRow({
+        inputTokens: 900,
+        outputTokens: 100,
+        costUsd: 0.001,
+        createdAt: new Date(Date.now() - 2 * 86_400_000),
+      }),
+    ]);
+    const service = new EmailUsageService(prisma, buildConfig() as never);
 
     const usage = await service.getUsage({ userId: 'user-1', days: 7 });
 
     expect(usage.caps.daily).toEqual({
       limitTokens: 320_000,
-      usedTokens: 0,
+      usedTokens: 1_635,
     });
     expect(usage.caps.perMinute).toBe(20);
     expect(usage.caps.initial).toEqual({
@@ -119,7 +155,18 @@ describe('EmailUsageService', () => {
       limit: 500,
       remaining: 0,
     });
+  });
+
+  it('aclara que el costo global es de todas las cuentas', async () => {
+    const service = new EmailUsageService(
+      buildPrisma(null),
+      buildConfig() as never,
+    );
+
+    const usage = await service.getUsage({ userId: 'user-1', days: 7 });
+
     expect(usage.caps.globalCost).toEqual({
+      scope: 'ALL_USERS',
       limitUsd: 5,
       usedUsd: 0,
       alertRatio: 0.8,
