@@ -26,9 +26,9 @@ env:
   CORS_ORIGIN: http://localhost:5173
   REDIS_URL: redis://localhost:6379
   REDIS_ENABLED: false
-  GOOGLE_CLIENT_ID: test-google-client-id
-  GOOGLE_CLIENT_SECRET: test-google-client-secret
-  GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
+  AI_GMAIL_CLIENT_ID: ''
+  AI_GMAIL_CLIENT_SECRET: ''
+  AI_GMAIL_REDIRECT_URI: ''
   DATA_ENCRYPTION_KEY: test-data-encryption-key-minimum-32-chars!!
   OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
   GROQ_API_KEY: ''
