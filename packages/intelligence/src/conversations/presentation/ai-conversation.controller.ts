@@ -24,7 +24,6 @@ import {
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import {
-  clampPageLimit,
   CurrentUser,
   CursorQueryDto,
   decodeCursor,
@@ -146,7 +145,8 @@ export class AiConversationController {
     @CurrentUser('sub') userId: string,
     @Query() query: CursorQueryDto,
   ): Promise<AiConversationPageDto> {
-    const limit = clampPageLimit(query.limit);
+    // `CursorQueryDto` ya valida el rango y aplica el tamaño por defecto.
+    const limit = query.limit;
     const rows = await this.conversations.list({
       userId,
       limit,
