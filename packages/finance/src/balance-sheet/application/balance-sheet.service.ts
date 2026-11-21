@@ -5,7 +5,10 @@ import {
   entityRefKey,
   type FinanceEntityRef,
 } from '../../entities/domain/entity-reference';
-import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import {
+  ResolveAmountsUseCase,
+  type FxRateRequestCache,
+} from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { monthBounds } from '../../reconciliation/domain/reconciliation-adjustment';
 import { CASH_ACCOUNT_TYPE } from '../../shared/domain/cash';
@@ -274,8 +277,15 @@ export class BalanceSheetService {
       }
     }
 
+    const rateCache: FxRateRequestCache = new Map();
     const convert = (amount: MoneyLike, currency: string) =>
-      this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
+      this.resolveAmounts.toBaseCurrency(
+        amount,
+        currency,
+        baseCurrency,
+        asOf,
+        rateCache,
+      );
     const lines: Array<Omit<BalanceSheetLine, 'entity'>> = [];
 
     for (const account of accounts) {
@@ -286,6 +296,7 @@ export class BalanceSheetService {
         currency,
         baseCurrency,
         asOf,
+        rateCache,
       );
       const drift = driftValue(
         driftByAccount.get(accountKey(account.id, currency)),
@@ -442,6 +453,7 @@ export class BalanceSheetService {
         currency,
         baseCurrency,
         asOf,
+        rateCache,
       );
       if (converted === null && !doubtful) {
         global.issues.push({ code: 'MISSING_RATE', currency });
@@ -513,7 +525,7 @@ export class BalanceSheetService {
           ),
         };
       }),
-      cash: await this.buildCashSummary(userId, baseCurrency, asOf),
+      cash: await this.buildCashSummary(userId, baseCurrency, asOf, rateCache),
       breakdown,
     };
   }
@@ -522,6 +534,7 @@ export class BalanceSheetService {
     userId: string,
     baseCurrency: string,
     asOf: Date,
+    rateCache: FxRateRequestCache,
   ): Promise<FinanceCashSummary> {
     const accounts = await this.repo.loadCashAccounts(userId);
     const grouped = new Map<
@@ -552,6 +565,7 @@ export class BalanceSheetService {
         currency,
         baseCurrency,
         asOf,
+        rateCache,
       );
       if (converted === null) {
         incomplete = true;

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
@@ -14,11 +15,16 @@ import {
 import { GetExchangeRatesUseCase } from '../application/get-exchange-rates.use-case';
 import { ExchangeRateHostAdapter } from '../infrastructure/exchange-rate-host.adapter';
 import { ChangeBaseCurrencyDto } from './dto/change-base-currency.dto';
-import { ExchangeRatesQueryDto } from './dto/exchange-rates-query.dto';
+import {
+  ExchangeRatesQueryDto,
+  MAX_EXCHANGE_RATE_QUOTES,
+} from './dto/exchange-rates-query.dto';
 import {
   ChangeBaseCurrencyResponseDto,
   ExchangeRatesResponseDto,
 } from './dto/fx-response.dto';
+
+const EXCHANGE_RATES_TIMEOUT_MS = 15_000;
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -41,16 +47,16 @@ export class CurrenciesController {
   }
 
   @Get('exchange-rates')
+  @Timeout(EXCHANGE_RATES_TIMEOUT_MS)
   @ApiOperation({
     summary: 'Tasas de mercado de las monedas cotizadas en una moneda base',
   })
   @ApiOkResponse({ type: ExchangeRatesResponseDto })
+  @ApiBadRequestResponse({
+    description: `Base o quotes inválidos, o más de ${MAX_EXCHANGE_RATE_QUOTES} monedas`,
+  })
   exchangeRates(@Query() query: ExchangeRatesQueryDto) {
-    return this.getExchangeRates.execute(
-      query.base,
-      query.quotes.split(','),
-      new Date(),
-    );
+    return this.getExchangeRates.execute(query.base, query.quotes, new Date());
   }
 
   @Post('base-currency')

@@ -1,5 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsString } from 'class-validator';
+
+/** Tope de monedas cotizadas por petición. */
+export const MAX_EXCHANGE_RATE_QUOTES = 20;
+
+/** Acepta `?quotes=USD,EUR` o un parámetro repetido. */
+function toQuoteList(value: unknown): string[] {
+  const entries = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : [];
+  return entries
+    .map((entry) => String(entry).trim())
+    .filter((entry) => entry.length > 0);
+}
 
 export class ExchangeRatesQueryDto {
   @ApiProperty({ example: 'DOP', description: 'ISO-3 base currency' })
@@ -8,8 +24,13 @@ export class ExchangeRatesQueryDto {
 
   @ApiProperty({
     example: 'USD,EUR',
-    description: 'Comma-separated ISO-3 currency codes',
+    description: `Comma-separated ISO-3 currency codes, at most ${MAX_EXCHANGE_RATE_QUOTES}`,
+    type: [String],
   })
-  @IsString()
-  quotes!: string;
+  @Transform(({ value }) => toQuoteList(value))
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_EXCHANGE_RATE_QUOTES)
+  @IsString({ each: true })
+  quotes!: string[];
 }

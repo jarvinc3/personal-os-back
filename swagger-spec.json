@@ -2570,10 +2570,13 @@
             "name": "quotes",
             "required": true,
             "in": "query",
-            "description": "Comma-separated ISO-3 currency codes",
+            "description": "Comma-separated ISO-3 currency codes, at most 20",
             "schema": {
               "example": "USD,EUR",
-              "type": "string"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           }
         ],
@@ -2587,6 +2590,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Base o quotes inválidos, o más de 20 monedas"
           }
         },
         "security": [

@@ -45,11 +45,16 @@ export class GetExchangeRatesUseCase {
     }
 
     const date = asOf.toISOString().slice(0, 10);
+    const rateByCurrency = new Map<string, Promise<string | null>>();
     const rates = await Promise.all(
-      codes.map(async (currency) => ({
-        currency,
-        rate: await this.quoteRate(currency, base, date),
-      })),
+      codes.map(async (currency) => {
+        let rate = rateByCurrency.get(currency);
+        if (!rate) {
+          rate = this.quoteRate(currency, base, date);
+          rateByCurrency.set(currency, rate);
+        }
+        return { currency, rate: await rate };
+      }),
     );
 
     return { baseCurrency: base, date, rates };

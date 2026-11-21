@@ -3,7 +3,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { ExchangeRateResult } from './ports/exchange-rate.port';
-import { ResolveAmountsUseCase } from './resolve-amounts.use-case';
+import {
+  ResolveAmountsUseCase,
+  type FxRateRequestCache,
+} from './resolve-amounts.use-case';
 
 const asOf = new Date('2026-10-08T12:00:00.000Z');
 
@@ -242,5 +245,39 @@ describe('ResolveAmountsUseCase', () => {
     expect(destination.estimated).toBe(true);
     expect(destination.amounts.ledgerAmount).toBe(1.81);
     expect(destination.amounts.exchangeRate).toBe(0.018123);
+  });
+
+  it('reuses an exact rate within the request cache', async () => {
+    const { useCase, getHistoricalRate, getLedgerRate } = build();
+    getHistoricalRate.mockResolvedValue({
+      ok: true,
+      rate: 60,
+      source: 'cache',
+      rateDate: '2026-10-08',
+    });
+    const cache: FxRateRequestCache = new Map();
+
+    await useCase.toBaseCurrencyOrNull('10', 'USD', 'DOP', asOf, cache);
+    await useCase.toBaseCurrency('20', 'USD', 'DOP', asOf, cache);
+
+    expect(getHistoricalRate).toHaveBeenCalledTimes(1);
+    expect(getLedgerRate).not.toHaveBeenCalled();
+  });
+
+  it('reuses a ledger rate within the request cache', async () => {
+    const { useCase, getHistoricalRate, getLedgerRate } = build();
+    getLedgerRate.mockResolvedValue({
+      ok: true,
+      rate: 60,
+      source: 'cache',
+      rateDate: '2026-10-08',
+    });
+    const cache: FxRateRequestCache = new Map();
+
+    await useCase.toBaseCurrency('10', 'USD', 'DOP', asOf, cache);
+    await useCase.toBaseCurrencyOrNull('20', 'USD', 'DOP', asOf, cache);
+
+    expect(getLedgerRate).toHaveBeenCalledTimes(1);
+    expect(getHistoricalRate).not.toHaveBeenCalled();
   });
 });

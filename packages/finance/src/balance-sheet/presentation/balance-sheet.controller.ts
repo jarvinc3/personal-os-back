@@ -5,8 +5,10 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CurrentUser, RequiresEnabledModule, Timeout } from '@personal-os/core';
 import { BalanceSheetService } from '../application/balance-sheet.service';
+
+const BALANCE_SHEET_TIMEOUT_MS = 15_000;
 
 const MONEY_STRING = { type: 'string', example: '1500.00' };
 
@@ -99,6 +101,7 @@ export class BalanceSheetController {
   constructor(private readonly balanceSheet: BalanceSheetService) {}
 
   @Get()
+  @Timeout(BALANCE_SHEET_TIMEOUT_MS)
   @ApiOperation({
     summary: 'Posición financiera actual en la moneda base',
     description:
