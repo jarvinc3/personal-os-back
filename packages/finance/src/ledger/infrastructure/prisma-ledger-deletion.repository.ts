@@ -48,6 +48,14 @@ export class PrismaLedgerDeletionRepository {
         return { count: 0 };
       }
 
+      const claimed = await tx.finTransaction.updateMany({
+        where: { id, userId, source: 'MANUAL', status: existing.status },
+        data: { status: 'CANCELLED' },
+      });
+      if (claimed.count === 0) {
+        return { count: 0 };
+      }
+
       if (existing.status === 'CONFIRMED') {
         const ctx = await loadCardContext({
           tx,
@@ -111,9 +119,23 @@ export class PrismaLedgerDeletionRepository {
         return { count: 0 };
       }
 
+      const claimedRows: typeof rows = [];
+      for (const row of rows) {
+        const claimed = await tx.finTransaction.updateMany({
+          where: { id: row.id, userId, source: 'MANUAL', status: row.status },
+          data: { status: 'CANCELLED' },
+        });
+        if (claimed.count === 1) {
+          claimedRows.push(row);
+        }
+      }
+      if (claimedRows.length === 0) {
+        return { count: 0 };
+      }
+
       const links = await this.snapshotPlanningLinks(
         tx,
-        rows.map((row) => row.id),
+        claimedRows.map((row) => row.id),
       );
       await this.journal.record(tx, {
         userId,
@@ -121,18 +143,18 @@ export class PrismaLedgerDeletionRepository {
         entityId: transferGroupId,
         snapshot: {
           rows: [
-            ...rows.map((row) => ({
+            ...claimedRows.map((row) => ({
               model: DELETION_MODEL.transaction,
               values: toDeletionValues(row),
             })),
             ...links.rows,
           ],
           updates: links.updates,
-          ledgerReversed: rows.map((row) => row.id),
+          ledgerReversed: claimedRows.map((row) => row.id),
         },
       });
 
-      for (const row of rows) {
+      for (const row of claimedRows) {
         if (row.status === 'CONFIRMED') {
           const ctx = await loadCardContext({
             tx,
@@ -163,14 +185,18 @@ export class PrismaLedgerDeletionRepository {
 
       await revertPlanningLinks(
         tx,
-        rows.map((row) => row.id),
+        claimedRows.map((row) => row.id),
       );
-      for (const row of rows) {
+      for (const row of claimedRows) {
         await this.enqueueTransactionDeleted(tx, userId, row);
       }
 
       return tx.finTransaction.deleteMany({
-        where: { userId, transferGroupId, source: 'MANUAL' },
+        where: {
+          id: { in: claimedRows.map((row) => row.id) },
+          userId,
+          source: 'MANUAL',
+        },
       });
     });
   }

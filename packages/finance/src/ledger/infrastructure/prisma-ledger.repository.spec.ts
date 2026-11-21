@@ -430,6 +430,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           },
           finTransaction: {
             findFirst: jest.fn().mockResolvedValue(existing),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             deleteMany,
           },
           finReceivablePayment: {
@@ -497,6 +498,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           name: 'same-tx',
           finTransaction: {
             findFirst: jest.fn().mockResolvedValue(collectedIncome()),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
           },
           finReceivablePayment: {
@@ -557,6 +559,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           name: 'same-tx',
           finTransaction: {
             findFirst: jest.fn().mockResolvedValue(collectedIncome()),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
           },
           finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
@@ -710,6 +713,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           name: 'same-tx',
           finTransaction: {
             findMany: jest.fn().mockResolvedValue(rows),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
             deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
           },
           finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
@@ -788,6 +792,133 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const result = await repo.deleteTransaction('user-1', 'missing');
     expect(result).toEqual({ count: 0 });
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it('confirmTransaction skips balance effects when another request claimed the movement', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisher;
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const pending = {
+      id: 'tx-1',
+      userId: 'user-1',
+      status: 'PENDING',
+      accountId: 'acc-1',
+      cardId: null,
+      type: 'DEBIT',
+      amount: 50,
+      ledgerAmount: 50,
+      amountBaseCurrency: 50,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: 1,
+      categoryId: null,
+      transactionDate: new Date('2026-08-01'),
+    };
+    const confirmed = {
+      ...pending,
+      status: 'CONFIRMED',
+      account: { id: 'acc-1', name: 'Cuenta' },
+      card: null,
+    };
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finTransaction: {
+            findFirst: jest
+              .fn()
+              .mockResolvedValueOnce(pending)
+              .mockResolvedValueOnce(confirmed),
+            updateMany,
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
+      events,
+      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
+      undefined,
+    );
+
+    const confirmedOutcome = await repo.confirmTransaction('user-1', 'tx-1');
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: 'tx-1', userId: 'user-1', status: 'PENDING' },
+      data: { status: 'CONFIRMED' },
+    });
+    expect(confirmedOutcome?.transaction.status).toBe('CONFIRMED');
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  it('deleteTransaction does not reverse when another request claimed the delete', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisher;
+    const journalRecord = jest.fn().mockResolvedValue({ id: 'journal-1' });
+    const localJournal = {
+      record: journalRecord,
+      restore: jest.fn(),
+    } as unknown as DeletionJournalRepository;
+    const updateMany = jest.fn().mockResolvedValue({ count: 0 });
+    const deleteMany = jest.fn();
+    const existing = {
+      id: 'tx-del',
+      userId: 'user-1',
+      source: 'MANUAL',
+      status: 'CONFIRMED',
+      type: 'DEBIT',
+      amount: 50,
+      ledgerAmount: 50,
+      amountBaseCurrency: 50,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      accountId: 'acc-1',
+      cardId: null,
+      categoryId: null,
+      transactionDate: new Date('2026-08-01'),
+    };
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(existing),
+            updateMany,
+            deleteMany,
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
+      events,
+      new PrismaLedgerDeletionRepository(prisma as never, events, localJournal),
+      new PrismaLedgerImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
+      undefined,
+    );
+
+    const deletedOutcome = await repo.deleteTransaction('user-1', 'tx-del');
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'tx-del',
+        userId: 'user-1',
+        source: 'MANUAL',
+        status: 'CONFIRMED',
+      },
+      data: { status: 'CANCELLED' },
+    });
+    expect(deletedOutcome).toEqual({ count: 0 });
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(journalRecord).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
 
