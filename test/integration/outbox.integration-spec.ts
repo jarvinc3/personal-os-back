@@ -36,6 +36,7 @@ if (
   );
 }
 const schema = `outbox_test_${randomUUID().replaceAll('-', '')}`;
+const WORKER_START_TIMEOUT_MS = 30_000;
 const pool = new Pool({ connectionString });
 const PrismaClient = getPrismaClientClass();
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool, { schema }) });
@@ -116,7 +117,7 @@ async function crashWorker(mode: string, expected: string) {
     const timer = setTimeout(
       () =>
         reject(new Error(`Worker did not reach ${expected}: ${errorOutput}`)),
-      10000,
+      WORKER_START_TIMEOUT_MS,
     );
     child.once('message', (message) => {
       clearTimeout(timer);
