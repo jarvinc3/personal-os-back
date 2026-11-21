@@ -1,6 +1,17 @@
 import { Prisma } from '@personal-os/database';
 import { AiDataDeletionService } from './ai-data-deletion.service';
 
+async function collectExport<T>(
+  service: AiDataDeletionService,
+  userId: string,
+): Promise<T> {
+  const chunks: string[] = [];
+  await service.streamExportForUser(userId, (chunk) => {
+    chunks.push(chunk);
+  });
+  return JSON.parse(chunks.join('')) as T;
+}
+
 describe('AiDataDeletionService', () => {
   const message = {
     id: 'm1',
@@ -264,7 +275,10 @@ describe('AiDataDeletionService', () => {
   it('incluye las sugerencias del agente en la exportación de datos de IA', async () => {
     const { service } = fixture(true);
 
-    const exported = await service.exportForUser('u1');
+    const exported = await collectExport<{ viewSuggestions: unknown }>(
+      service,
+      'u1',
+    );
 
     expect(exported.viewSuggestions).toEqual([
       { id: 's1', label: 'Revisá', prompt: '¿Cómo va el presupuesto?' },
@@ -274,7 +288,10 @@ describe('AiDataDeletionService', () => {
   it('incluye los trabajos de muestra en la exportación de datos de IA', async () => {
     const { service } = fixture(true);
 
-    const exported = await service.exportForUser('u1');
+    const exported = await collectExport<{ sampleImports: unknown }>(
+      service,
+      'u1',
+    );
 
     expect(exported.sampleImports).toEqual([{ id: 'sample-1' }]);
   });

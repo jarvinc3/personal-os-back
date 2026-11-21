@@ -79,7 +79,11 @@ describe('Intelligence API (e2e)', () => {
     revert: jest.fn().mockResolvedValue({ state: 'BLOCKED' }),
   };
   const deletion = {
-    exportForUser: jest.fn().mockResolvedValue({ messages: [], knowledge: [] }),
+    streamExportForUser: jest.fn(
+      (_userId: string, write: (chunk: string) => void) => {
+        write('{"messages":[],"knowledge":[]}');
+      },
+    ),
     deleteMyData: jest
       .fn()
       .mockResolvedValue({ deleted: true, deletedMessages: 0 }),
@@ -143,8 +147,20 @@ describe('Intelligence API (e2e)', () => {
     await request(app.getHttpServer())
       .get('/api/intelligence/knowledge/me/export')
       .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-    expect(deletion.exportForUser).toHaveBeenCalledWith('user-123');
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data).toMatchObject({
+          messages: [],
+          knowledge: [],
+        });
+        expect(response.body.meta.path).toBe(
+          '/api/intelligence/knowledge/me/export',
+        );
+      });
+    expect(deletion.streamExportForUser).toHaveBeenCalledWith(
+      'user-123',
+      expect.any(Function),
+    );
     await request(app.getHttpServer())
       .get('/api/intelligence/knowledge/admin/queue')
       .set('Authorization', `Bearer ${token}`)
