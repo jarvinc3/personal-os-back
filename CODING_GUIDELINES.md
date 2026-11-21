@@ -65,26 +65,26 @@ Validate and exit early. Prefer flat control flow over deep nesting. Keep the ha
 private resolvePageSize(query: CursorQueryDto): number {
   if (query.limit) {
     if (query.limit > 0) {
-      if (query.limit <= MAX_PAGE_SIZE) {
+      if (query.limit <= MAX_PAGE_LIMIT) {
         return query.limit;
       } else {
-        return MAX_PAGE_SIZE;
+        return MAX_PAGE_LIMIT;
       }
     } else {
-      return DEFAULT_PAGE_SIZE;
+      return DEFAULT_PAGE_LIMIT;
     }
   } else {
-    return DEFAULT_PAGE_SIZE;
+    return DEFAULT_PAGE_LIMIT;
   }
 }
 
 // Good — guard clauses, happy path at the end, shallow indent
 private resolvePageSize(query: CursorQueryDto): number {
   if (!query.limit || query.limit <= 0) {
-    return DEFAULT_PAGE_SIZE;
+    return DEFAULT_PAGE_LIMIT;
   }
-  if (query.limit > MAX_PAGE_SIZE) {
-    return MAX_PAGE_SIZE;
+  if (query.limit > MAX_PAGE_LIMIT) {
+    return MAX_PAGE_LIMIT;
   }
   return query.limit;
 }
@@ -507,31 +507,31 @@ const dto = args.object as CreateAccountDto;
 
 ```ts
 // Bad — the annotation widens every key to string
-const FINANCE_BUDGET_PERIOD_LABEL: Record<FinanceBudgetPeriod, string> = {
+const BUDGET_PERIOD_LABEL: Record<BudgetPeriodType, string> = {
   MONTHLY: 'Mensual',
-  WEEKLY: 'Semanal',
+  BIWEEKLY: 'Quincenal',
   CUSTOM: 'Personalizado',
 };
 
 // Good — keys stay narrow and the shape is checked
-const FINANCE_BUDGET_PERIOD_LABEL = {
+const BUDGET_PERIOD_LABEL = {
   MONTHLY: 'Mensual',
-  WEEKLY: 'Semanal',
+  BIWEEKLY: 'Quincenal',
   CUSTOM: 'Personalizado',
-} satisfies Record<FinanceBudgetPeriod, string>;
+} satisfies Record<BudgetPeriodType, string>;
 ```
 
 **`readonly` for data you don't own.** A parameter, DTO field or return type that the function must not mutate is declared `readonly`, so the compiler rejects the mutation instead of the reviewer.
 
 ```ts
 // Bad — the helper can sort the caller's array in place
-export function totalsByCategory(
-  rows: TransactionRow[],
+export function totalsByStatus(
+  rows: FinTransaction[],
 ): Map<string, Prisma.Decimal> {}
 
 // Good — the signature forbids mutation
-export function totalsByCategory(
-  rows: readonly TransactionRow[],
+export function totalsByStatus(
+  rows: readonly FinTransaction[],
 ): Map<string, Prisma.Decimal> {}
 ```
 
@@ -539,56 +539,73 @@ export function totalsByCategory(
 
 ```ts
 // Bad — the contract changes when the body changes
-export function resolvePeriod(query: BudgetQueryDto) {
-  return query.periodType ?? 'MONTHLY';
+export function resolvePeriod(query: CreateBudgetDto) {
+  return query.periodType ?? BUDGET_PERIOD_TYPE.MONTHLY;
 }
 
 // Good — the contract is written down
-export function resolvePeriod(query: BudgetQueryDto): FinanceBudgetPeriod {
-  return query.periodType ?? 'MONTHLY';
+export function resolvePeriod(query: CreateBudgetDto): BudgetPeriodType {
+  return query.periodType ?? BUDGET_PERIOD_TYPE.MONTHLY;
 }
 ```
 
 ### Enums, unions and exhaustive switch
 
-Use a `as const` array or object plus a union type for a closed set that crosses layers. It serializes as the string the API already sends, and it adds no runtime object.
+Use a `as const` object plus a union type for a closed set that crosses layers. It serializes as the string the API already sends, and it adds no runtime object.
 
 ```ts
-// Bad — a string enum adds a runtime object and does not match the JSON contract
-export enum TransactionStatus {
-  Confirmed = 'CONFIRMED',
-  Cancelled = 'CANCELLED',
+// Bad — a local enum duplicates a closed set the repo already names
+enum BudgetPeriodTypeValue {
+  Monthly = 'MONTHLY',
+  Biweekly = 'BIWEEKLY',
+  Custom = 'CUSTOM',
 }
 
-// Good — const array plus union, same shape the API sends
-export const TRANSACTION_STATUSES = ['CONFIRMED', 'CANCELLED'] as const;
-export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
+// Good — one const object plus its union (planning/domain/budget-period.ts)
+export const BUDGET_PERIOD_TYPE = {
+  MONTHLY: 'MONTHLY',
+  BIWEEKLY: 'BIWEEKLY',
+  CUSTOM: 'CUSTOM',
+} as const;
+
+export type BudgetPeriodType =
+  (typeof BUDGET_PERIOD_TYPE)[keyof typeof BUDGET_PERIOD_TYPE];
 ```
 
-Prisma already generates the enum for a database column. Reuse that type instead of declaring a second copy.
+Prisma already generates the enum for a database column. Reuse that type instead of declaring a second copy: `$Enums.FinTransactionStatus` comes with the client, and the repository, the DTO and the switch share it.
 
 A `switch` over a union ends in `never`. `@typescript-eslint/switch-exhaustiveness-check` reports a missing case; the `never` assignment makes the next added member a compile error instead of a silent no-op.
 
 ```ts
 // Bad — a new status falls into the default and the bug ships
-switch (status) {
-  case 'CONFIRMED':
-    return applyConfirmed(row);
-  case 'CANCELLED':
-    return applyCancelled(row);
-  default:
-    return row;
+function applyStatus(
+  status: $Enums.FinTransactionStatus,
+  row: FinTransaction,
+): FinTransaction {
+  switch (status) {
+    case 'CONFIRMED':
+      return applyConfirmed(row);
+    case 'CANCELLED':
+      return applyCancelled(row);
+    default:
+      return row;
+  }
 }
 
 // Good — the compiler rejects a new member until it is handled
-switch (status) {
-  case 'CONFIRMED':
-    return applyConfirmed(row);
-  case 'CANCELLED':
-    return applyCancelled(row);
-  default: {
-    const unhandled: never = status;
-    throw new Error(`Unhandled transaction status: ${String(unhandled)}`);
+function applyStatus(
+  status: $Enums.FinTransactionStatus,
+  row: FinTransaction,
+): FinTransaction {
+  switch (status) {
+    case 'CONFIRMED':
+      return applyConfirmed(row);
+    case 'CANCELLED':
+      return applyCancelled(row);
+    default: {
+      const unhandled: never = status;
+      throw new Error(`Unhandled transaction status: ${String(unhandled)}`);
+    }
   }
 }
 ```
@@ -708,7 +725,7 @@ Do not parallelize writes that must land together. Those belong in one `$transac
 | File                       | kebab-case, role last           | `allocate-to-goal.use-case.ts`     |
 | Class, interface, type     | PascalCase                      | `FinanceOwnershipService`          |
 | Function, method, variable | camelCase, verb first           | `findActiveGoalsByUser`            |
-| Constant, module literal   | SCREAMING_SNAKE_CASE            | `MAX_PAGE_SIZE`                    |
+| Constant, module literal   | SCREAMING_SNAKE_CASE            | `MAX_PAGE_LIMIT`                   |
 | Boolean                    | `is` / `has` / `can` / `should` | `hasCategories`, `isPending`       |
 | Port (interface)           | role noun, no `I` prefix        | `PushSender`, `PlanningRepository` |
 | Adapter (implementation)   | technology first, then role     | `PrismaPlanningRepository`         |
@@ -839,6 +856,8 @@ Inside a paginated list, a query per item multiplies with the page size. If you 
 
 A request body, query or route param is a DTO validated by `class-validator`. The global `ValidationPipe` (`transform`, `whitelist`, `forbidNonWhitelisted`) rejects unknown fields and missing decorators, so the service receives a value that already matches the type.
 
+The closed set lives in one `as const` next to the DTO (`budgetPeriods` in `planning/presentation/dto/create-budget.dto.ts`), and `@IsEnum` reads that same constant.
+
 ```ts
 // Bad — no decorators: the pipe has nothing to enforce and the field is stripped
 export class UpdateBudgetDto {
@@ -852,10 +871,10 @@ export class UpdateBudgetDto {
   @Matches(/^\d+(\.\d{1,2})?$/)
   amountLimit?: string;
 
-  @ApiPropertyOptional({ enum: FINANCE_BUDGET_PERIODS })
+  @ApiPropertyOptional({ enum: budgetPeriods })
   @IsOptional()
-  @IsIn(FINANCE_BUDGET_PERIODS)
-  periodType?: FinanceBudgetPeriod;
+  @IsEnum(budgetPeriods)
+  periodType?: (typeof budgetPeriods)[number];
 }
 ```
 
