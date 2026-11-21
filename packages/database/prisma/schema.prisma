@@ -2030,12 +2030,14 @@ model AuthDeletionOutbox {
   status        AuthDeletionOutboxStatus @default(PENDING)
   attempts      Int                      @default(0)
   nextAttemptAt DateTime                 @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  claimedAt     DateTime?                @map("claimed_at") @db.Timestamptz(6)
   lastError     String?                  @map("last_error")
   completedAt   DateTime?                @map("completed_at") @db.Timestamptz(6)
   createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([status, nextAttemptAt], map: "auth_deletion_outbox_status_next_attempt_idx")
+  @@index([status, claimedAt], map: "auth_deletion_outbox_status_claimed_at_idx")
   @@map("auth_deletion_outbox")
 }
 

@@ -34,14 +34,21 @@ describe('UsersRepository.claimNextAuthDeletion', () => {
     await expect(repository.claimNextAuthDeletion(8)).resolves.toEqual({
       id: 'oob-1',
       userId: 'user-1',
-      attempts: 2,
+      attempts: 3,
     });
     expect(authDeletionOutbox.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ id: 'oob-1' }),
-        data: { status: 'IN_PROGRESS' },
+        data: expect.objectContaining({
+          status: 'IN_PROGRESS',
+          attempts: { increment: 1 },
+        }),
       }),
     );
+    const claimPayload = authDeletionOutbox.updateMany.mock.calls[0]?.[0] as {
+      data: { claimedAt: Date };
+    };
+    expect(claimPayload.data.claimedAt).toBeInstanceOf(Date);
   });
 
   it('returns null when another worker already claimed the row', async () => {
@@ -53,6 +60,68 @@ describe('UsersRepository.claimNextAuthDeletion', () => {
     authDeletionOutbox.updateMany.mockResolvedValue({ count: 0 });
 
     await expect(repository.claimNextAuthDeletion(8)).resolves.toBeNull();
+  });
+
+  it('recovers expired leases before a new claim', async () => {
+    authDeletionOutbox.updateMany.mockResolvedValue({ count: 1 });
+
+    await repository.recoverExpiredAuthDeletions(8);
+
+    expect(authDeletionOutbox.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'IN_PROGRESS',
+          attempts: { gte: 8 },
+          OR: expect.arrayContaining([{ claimedAt: null }]),
+        }),
+        data: expect.objectContaining({ status: 'DEAD', claimedAt: null }),
+      }),
+    );
+    expect(authDeletionOutbox.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'IN_PROGRESS',
+          attempts: { lt: 8 },
+          OR: expect.arrayContaining([{ claimedAt: null }]),
+        }),
+        data: expect.objectContaining({ status: 'FAILED', claimedAt: null }),
+      }),
+    );
+  });
+
+  it('closes the claim only when the attempt still owns the row', async () => {
+    authDeletionOutbox.updateMany.mockResolvedValue({ count: 1 });
+
+    await repository.completeAuthDeletion('oob-1', 3);
+
+    expect(authDeletionOutbox.updateMany).toHaveBeenCalledWith({
+      where: { id: 'oob-1', status: 'IN_PROGRESS', attempts: 3 },
+      data: expect.objectContaining({ status: 'COMPLETED', claimedAt: null }),
+    });
+  });
+
+  it('fails the claim with its attempt and clears the lease', async () => {
+    authDeletionOutbox.updateMany.mockResolvedValue({ count: 1 });
+    const nextAttemptAt = new Date('2026-11-21T00:00:00.000Z');
+
+    await repository.failAuthDeletion(
+      'oob-1',
+      3,
+      'provider down',
+      nextAttemptAt,
+      false,
+    );
+
+    expect(authDeletionOutbox.updateMany).toHaveBeenCalledWith({
+      where: { id: 'oob-1', status: 'IN_PROGRESS', attempts: 3 },
+      data: expect.objectContaining({
+        status: 'FAILED',
+        nextAttemptAt,
+        claimedAt: null,
+      }),
+    });
   });
 });
 
