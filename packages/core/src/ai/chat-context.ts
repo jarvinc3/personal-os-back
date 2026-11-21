@@ -38,6 +38,7 @@ export const AI_INVOCATION_ENTITY_TYPES = [
   'subscription',
   'merchant',
   'category',
+  'institution',
 ] as const;
 
 export type AiInvocationEntityRefType =

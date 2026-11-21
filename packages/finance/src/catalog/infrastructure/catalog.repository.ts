@@ -183,6 +183,12 @@ export class CatalogRepository {
       },
     });
   }
+  /** One query for many institutions, for the bulk entity lookup. */
+  findInstitutionsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finInstitution.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
+  }
   /** One query for many accounts, for the bulk entity lookup. */
   findAccountsByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finAccount.findMany({
