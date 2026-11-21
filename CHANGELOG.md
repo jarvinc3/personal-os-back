@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #444: la exportación de datos de IA se escribe por partes con el mismo envelope JSON; pagina cada colección de 200 filas y respeta la contrapresión de la respuesta, así que no carga todo el correo en memoria. El contrato no cambia.
 - #443: `OAUTH_STATE_SECRET` firma el state de Gmail y queda separada de `AI_GMAIL_TOKEN_ENCRYPTION_KEY`; el schema la exige en producción y con Gmail configurado, y rechaza reutilizar la clave de tokens. Se retira `ENCRYPTION_KEY`, que el código no usaba.
 - #442: pruebas de comportamiento del verificador JWT de producción (firma RS256, vencimiento, emisor, audiencia, algoritmo, `kid` y `sub`) y del handshake del WebSocket (sin token, token inválido y room por usuario).
 - #438: el `wake` del outbox y su cron registran un fallo de base y resuelven, en vez de dejar una promesa rechazada que podía terminar el proceso. El cron de 30 s sigue siendo el reintento; los productores pueden seguir llamando `wake` con `void`.

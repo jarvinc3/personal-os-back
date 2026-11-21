@@ -4,8 +4,11 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Post,
+  Req,
+  Res,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -17,7 +20,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '@personal-os/core';
+import { CurrentUser, Timeout } from '@personal-os/core';
+import type { Request, Response } from 'express';
 import { Roles } from '../roles/ai-role.decorator';
 import { AiDataDeletionService } from './ai-data-deletion.service';
 import { AiKnowledgeService } from './ai-knowledge.service';
@@ -29,10 +33,14 @@ import {
   KnowledgeRebuildDto,
 } from './dto/knowledge.dto';
 
+const EXPORT_TIMEOUT_MS = 120_000;
+
 @ApiTags('intelligence-knowledge')
 @ApiBearerAuth('access-token')
 @Controller('intelligence/knowledge')
 export class AiKnowledgeController {
+  private readonly logger = new Logger(AiKnowledgeController.name);
+
   constructor(
     private readonly knowledge: AiKnowledgeService,
     private readonly deletion: AiDataDeletionService,
@@ -94,6 +102,7 @@ export class AiKnowledgeController {
   }
 
   @Get('me/export')
+  @Timeout(EXPORT_TIMEOUT_MS)
   @ApiOperation({ summary: 'Exportar los datos AI y correo propios en JSON' })
   @ApiOkResponse({
     description: 'Exportación JSON de los datos AI y correo propios.',
@@ -114,8 +123,44 @@ export class AiKnowledgeController {
       },
     },
   })
-  export(@CurrentUser() user: { sub: string }) {
-    return this.deletion.exportForUser(user.sub);
+  async export(
+    @CurrentUser() user: { sub: string },
+    @Req() request: Request & { id?: string },
+    @Res() response: Response,
+  ): Promise<void> {
+    const write = async (chunk: string): Promise<void> => {
+      if (response.writableEnded || response.destroyed) {
+        return;
+      }
+      if (!response.write(chunk)) {
+        await new Promise<void>((resolve, reject) => {
+          response.once('drain', resolve);
+          response.once('error', reject);
+        });
+      }
+    };
+
+    try {
+      response.setHeader('Content-Type', 'application/json; charset=utf-8');
+      await write('{"data":');
+      await this.deletion.streamExportForUser(user.sub, write);
+      await write(
+        `,"meta":${JSON.stringify({
+          timestamp: new Date().toISOString(),
+          path: request.url,
+          requestId: request.id,
+        })}}`,
+      );
+      response.end();
+    } catch (error) {
+      if (!response.headersSent) {
+        throw error;
+      }
+      this.logger.error(
+        `AI data export failed after headers: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      response.destroy(error instanceof Error ? error : undefined);
+    }
   }
 
   @Delete('me')

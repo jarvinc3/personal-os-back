@@ -11,6 +11,18 @@ import {
 import { sanitizeGlobalLabel } from './knowledge-payload';
 import { AiKnowledgeService } from './ai-knowledge.service';
 
+export type ExportWrite = (chunk: string) => void | Promise<void>;
+
+const EXPORT_PAGE_SIZE = 200;
+
+function exportJson(value: unknown): string {
+  return (
+    JSON.stringify(value, (_key, entry) =>
+      typeof entry === 'bigint' ? entry.toString() : entry,
+    ) ?? 'null'
+  );
+}
+
 @Injectable()
 export class AiDataDeletionService {
   constructor(
@@ -26,24 +38,44 @@ export class AiDataDeletionService {
     });
   }
 
-  async exportForUser(userId: string) {
-    const [
-      connection,
-      messages,
-      datasetItems,
-      runs,
-      observations,
-      verifications,
-      knowledge,
-      consent,
-      settings,
-      inferences,
-      conversations,
-      actions,
-      viewSuggestions,
-      sampleImports,
-    ] = await Promise.all([
-      this.prisma.aiEmailConnection.findUnique({
+  async streamExportForUser(userId: string, write: ExportWrite): Promise<void> {
+    let firstField = true;
+    const writeField = async (name: string, value: unknown) => {
+      await write(
+        `${firstField ? '' : ','}${JSON.stringify(name)}:${exportJson(value)}`,
+      );
+      firstField = false;
+    };
+    const writeArray = async (
+      name: string,
+      fetchPage: (skip: number, take: number) => Promise<unknown[]>,
+    ) => {
+      await write(`${firstField ? '' : ','}${JSON.stringify(name)}:[`);
+      firstField = false;
+      let skip = 0;
+      let firstRow = true;
+      while (true) {
+        const rows = await fetchPage(skip, EXPORT_PAGE_SIZE);
+        if (rows.length === 0) {
+          break;
+        }
+        for (const row of rows) {
+          await write(`${firstRow ? '' : ','}${exportJson(row)}`);
+          firstRow = false;
+        }
+        skip += rows.length;
+        if (rows.length < EXPORT_PAGE_SIZE) {
+          break;
+        }
+      }
+      await write(']');
+    };
+
+    await write('{');
+    await writeField('exportedAt', new Date().toISOString());
+    await writeField(
+      'connection',
+      await this.prisma.aiEmailConnection.findUnique({
         where: { userId },
         select: {
           id: true,
@@ -55,57 +87,110 @@ export class AiDataDeletionService {
           createdAt: true,
         },
       }),
+    );
+    await writeArray('messages', (skip, take) =>
       this.prisma.aiEmailMessage.findMany({
         where: { userId },
         include: { content: true },
-        orderBy: { receivedAt: 'asc' },
+        orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
+        skip,
+        take,
       }),
-      this.prisma.aiDatasetItem.findMany({ where: { userId } }),
-      this.prisma.aiAnalysisRun.findMany({ where: { userId } }),
-      this.prisma.aiKnowledgeObservation.findMany({ where: { userId } }),
-      this.prisma.aiHumanVerification.findMany({ where: { userId } }),
-      this.prisma.aiKnowledge.findMany({ where: { scope: 'USER', userId } }),
-      this.prisma.aiConsentEvent.findMany({ where: { userId } }),
-      this.prisma.userAiSettings.findUnique({ where: { userId } }),
-      this.prisma.aiInference.findMany({ where: { userId } }),
+    );
+    await writeArray('datasetItems', (skip, take) =>
+      this.prisma.aiDatasetItem.findMany({
+        where: { userId },
+        orderBy: { id: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('runs', (skip, take) =>
+      this.prisma.aiAnalysisRun.findMany({
+        where: { userId },
+        orderBy: { id: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('observations', (skip, take) =>
+      this.prisma.aiKnowledgeObservation.findMany({
+        where: { userId },
+        orderBy: { sequence: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('verifications', (skip, take) =>
+      this.prisma.aiHumanVerification.findMany({
+        where: { userId },
+        orderBy: { sequence: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('knowledge', (skip, take) =>
+      this.prisma.aiKnowledge.findMany({
+        where: { scope: 'USER', userId },
+        orderBy: [{ knowledgeType: 'asc' }, { knowledgeKey: 'asc' }],
+        skip,
+        take,
+      }),
+    );
+    await writeArray('consent', (skip, take) =>
+      this.prisma.aiConsentEvent.findMany({
+        where: { userId },
+        orderBy: { sequence: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeField(
+      'settings',
+      await this.prisma.userAiSettings.findUnique({ where: { userId } }),
+    );
+    await writeArray('inferences', (skip, take) =>
+      this.prisma.aiInference.findMany({
+        where: { userId },
+        orderBy: { id: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('conversations', (skip, take) =>
       this.prisma.aiConversation.findMany({
         where: { userId },
         include: { messages: { orderBy: { sequence: 'asc' } } },
+        orderBy: { id: 'asc' },
+        skip,
+        take,
       }),
-      this.prisma.aiAction.findMany({ where: { userId } }),
+    );
+    await writeArray('actions', (skip, take) =>
+      this.prisma.aiAction.findMany({
+        where: { userId },
+        orderBy: { id: 'asc' },
+        skip,
+        take,
+      }),
+    );
+    await writeArray('viewSuggestions', (skip, take) =>
       this.prisma.aiViewSuggestion.findMany({
         where: { userId },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        skip,
+        take,
       }),
+    );
+    await writeArray('sampleImports', (skip, take) =>
       this.prisma.aiEmailSampleImport.findMany({
         where: { userId },
-        orderBy: { createdAt: 'asc' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        skip,
+        take,
       }),
-    ]);
-    // Preserve JSON semantics for BigInt sequences without exposing OAuth tokens.
-    return JSON.parse(
-      JSON.stringify(
-        {
-          exportedAt: new Date().toISOString(),
-          connection,
-          messages,
-          datasetItems,
-          runs,
-          observations,
-          verifications,
-          knowledge,
-          consent,
-          settings,
-          inferences,
-          conversations,
-          actions,
-          viewSuggestions,
-          sampleImports,
-        },
-        (_, value: unknown) =>
-          typeof value === 'bigint' ? value.toString() : value,
-      ),
     );
+    await write('}');
   }
 
   async deleteMyData(userId: string) {
