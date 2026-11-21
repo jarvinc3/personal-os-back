@@ -34,10 +34,9 @@ export function applyTestEnv(): void {
   process.env.VAPID_SUBJECT = '';
   process.env.RESEND_API_KEY = '';
   process.env.MAIL_FROM = '';
-  process.env.GOOGLE_CLIENT_ID = '';
-  process.env.GOOGLE_CLIENT_SECRET = '';
-  process.env.GOOGLE_REDIRECT_URI =
-    'http://localhost:3100/auth/google/callback';
+  process.env.AI_GMAIL_CLIENT_ID = '';
+  process.env.AI_GMAIL_CLIENT_SECRET = '';
+  process.env.AI_GMAIL_REDIRECT_URI = '';
   process.env.CORS_ORIGIN = 'http://localhost:5173';
   process.env.PUBLIC_WEB_URL = 'https://web.test';
   process.env.REDIS_URL = 'redis://127.0.0.1:1';

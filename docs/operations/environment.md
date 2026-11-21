@@ -4,7 +4,7 @@ Tabla canónica: [../infrastructure/config.md](../infrastructure/config.md). Par
 
 Notas operativas:
 
-- `GOOGLE_REDIRECT_URI` en el ejemplo: `http://localhost:3100/api/finance/email-sync/oauth/google/callback`
+- `AI_GMAIL_REDIRECT_URI` en el ejemplo: `http://localhost:3100/api/intelligence/email/oauth/callback`; debe ser idéntica a la URI registrada en Google Cloud, si no el callback vuelve con `gmail=error`
 - `CORS_ORIGIN` debe incluir el origin de `personal-os-web` (`http://localhost:3000` en el ejemplo)
 - `CORS_ORIGIN_PATTERNS` acepta los previews de rama de Vercel en dev con patrones anclados, por ejemplo `^https://personal-os-web-git-[a-z0-9-]+-collado-studios\.vercel\.app$`; en production la variable no se acepta y `CORS_ORIGIN` sigue siendo la única fuente
 - `PUBLIC_WEB_URL` es la base de los links de cobros compartidos (`<PUBLIC_WEB_URL>/c/<token>`). En producción debe ser el dominio de la web; sin valor se usa el primer origin de `CORS_ORIGIN`
