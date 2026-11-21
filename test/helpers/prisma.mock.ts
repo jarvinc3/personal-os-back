@@ -714,6 +714,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       delete: jest.fn().mockResolvedValue({ id: 'user-123' }),
     },
     userModule: {
+      findUnique: prismaMock.userModule.findUnique,
       update: jest.fn().mockResolvedValue({}),
     },
   };

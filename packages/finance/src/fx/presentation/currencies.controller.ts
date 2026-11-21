@@ -5,9 +5,12 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '@personal-os/core';
+import { CurrentUser, Timeout } from '@personal-os/core';
 import { RequiresEnabledModule } from '@personal-os/core';
-import { ChangeBaseCurrencyUseCase } from '../application/change-base-currency.use-case';
+import {
+  CHANGE_BASE_CURRENCY_TIMEOUT_MS,
+  ChangeBaseCurrencyUseCase,
+} from '../application/change-base-currency.use-case';
 import { GetExchangeRatesUseCase } from '../application/get-exchange-rates.use-case';
 import { ExchangeRateHostAdapter } from '../infrastructure/exchange-rate-host.adapter';
 import { ChangeBaseCurrencyDto } from './dto/change-base-currency.dto';
@@ -52,6 +55,7 @@ export class CurrenciesController {
 
   @Post('base-currency')
   @HttpCode(200)
+  @Timeout(CHANGE_BASE_CURRENCY_TIMEOUT_MS)
   @ApiOperation({
     summary: 'Cambia la moneda base y reconvierte los montos base guardados',
   })
