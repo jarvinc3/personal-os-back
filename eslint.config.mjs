@@ -122,14 +122,39 @@ export default tseslint.config(
   {
     rules: {
       curly: ['error', 'all'],
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-misused-promises': 'warn',
+      '@typescript-eslint/switch-exhaustiveness-check': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       // NestJS decorators (e.g. @Module) are not fully typed for type-aware linting
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-return': 'off',
+    },
+  },
+  {
+    // Reglas de forma de CODING_GUIDELINES.md. Entran en `warn` para señalar el
+    // backlog existente sin romper el CI; se suben a `error` cuando esté limpio.
+    rules: {
+      'no-nested-ternary': 'warn',
+      'max-depth': ['warn', 4],
+      complexity: ['warn', 12],
+    },
+  },
+  {
+    // Los specs declaran `describe`/`it` largos por diseño: el tamaño se mide
+    // sobre el código de producción.
+    files: ['apps/*/src/**/*.ts', 'packages/*/src/**/*.ts'],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      'max-lines-per-function': ['warn', 120],
+      'max-lines': [
+        'warn',
+        { max: 300, skipBlankLines: true, skipComments: true },
+      ],
+      'max-params': ['warn', 3],
     },
   },
 );

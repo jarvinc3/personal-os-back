@@ -153,6 +153,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #475: `CODING_GUIDELINES.md` describe las reglas del stack real —tipado estricto, uniones y `switch` exhaustivo, límites medibles, async, nombres y pruebas, más controladores delgados, transacciones, N+1, DTOs, logs, dinero decimal y fechas con zona— con ejemplos de NestJS, Prisma y Jest en lugar de JavaScript genérico y PHP. Las reglas que se pueden detectar entran en `eslint.config.mjs` como `warn` (`no-explicit-any`, `complexity`, `max-depth`, `max-lines`, `max-lines-per-function`, `max-params`, `no-nested-ternary`, `no-misused-promises` y `switch-exhaustiveness-check`), así que el lint sigue en verde. `AGENTS.md` suma la guía a su orden de lectura y a su checklist.
 - Se reescribe el README con banner, módulos, arquitectura, arranque, scripts y enlaces a los repos hermanos; se añade licencia MIT y archivos de comunidad (CONTRIBUTING, SECURITY y plantilla de PR).
 
 ### Corregido
