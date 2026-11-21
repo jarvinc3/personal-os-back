@@ -122,6 +122,17 @@ export class AiConversationSummaryDto {
   updatedAt!: Date;
 }
 
+export class AiConversationPageDto {
+  @ApiProperty({ type: () => [AiConversationSummaryDto] })
+  items!: AiConversationSummaryDto[];
+
+  @ApiProperty({ nullable: true, type: String })
+  nextCursor!: string | null;
+
+  @ApiProperty()
+  hasMore!: boolean;
+}
+
 export class AiConversationDetailDto {
   @ApiProperty()
   id!: string;

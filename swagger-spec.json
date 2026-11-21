@@ -2012,20 +2012,42 @@
       },
       "get": {
         "operationId": "AiConversationController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Cantidad de conversaciones por página",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Cursor opaco de la página anterior",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AiConversationSummaryDto"
-                  }
+                  "$ref": "#/components/schemas/AiConversationPageDto"
                 }
               }
             }
+          },
+          "400": {
+            "description": "Cursor o límite inválido"
           }
         },
         "security": [
@@ -2033,7 +2055,7 @@
             "access-token": []
           }
         ],
-        "summary": "Listar las conversaciones propias",
+        "summary": "Listar las conversaciones propias por cursor",
         "tags": [
           "intelligence-conversations"
         ]
@@ -12894,6 +12916,29 @@
           "messageCount",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "AiConversationPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiConversationSummaryDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
         ]
       },
       "AiConversationMessageDto": {

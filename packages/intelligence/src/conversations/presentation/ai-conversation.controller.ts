@@ -18,20 +18,34 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { CurrentUser } from '@personal-os/core';
+import {
+  clampPageLimit,
+  CurrentUser,
+  CursorQueryDto,
+  decodeCursor,
+  DEFAULT_PAGE_LIMIT,
+  MAX_PAGE_LIMIT,
+  toCursorPage,
+} from '@personal-os/core';
 import {
   AiOrchestrator,
   type AiConversationStreamEvent,
 } from '../application/ai.orchestrator';
-import { AiConversationStore } from '../application/ai-conversation.store';
+import {
+  AiConversationStore,
+  type ConversationCursorPoint,
+  type ListedConversation,
+} from '../application/ai-conversation.store';
 import {
   AiConversationAnswerDto,
   AiConversationCreatedDto,
   AiConversationDetailDto,
+  AiConversationPageDto,
   AiConversationSummaryDto,
   SendAiConversationMessageDto,
   CreateAiConversationDto,
@@ -41,6 +55,23 @@ import {
 
 function isVisibleMessage(role: string): role is 'user' | 'assistant' {
   return role === 'user' || role === 'assistant';
+}
+
+function decodeConversationCursor(
+  cursor: string | undefined,
+): ConversationCursorPoint | null {
+  if (!cursor) {
+    return null;
+  }
+  const point = decodeCursor(cursor);
+  return { updatedAt: new Date(point.key), id: point.id };
+}
+
+function toConversationSummary(
+  conversation: ListedConversation,
+): AiConversationSummaryDto {
+  const { _count, ...summary } = conversation;
+  return { ...summary, messageCount: _count.messages };
 }
 
 function toConversationDetail(
@@ -91,14 +122,40 @@ export class AiConversationController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar las conversaciones propias' })
-  @ApiOkResponse({ type: [AiConversationSummaryDto] })
-  async list(@CurrentUser('sub') userId: string) {
-    const rows = await this.conversations.list(userId);
-    return rows.map(({ _count, ...conversation }) => ({
-      ...conversation,
-      messageCount: _count.messages,
-    }));
+  @ApiOperation({ summary: 'Listar las conversaciones propias por cursor' })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description: 'Cursor opaco de la página anterior',
+    schema: { type: 'string' },
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Cantidad de conversaciones por página',
+    schema: {
+      type: 'integer',
+      minimum: 1,
+      maximum: MAX_PAGE_LIMIT,
+      default: DEFAULT_PAGE_LIMIT,
+    },
+  })
+  @ApiOkResponse({ type: AiConversationPageDto })
+  @ApiBadRequestResponse({ description: 'Cursor o límite inválido' })
+  async list(
+    @CurrentUser('sub') userId: string,
+    @Query() query: CursorQueryDto,
+  ): Promise<AiConversationPageDto> {
+    const limit = clampPageLimit(query.limit);
+    const rows = await this.conversations.list({
+      userId,
+      limit,
+      after: decodeConversationCursor(query.cursor),
+    });
+    const page = toCursorPage(rows, limit, (row) =>
+      row.updatedAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(toConversationSummary) };
   }
 
   @Get('latest')

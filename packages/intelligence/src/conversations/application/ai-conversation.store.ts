@@ -6,6 +6,25 @@ import { aiInvocationContextKey } from './ai-invocation-context-key';
 
 const LEGACY_CONTEXT_BATCH_SIZE = 50;
 
+export type ConversationCursorPoint = {
+  updatedAt: Date;
+  id: string;
+};
+
+export type ListedConversation = {
+  id: string;
+  title: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: { messages: number };
+};
+
+type ListConversationsInput = {
+  userId: string;
+  limit: number;
+  after: ConversationCursorPoint | null;
+};
+
 export type StoredTurnMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -101,10 +120,33 @@ export class AiConversationStore {
     });
   }
 
-  list(userId: string) {
+  /**
+   * Pide una fila extra: el llamador la descarta para saber si quedan más. La
+   * ventana compara `updatedAt` e `id` porque el orden es descendente y el
+   * `id` desempata dos conversaciones tocadas en el mismo instante.
+   */
+  list({
+    userId,
+    limit,
+    after,
+  }: ListConversationsInput): Promise<ListedConversation[]> {
+    const baseWhere: Prisma.AiConversationWhereInput = { userId };
     return this.prisma.aiConversation.findMany({
-      where: { userId },
+      where: after
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { updatedAt: { lt: after.updatedAt } },
+                  { updatedAt: after.updatedAt, id: { lt: after.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere,
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
       select: {
         id: true,
         title: true,

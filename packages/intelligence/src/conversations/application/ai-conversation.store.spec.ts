@@ -169,6 +169,65 @@ describe('AiConversationStore', () => {
     );
   });
 
+  it('asks for a full window ordered by last update and id', async () => {
+    const rows = [
+      {
+        id: 'conversation-2',
+        title: 'Reciente',
+        createdAt: new Date('2026-11-02T10:00:00Z'),
+        updatedAt: new Date('2026-11-02T11:00:00Z'),
+        _count: { messages: 4 },
+      },
+    ];
+    const prisma = {
+      aiConversation: { findMany: jest.fn().mockResolvedValue(rows) },
+    };
+    const store = new AiConversationStore(prisma);
+
+    await expect(
+      store.list({ userId: 'user-A', limit: 1, after: null }),
+    ).resolves.toEqual(rows);
+    expect(prisma.aiConversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'user-A' },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 2,
+      }),
+    );
+  });
+
+  it('continues after the cursor without repeating or skipping rows', async () => {
+    const updatedAt = new Date('2026-11-02T11:00:00Z');
+    const prisma = {
+      aiConversation: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const store = new AiConversationStore(prisma);
+
+    await store.list({
+      userId: 'user-A',
+      limit: 20,
+      after: { updatedAt, id: 'conversation-2' },
+    });
+
+    expect(prisma.aiConversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            { userId: 'user-A' },
+            {
+              OR: [
+                { updatedAt: { lt: updatedAt } },
+                { updatedAt, id: { lt: 'conversation-2' } },
+              ],
+            },
+          ],
+        },
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        take: 21,
+      }),
+    );
+  });
+
   it('does not reveal whether a conversation belongs to another user', async () => {
     const prisma = {
       aiConversation: { findFirst: jest.fn().mockResolvedValue(null) },
