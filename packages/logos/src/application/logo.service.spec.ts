@@ -114,27 +114,34 @@ describe('LogoService', () => {
     ).toBe('https://legacy.example/logo.png');
   });
 
-  it('rejects svg uploads and files over 1 MB', async () => {
+  it('rejects svg uploads and files over 1 MB with 400', async () => {
     const service = new LogoService(storagePort().port, brandPort());
     const svg: LogoUploadFile = {
       mimetype: 'image/svg+xml',
       size: 10,
       buffer: Buffer.from('<svg></svg>'),
     };
-    await expect(service.saveCustomLogo('user', 'inst', svg)).rejects.toThrow(
-      /PNG, JPG o WEBP/,
-    );
+    await expect(
+      service.saveCustomLogo('user', 'inst', svg),
+    ).rejects.toMatchObject({
+      response: {
+        statusCode: 400,
+        message: expect.stringMatching(/PNG, JPG o WEBP/),
+      },
+    });
     const huge: LogoUploadFile = {
       mimetype: 'image/png',
       size: 1_000_001,
       buffer: Buffer.from('x'),
     };
-    await expect(service.saveCustomLogo('user', 'inst', huge)).rejects.toThrow(
-      /1 MB/,
-    );
+    await expect(
+      service.saveCustomLogo('user', 'inst', huge),
+    ).rejects.toMatchObject({
+      response: { statusCode: 400, message: 'Máximo 1 MB' },
+    });
   });
 
-  it('throws when storage is unavailable', async () => {
+  it('throws 503 when storage is unavailable', async () => {
     const service = new LogoService(
       storagePort({ available: false }).port,
       brandPort(),
@@ -144,9 +151,11 @@ describe('LogoService', () => {
       size: 10,
       buffer: Buffer.from('x'),
     };
-    await expect(service.saveCustomLogo('user', 'inst', file)).rejects.toThrow(
-      /Storage no está configurado/,
-    );
+    await expect(
+      service.saveCustomLogo('user', 'inst', file),
+    ).rejects.toMatchObject({
+      response: { statusCode: 503, message: 'Storage no está configurado' },
+    });
   });
 
   it('returns no network logo for OTHER', () => {

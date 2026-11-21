@@ -70,6 +70,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #446: dos movimientos simultáneos en una moneda nueva de la misma tarjeta comparten una sola fila de saldo. El ledger crea el saldo con `upsert` sobre la clave única `(cardId, currency)` y suma el delta, en vez de buscar y crear, que perdía el segundo movimiento con `P2002`.
+- #446: el readiness de Redis reutiliza una conexión entre sondas, la descarta si se cae y la cierra con `quit` al apagar el módulo; antes abría un cliente por sonda y lo desconectaba sin esperar. Cada conexión y cada ping tienen tope de 2 s y no reintentan solos.
 - #444: la exportación de datos de IA se escribe por partes con el mismo envelope JSON; pagina cada colección de 200 filas y respeta la contrapresión de la respuesta, así que no carga todo el correo en memoria. El contrato no cambia.
 - #443: `OAUTH_STATE_SECRET` firma el state de Gmail y queda separada de `AI_GMAIL_TOKEN_ENCRYPTION_KEY`; el schema la exige en producción y con Gmail configurado, y rechaza reutilizar la clave de tokens. Se retira `ENCRYPTION_KEY`, que el código no usaba.
 - #442: pruebas de comportamiento del verificador JWT de producción (firma RS256, vencimiento, emisor, audiencia, algoritmo, `kid` y `sub`) y del handshake del WebSocket (sin token, token inválido y room por usuario).
@@ -102,6 +104,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #446: la subida de logo de institución, comercio y suscripción responde `400` cuando el formato no es PNG, JPG o WEBP o pasa de 1 MB, y `503` cuando el storage no está configurado. Catálogo y Comercios dejan de convertir cualquier fallo en `400`, y el caso queda documentado en `docs/modules/logos/overview.md`.
+- #446: el AES-256-GCM de números de cuenta y de tokens de Gmail vive en `@personal-os/core` (`encryptSecret`, `decryptSecret`, `deriveSecretKey`), con el mismo formato `iv | tag | ciphertext` y la misma derivación `sha256(secreto)`, así que el cifrado ya guardado se sigue leyendo. Se retira `DomainException`, que no se exportaba ni se usaba. Los documentos de infraestructura listan los interceptores reales de `CoreModule`, los 14 crons registrados y el state OAuth como base64url con HMAC.
 - #459: el flujo de trabajo versiona `scripts/project3.ps1` y la regla «Project 3 siempre al día»; los issues nuevos entran al tablero al crearse y `check` exige `Cancelado` para los cerrados como `not planned`, con el id de esa opción resuelto por nombre.
 - #402: el tope diario por usuario deja de ser 100 clasificaciones y pasa a medirse en tokens (`AI_EMAIL_DAILY_TOKEN_BUDGET`, 320 000 por defecto, unos 120 correos): cada llamada reserva su consumo estimado y lo ajusta a los tokens reales, y el aviso de tope agotado lo informa así. La carga inicial de 500 clasificaciones por conexión sigue igual porque es una promesa de bienvenida; el respaldo de costo global de 5 USD por día no cambia. El endpoint `GET /intelligence/email/usage` devuelve `daily.limitTokens` y `daily.usedTokens` en lugar de `limit` y `used`.
 - #390: `pnpm test` incluye una suite de arquitectura con un test dedicado por cada una de las ocho invariantes de frontera del roadmap: runtime de IA frente a Finance, Gmail fuera de Finance, contexto de chat fuera de Finance, Notifications sin semántica de Finance, Core sin eventos de Finance, Users sin validadores de Finance, registro de un módulo nuevo sin defaults centrales y eventos de dominio fuera de las constantes de Core. Sin cambios de comportamiento.

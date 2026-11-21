@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import { MerchantsService } from './merchants.service';
 import type { MerchantsRepository } from '../infrastructure/merchants.repository';
@@ -1040,6 +1041,39 @@ describe('MerchantsService logo', () => {
 
     expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
       customLogoPath: 'custom/user-1/merchant-1.png',
+    });
+  });
+
+  it('keeps a storage failure as 503 instead of turning it into 400', async () => {
+    const repo = logoRepo();
+    const { service, logos } = serviceWithLogos(repo);
+    logos.saveCustomLogo.mockRejectedValue(
+      new ServiceUnavailableException('Storage no está configurado'),
+    );
+
+    await expect(
+      service.uploadLogo('user-1', 'merchant-1', {
+        mimetype: 'image/png',
+        size: 100,
+        buffer: Buffer.from('x'),
+      }),
+    ).rejects.toMatchObject({ response: { statusCode: 503 } });
+    expect(repo.updateMerchant).not.toHaveBeenCalled();
+  });
+
+  it('turns an unexpected upload failure into 400', async () => {
+    const repo = logoRepo();
+    const { service, logos } = serviceWithLogos(repo);
+    logos.saveCustomLogo.mockRejectedValue(new Error('upload failed'));
+
+    await expect(
+      service.uploadLogo('user-1', 'merchant-1', {
+        mimetype: 'image/png',
+        size: 100,
+        buffer: Buffer.from('x'),
+      }),
+    ).rejects.toMatchObject({
+      response: { statusCode: 400, message: 'upload failed' },
     });
   });
 
