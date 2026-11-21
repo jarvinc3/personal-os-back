@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   Logger,
+  ServiceUnavailableException,
   type OnApplicationBootstrap,
 } from '@nestjs/common';
 import {
@@ -142,13 +144,15 @@ export class LogoService implements OnApplicationBootstrap {
   ): Promise<string> {
     const ext = ALLOWED_CUSTOM_LOGO_TYPES[file.mimetype];
     if (!ext) {
-      throw new Error('Formato no permitido (usa PNG, JPG o WEBP)');
+      throw new BadRequestException(
+        'Formato no permitido (usa PNG, JPG o WEBP)',
+      );
     }
     if (file.size > MAX_CUSTOM_LOGO_BYTES) {
-      throw new Error('Máximo 1 MB');
+      throw new BadRequestException('Máximo 1 MB');
     }
     if (!this.storage.isAvailable()) {
-      throw new Error('Storage no está configurado');
+      throw new ServiceUnavailableException('Storage no está configurado');
     }
 
     const path = `custom/${userId}/${entityId}.${ext}`;

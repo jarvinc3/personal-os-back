@@ -1,18 +1,9 @@
 import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  randomBytes,
-} from 'node:crypto';
-
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 12;
-const AUTH_TAG_LENGTH = 16;
-
-function deriveKey(secret: string): Buffer {
-  return createHash('sha256').update(secret).digest();
-}
+  deriveSecretKey,
+  decryptSecret,
+  encryptSecret,
+} from '@personal-os/core';
+import { createHmac } from 'node:crypto';
 
 /**
  * Encrypts a bank account number with DATA_ENCRYPTION_KEY using AES-256-GCM.
@@ -21,31 +12,15 @@ export function encryptAccountNumber(
   plaintext: string,
   secret: string,
 ): string {
-  const iv = randomBytes(IV_LENGTH);
-  const cipher = createCipheriv(ALGORITHM, deriveKey(secret), iv);
-  const encrypted = Buffer.concat([
-    cipher.update(plaintext, 'utf8'),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag();
-  return Buffer.concat([iv, tag, encrypted]).toString('base64');
+  return encryptSecret(plaintext, secret);
 }
 
 export function decryptAccountNumber(
   ciphertext: string,
   secret: string,
 ): string {
-  const buffer = Buffer.from(ciphertext, 'base64');
-  const iv = buffer.subarray(0, IV_LENGTH);
-  const tag = buffer.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-  const encrypted = buffer.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
   try {
-    const decipher = createDecipheriv(ALGORITHM, deriveKey(secret), iv);
-    decipher.setAuthTag(tag);
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]).toString('utf8');
+    return decryptSecret(ciphertext, secret);
   } catch (error) {
     throw new Error('Account number could not be decrypted', { cause: error });
   }
@@ -59,7 +34,7 @@ export function fingerprintAccountNumber(
   plaintext: string,
   secret: string,
 ): string {
-  return createHmac('sha256', deriveKey(secret))
+  return createHmac('sha256', deriveSecretKey(secret))
     .update(plaintext)
     .digest('hex');
 }

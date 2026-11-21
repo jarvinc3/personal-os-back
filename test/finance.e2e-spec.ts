@@ -2244,6 +2244,47 @@ describe('Finance (e2e)', () => {
     expect(prismaMock.finInstitution.deleteMany).not.toHaveBeenCalled();
   });
 
+  it('POST /api/finance/institutions/:id/logo rejects a disallowed format with 400', async () => {
+    const institutionId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finInstitution.findFirst.mockResolvedValue({
+      id: institutionId,
+      userId: 'user-123',
+      name: 'Bank',
+      isSystem: false,
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/institutions/${institutionId}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('<svg></svg>'), {
+        filename: 'logo.svg',
+        contentType: 'image/svg+xml',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(String(res.body.message)).toMatch(/PNG, JPG o WEBP/);
+      });
+  });
+
+  it('POST /api/finance/institutions/:id/logo returns 503 when storage is unavailable', async () => {
+    const institutionId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finInstitution.findFirst.mockResolvedValue({
+      id: institutionId,
+      userId: 'user-123',
+      name: 'Bank',
+      isSystem: false,
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/institutions/${institutionId}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('png'), {
+        filename: 'logo.png',
+        contentType: 'image/png',
+      })
+      .expect(503);
+  });
+
   it('PATCH /api/finance/loans/:id updates the payment account', async () => {
     const loanId = '77777777-7777-4777-8777-777777777777';
     const accountId = '11111111-1111-4111-8111-111111111111';

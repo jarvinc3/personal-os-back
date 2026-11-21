@@ -4,7 +4,8 @@ Estado: análisis estático `VERIFICADO`; causa del incidente en ejecución
 `NO_VERIFICABLE` con la evidencia disponible. Seguimiento: [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
 
 El flujo actual solicita acceso offline, consentimiento y gmail.readonly; usa
-state JWT con expiración de quince minutos. El callback rechaza una respuesta
+un state base64url con payload JSON y firma HMAC-SHA256, con expiración de
+quince minutos. El callback rechaza una respuesta
 sin refresh token antes de comprobar si la conexión ya tiene uno. El refresh se
 adelanta cinco minutos, conserva el refresh token cifrado anterior y no ofrece
 exclusión mutua/CAS entre fuentes que comparten conexión. Son rutas comprobables

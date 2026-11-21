@@ -1,5 +1,6 @@
 export * from './ai/chat-context';
 export * from './core.module';
+export * from './crypto/aes-gcm.util';
 export * from './decorators';
 export * from './events/domain-event-idempotency.guard';
 export * from './events/domain-events';

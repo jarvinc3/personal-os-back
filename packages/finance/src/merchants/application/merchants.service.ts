@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -482,6 +483,9 @@ export class MerchantsService {
     try {
       path = await this.logos.saveCustomLogo(userId, id, file);
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new BadRequestException(
         error instanceof Error ? error.message : 'No se pudo guardar el logo',
       );
