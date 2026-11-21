@@ -1,3 +1,18 @@
+/** Request timed by `LoggingInterceptor` so failures report their duration. */
+export type TimedRequest = { startedAt?: number };
+
+/**
+ * Milliseconds from the interceptor's start to `now`. `undefined` when the
+ * failure happened before it ran: a guard or a middleware rejected the request.
+ */
+export function requestDurationMs(
+  request: TimedRequest,
+  now: number,
+): number | undefined {
+  const { startedAt } = request;
+  return startedAt === undefined ? undefined : now - startedAt;
+}
+
 export type LoggableRequest = {
   baseUrl?: string;
   route?: { path?: string | string[] };
