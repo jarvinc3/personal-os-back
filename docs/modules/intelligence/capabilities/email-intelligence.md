@@ -21,7 +21,7 @@ Errors are classified as `configuration`, `authorization`, `rate_limit`, `tempor
 Endpoints:
 
 - `GET /api/intelligence`: connection, counts, current role, first/latest received-message dates, and `requiresReconnect` for the Gmail source.
-- `GET /api/intelligence/messages?cursor=...&q=...&status=...`: keyset-paginated summaries ordered oldest-first.
+- `GET /api/intelligence/messages?cursor=...&q=...&status=...&limit=...`: keyset-paginated summaries ordered oldest-first. `limit` is an integer from 1 to 100 and defaults to 50; an out-of-range value returns 400 naming the parameter.
 - `GET /api/intelligence/messages/:messageId`: the caller's message and available body representations.
 - `POST /api/intelligence/email/connect` accepts an optional `{ period, senderFilter }` and returns the authorization URL; `POST /api/intelligence/email/sync`.
 - `POST /api/intelligence/email/reset` with `{ "confirmed": true }` removes this user's imported mail and derived review/analysis data, resets bootstrap cursors, and retains the OAuth connection. Without a connection it returns 409 `GMAIL_NOT_CONNECTED`; while a sync is active or waiting for quota it returns 409 `GMAIL_SYNC_IN_PROGRESS` and deletes nothing.

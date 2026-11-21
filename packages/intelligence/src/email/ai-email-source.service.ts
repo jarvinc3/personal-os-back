@@ -11,6 +11,7 @@ import { PrismaService } from '@personal-os/database';
 import type { AiEmailMessageStatus } from './ai-email-message-status';
 import { decryptToken, encryptToken } from './token-encryption.util';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
+import { EMAIL_MESSAGES_DEFAULT_PAGE_SIZE } from './email-messages-pagination.constants';
 import {
   isSenderFilter,
   normalizeSenderFilter,
@@ -68,6 +69,7 @@ type AttemptFields = {
 type ListMessagesInput = {
   userId: string;
   cursor?: string;
+  limit?: number;
   q?: string;
   status?: AiEmailMessageStatus;
 };
@@ -200,7 +202,8 @@ export class AiEmailSourceService {
     };
   }
 
-  async listMessages({ userId, cursor, q, status }: ListMessagesInput) {
+  async listMessages({ userId, cursor, limit, q, status }: ListMessagesInput) {
+    const pageSize = limit ?? EMAIL_MESSAGES_DEFAULT_PAGE_SIZE;
     const cursorPoint = this.parseMessageCursor(cursor);
     const rows = await this.prisma.aiEmailMessage.findMany({
       where: {
@@ -230,7 +233,7 @@ export class AiEmailSourceService {
           : {}),
       },
       orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
-      take: 51,
+      take: pageSize + 1,
       select: {
         id: true,
         receivedAt: true,
@@ -241,8 +244,8 @@ export class AiEmailSourceService {
         contentFingerprint: true,
       },
     });
-    const hasMore = rows.length > 50;
-    const items = hasMore ? rows.slice(0, 50) : rows;
+    const hasMore = rows.length > pageSize;
+    const items = hasMore ? rows.slice(0, pageSize) : rows;
     const last = items.at(-1);
     return {
       items,

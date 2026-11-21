@@ -236,4 +236,37 @@ describe('Intelligence messages list (e2e)', () => {
     expect(response.body.message).toContain('status debe ser uno de');
     expect(findMany).not.toHaveBeenCalled();
   });
+
+  it('pagina con el tamaño pedido por la web', async () => {
+    const firstPage = await listPage('?limit=25');
+
+    expect(firstPage.items).toHaveLength(25);
+    expect(firstPage.hasMore).toBe(true);
+    expect(firstPage.nextCursor).toBeTruthy();
+
+    const secondPage = await listPage(
+      `?limit=25&cursor=${encodeURIComponent(firstPage.nextCursor ?? '')}`,
+    );
+
+    expect(secondPage.items).toHaveLength(25);
+    expect(secondPage.items[0].id).toBe('message-25');
+    expect(
+      secondPage.items.some(({ id }) =>
+        firstPage.items.some(({ id: firstId }) => firstId === id),
+      ),
+    ).toBe(false);
+  });
+
+  it.each(['0', '101', 'abc', '1.5'])(
+    'responde 400 nombrando limit cuando vale %s',
+    async (limit) => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/intelligence/messages?limit=${limit}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+
+      expect(response.body.message).toContain('limit');
+      expect(findMany).not.toHaveBeenCalled();
+    },
+  );
 });
