@@ -3,6 +3,7 @@ import { DOMAIN_EVENT_PUBLISHER } from '@personal-os/contracts';
 import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
+import type { Prisma } from '@personal-os/database';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
@@ -25,6 +26,7 @@ import type {
 } from '../application/commands/ledger.commands';
 import type {
   BalanceAdjustmentTarget,
+  CreateTransactionResult,
   ImportedTransferCounterpart,
   LedgerRepositoryPort,
 } from '../application/ports/ledger.repository.port';
@@ -315,6 +317,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         if (row.status !== 'CONFIRMED') {
           continue;
         }
+        const claimed = await tx.finTransaction.updateMany({
+          where: { id: row.id, userId, status: 'CONFIRMED' },
+          data: { status: 'REVERSED' },
+        });
+        if (claimed.count === 0) {
+          continue;
+        }
         const ctx = await loadCardContext({ tx, userId, cardId: row.cardId });
         const ledger = ledgerFields(row);
         await applyBalanceForTransaction(tx, {
@@ -338,10 +347,6 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         reversedIds.push(row.id);
       }
       if (reversedIds.length > 0) {
-        await tx.finTransaction.updateMany({
-          where: { id: { in: reversedIds } },
-          data: { status: 'REVERSED' },
-        });
         for (const transactionId of reversedIds) {
           await enqueueTransactionEvent({
             tx,
@@ -369,6 +374,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         if (row.status !== 'CONFIRMED') {
           continue;
         }
+        const claimed = await tx.finTransaction.updateMany({
+          where: { id: row.id, userId, status: 'CONFIRMED' },
+          data: { status: 'PENDING' },
+        });
+        if (claimed.count === 0) {
+          continue;
+        }
         const ctx = await loadCardContext({ tx, userId, cardId: row.cardId });
         const ledger = ledgerFields(row);
         await applyBalanceForTransaction(tx, {
@@ -393,10 +405,6 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         unconfirmedIds.push(row.id);
       }
       if (unconfirmedIds.length > 0) {
-        await tx.finTransaction.updateMany({
-          where: { id: { in: unconfirmedIds } },
-          data: { status: 'PENDING' },
-        });
         for (const transactionId of unconfirmedIds) {
           await enqueueTransactionEvent({
             tx,
@@ -477,19 +485,15 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         return null;
       }
       if (existing.status === 'CONFIRMED') {
-        const already = await tx.finTransaction.findFirst({
-          where: { id, userId },
-          include: {
-            account: { select: { id: true, name: true } },
-            card: { select: { id: true, name: true } },
-          },
-        });
-        return already
-          ? {
-              transaction: already,
-              budgetSnapshots: [] as BudgetSpendSnapshot[],
-            }
-          : null;
+        return this.readTransactionResult(tx, userId, id);
+      }
+
+      const claimed = await tx.finTransaction.updateMany({
+        where: { id, userId, status: existing.status },
+        data: { status: 'CONFIRMED' },
+      });
+      if (claimed.count === 0) {
+        return this.readTransactionResult(tx, userId, id);
       }
 
       const ctx = await loadCardContext({
@@ -515,18 +519,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         transactionDate: existing.transactionDate,
       });
 
-      await tx.finTransaction.update({
-        where: { id },
-        data: { status: 'CONFIRMED' },
-      });
-
-      const updated = await tx.finTransaction.findFirst({
-        where: { id, userId },
-        include: {
-          account: { select: { id: true, name: true } },
-          card: { select: { id: true, name: true } },
-        },
-      });
+      const updated = await this.readTransactionForResponse(tx, userId, id);
       if (!updated) {
         return null;
       }
@@ -567,6 +560,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const confirmedTransactionIds: string[] = [];
 
       for (const row of rows) {
+        const claimed = await tx.finTransaction.updateMany({
+          where: { id: row.id, userId, status: 'PENDING' },
+          data: { status: 'CONFIRMED' },
+        });
+        if (claimed.count === 0) {
+          continue;
+        }
         const ctx = await loadCardContext({ tx, userId, cardId: row.cardId });
         const ledger = ledgerFields(row);
         await applyBalanceForTransaction(tx, {
@@ -589,10 +589,6 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         confirmedTransactionIds.push(row.id);
       }
 
-      const result = await tx.finTransaction.updateMany({
-        where: { userId, transferGroupId, status: 'PENDING' },
-        data: { status: 'CONFIRMED' },
-      });
       for (const transactionId of confirmedTransactionIds) {
         await enqueueTransactionEvent({
           tx,
@@ -604,7 +600,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       }
 
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
-      return { count: result.count, budgetSnapshots };
+      return { count: confirmedTransactionIds.length, budgetSnapshots };
     });
   }
 
@@ -617,51 +613,51 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         return null;
       }
 
-      if (existing.status === 'CONFIRMED') {
-        const ctx = await loadCardContext({
-          tx,
-          userId,
-          cardId: existing.cardId,
-        });
-        const ledger = ledgerFields(existing);
-        await applyBalanceForTransaction(tx, {
-          accountId: existing.accountId,
-          cardId: existing.cardId,
-          cardType: ctx.cardType,
-          derivedAccountId: ctx.derivedAccountId,
-          currency: ledger.currency,
-          type: existing.type,
-          amount: ledger.amount,
-          direction: -1,
-        });
-        await adjustBudgetSpent(tx, {
-          userId,
-          categoryId: existing.categoryId,
-          type: existing.type,
-          amountBaseCurrency: Number(existing.amountBaseCurrency),
-          transactionDate: existing.transactionDate,
-          direction: -1,
-        });
-        await tx.finTransaction.update({
-          where: { id },
-          data: { status: 'PENDING' },
-        });
-        await enqueueTransactionEvent({
-          tx,
-          events: this.events,
-          userId,
-          eventName: FinanceEvents.TRANSACTION_UPDATED,
-          transactionId: id,
-        });
+      if (existing.status !== 'CONFIRMED') {
+        return this.readTransactionResult(tx, userId, id);
       }
 
-      const updated = await tx.finTransaction.findFirst({
-        where: { id, userId },
-        include: {
-          account: { select: { id: true, name: true } },
-          card: { select: { id: true, name: true } },
-        },
+      const claimed = await tx.finTransaction.updateMany({
+        where: { id, userId, status: 'CONFIRMED' },
+        data: { status: 'PENDING' },
       });
+      if (claimed.count === 0) {
+        return this.readTransactionResult(tx, userId, id);
+      }
+
+      const ctx = await loadCardContext({
+        tx,
+        userId,
+        cardId: existing.cardId,
+      });
+      const ledger = ledgerFields(existing);
+      await applyBalanceForTransaction(tx, {
+        accountId: existing.accountId,
+        cardId: existing.cardId,
+        cardType: ctx.cardType,
+        derivedAccountId: ctx.derivedAccountId,
+        currency: ledger.currency,
+        type: existing.type,
+        amount: ledger.amount,
+        direction: -1,
+      });
+      await adjustBudgetSpent(tx, {
+        userId,
+        categoryId: existing.categoryId,
+        type: existing.type,
+        amountBaseCurrency: Number(existing.amountBaseCurrency),
+        transactionDate: existing.transactionDate,
+        direction: -1,
+      });
+      await enqueueTransactionEvent({
+        tx,
+        events: this.events,
+        userId,
+        eventName: FinanceEvents.TRANSACTION_UPDATED,
+        transactionId: id,
+      });
+
+      const updated = await this.readTransactionForResponse(tx, userId, id);
       if (!updated) {
         return null;
       }
@@ -765,5 +761,28 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         budgetSnapshots: [] as BudgetSpendSnapshot[],
       };
     });
+  }
+
+  private readTransactionForResponse(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    id: string,
+  ) {
+    return tx.finTransaction.findFirst({
+      where: { id, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        card: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  private async readTransactionResult(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    id: string,
+  ): Promise<CreateTransactionResult | null> {
+    const transaction = await this.readTransactionForResponse(tx, userId, id);
+    return transaction ? { transaction, budgetSnapshots: [] } : null;
   }
 }
