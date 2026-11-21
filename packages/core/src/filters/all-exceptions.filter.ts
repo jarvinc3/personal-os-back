@@ -46,7 +46,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       user?: { sub?: string };
     }>();
     const response = ctx.getResponse<{
+      headersSent: boolean;
       status: (code: number) => { json: (body: unknown) => void };
+      destroy: (error?: Error) => void;
     }>();
 
     const isProduction =
@@ -63,6 +65,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         path: requestLogPath(request),
         statusCode,
         error,
+        responseStarted: response.headersSent,
         message:
           exception instanceof Error ? exception.message : String(exception),
         stack: exception instanceof Error ? exception.stack : undefined,
@@ -76,6 +79,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const errorCode =
       typeof details?.code === 'string' ? details.code : undefined;
+    if (response.headersSent) {
+      // SSE and streamed exports already wrote a body: another status or JSON
+      // would throw ERR_HTTP_HEADERS_SENT. Cut the socket instead.
+      response.destroy(
+        exception instanceof Error
+          ? exception
+          : new Error(`Response already started: ${message}`),
+      );
+      return;
+    }
     response.status(statusCode).json({
       statusCode,
       error,

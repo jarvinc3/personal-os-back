@@ -21,7 +21,7 @@ Health probes pasan por el mismo interceptor: el cuerpo útil sanitizado `{ stat
 
 ## Errores
 
-`AllExceptionsFilter` + `toErrorField` (`http-error.util.ts`). En production, 500 no filtra stack al cliente.
+`AllExceptionsFilter` + `toErrorField` (`http-error.util.ts`). En production, 500 no filtra stack al cliente. Si la respuesta ya envió cabeceras —SSE del chat, exportación de datos o cualquier `@Res()`—, el filtro no intenta fijar estado ni cuerpo: registra el fallo en el mismo log y destruye la respuesta para cerrar el socket, igual que hace el controlador de exportación de Knowledge.
 
 Errores de dominio Nest típicos: `statusCode`, `message`, `path`. 409 de catálogo finance pueden incluir `details.dependents` o `details.debitCardIds`.
 

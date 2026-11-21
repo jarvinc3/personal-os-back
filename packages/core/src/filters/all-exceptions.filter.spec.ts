@@ -15,7 +15,16 @@ function createFilter(nodeEnv = 'production'): AllExceptionsFilter {
   return new AllExceptionsFilter(logger as never, config as never);
 }
 
-function run(exception: unknown): void {
+type TestResponse = {
+  status: jest.Mock;
+  json: jest.Mock;
+  destroy: jest.Mock;
+};
+
+function run(exception: unknown, headersSent = false): TestResponse {
+  const json = jest.fn();
+  const status = jest.fn().mockReturnValue({ json });
+  const destroy = jest.fn();
   const host = {
     switchToHttp: () => ({
       getRequest: () => ({
@@ -23,12 +32,11 @@ function run(exception: unknown): void {
         id: 'req-1',
         method: 'GET',
       }),
-      getResponse: () => ({
-        status: jest.fn().mockReturnValue({ json: jest.fn() }),
-      }),
+      getResponse: () => ({ headersSent, status, destroy }),
     }),
   } as unknown as ArgumentsHost;
   createFilter().catch(exception, host);
+  return { status, json, destroy };
 }
 
 describe('AllExceptionsFilter sentry reporting', () => {
@@ -63,5 +71,33 @@ describe('AllExceptionsFilter sentry reporting', () => {
         extra: expect.objectContaining({ path: '/finance/accounts' }),
       }),
     );
+  });
+});
+
+describe('AllExceptionsFilter response writing', () => {
+  beforeEach(() => {
+    captureExceptionMock.mockClear();
+  });
+
+  it('writes the error body when the headers are still open', () => {
+    const response = run(new BadRequestException('Invalid body'));
+
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    expect(response.json).toHaveBeenCalledTimes(1);
+    expect(response.destroy).not.toHaveBeenCalled();
+  });
+
+  it('destroys the response instead of writing over sent headers', () => {
+    const response = run(new Error('turn failed'), true);
+
+    expect(response.status).not.toHaveBeenCalled();
+    expect(response.json).not.toHaveBeenCalled();
+    expect(response.destroy).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  it('still reports a 500 to Sentry after the response started', () => {
+    run(new Error('turn failed'), true);
+
+    expect(captureExceptionMock).toHaveBeenCalledTimes(1);
   });
 });

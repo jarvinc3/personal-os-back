@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #467: `AllExceptionsFilter` comprueba `headersSent` antes de responder. Cuando la respuesta ya empezó —SSE del chat, exportación de datos o cualquier `@Res()`— registra el fallo y destruye el socket en lugar de intentar fijar estado y cuerpo, así que no aparece `ERR_HTTP_HEADERS_SENT` dentro del manejador de excepciones. Sin cambios en las respuestas que aún no enviaron cabeceras.
 - #446: dos movimientos simultáneos en una moneda nueva de la misma tarjeta comparten una sola fila de saldo. El ledger crea el saldo con `upsert` sobre la clave única `(cardId, currency)` y suma el delta, en vez de buscar y crear, que perdía el segundo movimiento con `P2002`.
 - #446: el readiness de Redis reutiliza una conexión entre sondas, la descarta si se cae y la cierra con `quit` al apagar el módulo; antes abría un cliente por sonda y lo desconectaba sin esperar. Cada conexión y cada ping tienen tope de 2 s y no reintentan solos.
 - #445: `GET /finance/exchange-rates` acepta hasta 20 monedas y cotiza una vez cada par; el balance reutiliza las tasas por par y fecha dentro de la petición. Ambos endpoints tienen timeout propio de 15 s. Un exceso de monedas responde 400. Sin migración.
