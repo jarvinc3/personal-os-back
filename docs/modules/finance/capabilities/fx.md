@@ -12,7 +12,7 @@ El importe base y el ledger usan `ResolveAmountsUseCase`; el detalle de la tasa 
 
 `GET /api/finance/currencies` lista soportadas.
 
-`GET /api/finance/exchange-rates?base=DOP&quotes=USD,EUR` devuelve la tasa de cada quote en `base` con fecha de **hoy UTC**; tasa ausente → `rate: null` (fail-open de display).
+`GET /api/finance/exchange-rates?base=DOP&quotes=USD,EUR` acepta hasta 20 monedas; un exceso responde 400. Cada par se cotiza una vez por petición, el endpoint tiene timeout propio de 15 s y devuelve la tasa de cada quote en `base` con fecha de **hoy UTC**; tasa ausente → `rate: null` (fail-open de display).
 
 `POST /api/finance/base-currency` body `{ baseCurrency }` cambia la principal y recalcula en una transacción los `amountBaseCurrency` de las transacciones del usuario, el `amountLimit`/`amountSpent` de sus presupuestos y el config del módulo. Usa la última tasa publicada en o antes cuando el día no tiene cotización; si no hay tasa exacta ni anterior → 400 sin escribir nada; si el proveedor falla o la clave no está configurada → 503 con la causa real; mismo código → 200 no-op. Emite `module.config.updated`.
 

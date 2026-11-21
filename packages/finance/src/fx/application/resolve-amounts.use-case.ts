@@ -9,8 +9,41 @@ import {
   type MoneyLike,
   type ResolvedAmounts,
 } from '../../shared/domain/money';
-import type { ExchangeRatePort } from './ports/exchange-rate.port';
+import type {
+  ExchangeRatePort,
+  ExchangeRateResult,
+} from './ports/exchange-rate.port';
 import { exchangeRateFailureException } from './exchange-rate-failure';
+
+export type FxRateRequestCache = Map<string, Promise<ExchangeRateResult>>;
+
+type FxRateKind = 'historical' | 'latest' | 'ledger';
+
+function rateKey(
+  kind: FxRateKind,
+  from: string,
+  to: string,
+  date: string,
+): string {
+  return `${kind}:${from}:${to}:${date}`;
+}
+
+function cachedRate(
+  cache: FxRateRequestCache | undefined,
+  key: string,
+  load: () => Promise<ExchangeRateResult>,
+): Promise<ExchangeRateResult> {
+  if (!cache) {
+    return load();
+  }
+  const existing = cache.get(key);
+  if (existing) {
+    return existing;
+  }
+  const pending = load();
+  cache.set(key, pending);
+  return pending;
+}
 
 export type TransferDestinationInput = {
   sourceAmount: number;
@@ -144,11 +177,12 @@ export class ResolveAmountsUseCase {
     currency: string,
     baseCurrency: string,
     asOf: Date,
+    cache?: FxRateRequestCache,
   ): Promise<Prisma.Decimal> {
     const from = normalizeCurrencyCode(currency);
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
-    const rate = await this.requireRate(from, target, date);
+    const rate = await this.requireRate(from, target, date, cache);
     return convertDecimal(amount, rate.rate);
   }
 
@@ -163,23 +197,41 @@ export class ResolveAmountsUseCase {
     currency: string,
     baseCurrency: string,
     asOf: Date,
+    cache?: FxRateRequestCache,
   ): Promise<Prisma.Decimal | null> {
     const from = normalizeCurrencyCode(currency);
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
-    const exact = await this.rates.getHistoricalRate({
-      from,
-      to: target,
-      date,
-    });
+    const ledger = cache?.get(rateKey('ledger', from, target, date));
+    if (ledger) {
+      const ledgerResult = await ledger;
+      if (ledgerResult.ok) {
+        return convertDecimal(amount, ledgerResult.rate);
+      }
+    }
+    const exact = await cachedRate(
+      cache,
+      rateKey('historical', from, target, date),
+      () =>
+        this.rates.getHistoricalRate({
+          from,
+          to: target,
+          date,
+        }),
+    );
     if (exact.ok) {
       return convertDecimal(amount, exact.rate);
     }
-    const latest = await this.rates.getLatestRateOnOrBefore({
-      from,
-      to: target,
-      date,
-    });
+    const latest = await cachedRate(
+      cache,
+      rateKey('latest', from, target, date),
+      () =>
+        this.rates.getLatestRateOnOrBefore({
+          from,
+          to: target,
+          date,
+        }),
+    );
     if (!latest.ok) {
       return null;
     }
@@ -190,9 +242,25 @@ export class ResolveAmountsUseCase {
     from: string,
     to: string,
     date: string,
+    cache?: FxRateRequestCache,
   ): Promise<{ rate: number; rateDate: string }> {
-    const rateResult = await this.rates.getLedgerRate({ from, to, date });
+    const exactKey = rateKey('historical', from, to, date);
+    const cachedExact = cache?.get(exactKey);
+    if (cachedExact) {
+      const exact = await cachedExact;
+      if (exact.ok) {
+        return { rate: exact.rate, rateDate: exact.rateDate ?? date };
+      }
+    }
+    const rateResult = await cachedRate(
+      cache,
+      rateKey('ledger', from, to, date),
+      () => this.rates.getLedgerRate({ from, to, date }),
+    );
     if (rateResult.ok) {
+      if (cache && rateResult.rateDate === date) {
+        cache.set(exactKey, Promise.resolve(rateResult));
+      }
       return { rate: rateResult.rate, rateDate: rateResult.rateDate ?? date };
     }
     throw exchangeRateFailureException({

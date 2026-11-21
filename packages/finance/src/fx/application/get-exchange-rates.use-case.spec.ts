@@ -50,4 +50,25 @@ describe('GetExchangeRatesUseCase', () => {
       BadRequestException,
     );
   });
+
+  it('quotes a repeated currency once', async () => {
+    getHistoricalRate.mockResolvedValue({
+      ok: true,
+      rate: 68.39,
+      source: 'cache',
+    });
+
+    const ratesResult = await useCase.execute(
+      'DOP',
+      ['USD', 'USD', 'EUR'],
+      asOf,
+    );
+
+    expect(getHistoricalRate).toHaveBeenCalledTimes(2);
+    expect(ratesResult.rates.map(({ currency }) => currency)).toEqual([
+      'USD',
+      'USD',
+      'EUR',
+    ]);
+  });
 });

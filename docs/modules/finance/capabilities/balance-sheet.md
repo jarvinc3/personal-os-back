@@ -20,4 +20,6 @@
 - Los totales se calculan sumando las mismas líneas que se devuelven. Si falta una tasa o el límite de una tarjeta, el total afectado queda `null` y `status` pasa a `INCOMPLETE`; un descuadre o una conciliación pendiente **no** invalidan el total.
 - `?detail=false` no existe todavía; si el payload crece, se agrega sin endpoint nuevo.
 
+La conversión memoiza las tasas por par y fecha dentro de la petición: las líneas de la misma moneda reutilizan una sola consulta al puerto FX. El endpoint tiene `@Timeout` propio de 15 s, así que el límite global de 5 s no corta un balance con muchas posiciones.
+
 Evidencia: `balance-sheet/application/balance-sheet.service.ts`, `balance-sheet/domain/balance-sheet-breakdown.ts` y sus specs.

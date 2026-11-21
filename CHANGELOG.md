@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #445: `GET /finance/exchange-rates` acepta hasta 20 monedas y cotiza una vez cada par; el balance reutiliza las tasas por par y fecha dentro de la petición. Ambos endpoints tienen timeout propio de 15 s. Un exceso de monedas responde 400. Sin migración.
 - #444: la exportación de datos de IA se escribe por partes con el mismo envelope JSON; pagina cada colección de 200 filas y respeta la contrapresión de la respuesta, así que no carga todo el correo en memoria. El contrato no cambia.
 - #443: `OAUTH_STATE_SECRET` firma el state de Gmail y queda separada de `AI_GMAIL_TOKEN_ENCRYPTION_KEY`; el schema la exige en producción y con Gmail configurado, y rechaza reutilizar la clave de tokens. Se retira `ENCRYPTION_KEY`, que el código no usaba.
 - #442: pruebas de comportamiento del verificador JWT de producción (firma RS256, vencimiento, emisor, audiencia, algoritmo, `kid` y `sub`) y del handshake del WebSocket (sin token, token inválido y room por usuario).

@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import type { FinanceEntityLookupService } from '../../entities/application/finance-entity-lookup.service';
-import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 import { BalanceSheetService } from './balance-sheet.service';
@@ -18,16 +18,18 @@ describe('BalanceSheetService', () => {
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
   const lookupByKey = jest.fn().mockResolvedValue(new Map());
 
+  const repository = {
+    loadPositions,
+    loadCashAccounts,
+    loadReceivables,
+    loadOpenDrifts,
+    loadMonthReconciliations,
+    loadUserTimezone,
+  };
+
   const createService = () =>
     new BalanceSheetService(
-      {
-        loadPositions,
-        loadCashAccounts,
-        loadReceivables,
-        loadOpenDrifts,
-        loadMonthReconciliations,
-        loadUserTimezone,
-      } as unknown as BalanceSheetRepository,
+      repository as unknown as BalanceSheetRepository,
       {
         toBaseCurrency,
         toBaseCurrencyOrNull,
@@ -137,10 +139,68 @@ describe('BalanceSheetService', () => {
       10,
       'USD',
       'DOP',
-      expect.any(Date),
+      expect.anything(),
+      expect.anything(),
     );
     expect(balanceSheet.global.netWorth).toBe('1600');
     expect(balanceSheet.global.assets.accounts).toBe('1600');
+  });
+
+  it('queries each pair and date once for twenty positions in three currencies', async () => {
+    const getHistoricalRate = jest.fn(
+      (params: { from: string; to: string; date: string }) =>
+        Promise.resolve({
+          ok: true,
+          rate: params.from === params.to ? 1 : 60,
+          source: 'cache',
+          rateDate: params.date,
+        }),
+    );
+    const getLedgerRate = jest.fn();
+    const getLatestRateOnOrBefore = jest.fn();
+    const service = new BalanceSheetService(
+      repository as unknown as BalanceSheetRepository,
+      new ResolveAmountsUseCase({
+        getHistoricalRate,
+        getLedgerRate,
+        getLatestRateOnOrBefore,
+      } as never),
+      {
+        execute: baseCurrencyExecute,
+      } as unknown as ResolveUserBaseCurrencyUseCase,
+      { lookupByKey } as unknown as FinanceEntityLookupService,
+    );
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: Array.from({ length: 18 }, (_, index) => ({
+        id: `acc-${index}`,
+        institutionId: 'inst-1',
+        currency: ['DOP', 'USD', 'EUR'][index % 3],
+        balance: 100 + index,
+      })),
+      cardBalances: [
+        {
+          currency: 'USD',
+          balance: 400,
+          creditLimit: 1000,
+          card: { id: 'card-1', institutionId: 'inst-1' },
+        },
+      ],
+      loans: [
+        {
+          id: 'loan-1',
+          institutionId: 'inst-1',
+          currency: 'EUR',
+          currentBalance: 300,
+        },
+      ],
+    });
+
+    await service.getBalanceSheet('user-1');
+
+    expect(getHistoricalRate).toHaveBeenCalledTimes(3);
+    expect(getLedgerRate).not.toHaveBeenCalled();
+    expect(getLatestRateOnOrBefore).not.toHaveBeenCalled();
   });
 
   it('sums converted balances to the cent, rounding once at the end', async () => {
