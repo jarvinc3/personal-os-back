@@ -17,10 +17,15 @@ describe('FinanceEntityLookupService', () => {
   const lookupSubscriptions = jest.fn();
   const lookupMerchants = jest.fn();
   const lookupCategories = jest.fn();
+  const lookupInstitutions = jest.fn();
 
   const createService = () =>
     new FinanceEntityLookupService(
-      { lookupAccounts, lookupCards } as unknown as CatalogService,
+      {
+        lookupAccounts,
+        lookupCards,
+        lookupInstitutions,
+      } as unknown as CatalogService,
       { lookupCategories } as unknown as CatalogCategoriesService,
       { lookupTransactions } as unknown as LedgerQueryService,
       {
@@ -45,6 +50,7 @@ describe('FinanceEntityLookupService', () => {
     lookupSubscriptions.mockResolvedValue(new Map());
     lookupMerchants.mockResolvedValue(new Map());
     lookupCategories.mockResolvedValue(new Map());
+    lookupInstitutions.mockResolvedValue(new Map());
   });
 
   it('returns each entity in the same order as the references', async () => {
@@ -100,6 +106,7 @@ describe('FinanceEntityLookupService', () => {
       { type: 'subscription', id: 'h' },
       { type: 'merchant', id: 'i' },
       { type: 'category', id: 'j' },
+      { type: 'institution', id: 'k' },
     ]);
 
     for (const loader of [
@@ -113,9 +120,23 @@ describe('FinanceEntityLookupService', () => {
       lookupSubscriptions,
       lookupMerchants,
       lookupCategories,
+      lookupInstitutions,
     ]) {
       expect(loader).toHaveBeenCalledTimes(1);
     }
+  });
+
+  it('resuelve la institución como una entidad más', async () => {
+    lookupInstitutions.mockResolvedValue(
+      new Map([['inst-1', { id: 'inst-1', name: 'Banco' }]]),
+    );
+
+    const entities = await createService().lookup('user-1', [
+      { type: 'institution', id: 'inst-1' },
+    ]);
+
+    expect(lookupInstitutions).toHaveBeenCalledWith('user-1', ['inst-1']);
+    expect(entities).toEqual([{ id: 'inst-1', name: 'Banco' }]);
   });
 
   it('keys the batch by type and id so two types never collide', async () => {

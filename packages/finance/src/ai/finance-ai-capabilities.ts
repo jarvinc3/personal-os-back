@@ -30,6 +30,7 @@ const financeEntityTypeByInvocationType: Record<
   subscription: 'subscription',
   merchant: 'merchant',
   category: 'category',
+  institution: 'institution',
 };
 
 function localDateToUtc(
