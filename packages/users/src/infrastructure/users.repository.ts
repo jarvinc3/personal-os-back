@@ -7,6 +7,8 @@ import type {
 } from '../application/ports/users.repository.port';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
 
+const AUTH_DELETION_LEASE_MS = 5 * 60_000;
+
 const userWithModulesInclude = {
   userModules: {
     include: {
@@ -202,6 +204,44 @@ export class UsersRepository implements UsersRepositoryPort {
         lastError: null,
         completedAt: new Date(),
         nextAttemptAt: new Date(),
+        claimedAt: null,
+      },
+    });
+  }
+
+  /**
+   * A worker that died with a claim leaves the row IN_PROGRESS. The lease
+   * makes it due again; a row that exhausted its attempts goes to DEAD.
+   */
+  async recoverExpiredAuthDeletions(maxAttempts: number): Promise<void> {
+    const now = new Date();
+    const expired = {
+      status: 'IN_PROGRESS' as const,
+      OR: [
+        {
+          claimedAt: {
+            lte: new Date(now.getTime() - AUTH_DELETION_LEASE_MS),
+          },
+        },
+        { claimedAt: null },
+      ],
+    };
+    await this.prisma.authDeletionOutbox.updateMany({
+      where: { ...expired, attempts: { gte: maxAttempts } },
+      data: {
+        status: 'DEAD' satisfies AuthDeletionOutboxStatus,
+        claimedAt: null,
+        lastError: 'Lease expired after final attempt',
+        nextAttemptAt: now,
+      },
+    });
+    await this.prisma.authDeletionOutbox.updateMany({
+      where: { ...expired, attempts: { lt: maxAttempts } },
+      data: {
+        status: 'FAILED' satisfies AuthDeletionOutboxStatus,
+        claimedAt: null,
+        lastError: 'Lease expired; retry scheduled',
+        nextAttemptAt: now,
       },
     });
   }
@@ -236,6 +276,8 @@ export class UsersRepository implements UsersRepositoryPort {
       },
       data: {
         status: 'IN_PROGRESS' satisfies AuthDeletionOutboxStatus,
+        claimedAt: now,
+        attempts: { increment: 1 },
       },
     });
 
@@ -246,17 +288,18 @@ export class UsersRepository implements UsersRepositoryPort {
     return {
       id: candidate.id,
       userId: candidate.userId,
-      attempts: candidate.attempts,
+      attempts: candidate.attempts + 1,
     };
   }
 
-  async completeAuthDeletion(id: string) {
-    return this.prisma.authDeletionOutbox.update({
-      where: { id },
+  async completeAuthDeletion(id: string, attempts: number) {
+    return this.prisma.authDeletionOutbox.updateMany({
+      where: { id, status: 'IN_PROGRESS', attempts },
       data: {
-        status: 'COMPLETED',
+        status: 'COMPLETED' satisfies AuthDeletionOutboxStatus,
         lastError: null,
         completedAt: new Date(),
+        claimedAt: null,
       },
     });
   }
@@ -268,13 +311,13 @@ export class UsersRepository implements UsersRepositoryPort {
     nextAttemptAt: Date,
     terminal: boolean,
   ) {
-    return this.prisma.authDeletionOutbox.update({
-      where: { id },
+    return this.prisma.authDeletionOutbox.updateMany({
+      where: { id, status: 'IN_PROGRESS', attempts },
       data: {
         status: terminal ? 'DEAD' : 'FAILED',
-        attempts,
         lastError: lastError.slice(0, 2000),
         nextAttemptAt,
+        claimedAt: null,
       },
     });
   }

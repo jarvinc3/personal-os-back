@@ -91,13 +91,17 @@ export interface UsersRepositoryPort {
     moduleDefaults: readonly ModuleSettingsDefaults[],
   ): Promise<void>;
   markAuthOutboxCompleted(userId: string): Promise<unknown>;
+  recoverExpiredAuthDeletions(maxAttempts: number): Promise<void>;
   claimNextAuthDeletion(maxAttempts: number): Promise<AuthDeletionClaim | null>;
-  completeAuthDeletion(id: string): Promise<unknown>;
+  completeAuthDeletion(
+    id: string,
+    attempts: number,
+  ): Promise<{ count: number }>;
   failAuthDeletion(
     id: string,
     attempts: number,
     lastError: string,
     nextAttemptAt: Date,
     terminal: boolean,
-  ): Promise<unknown>;
+  ): Promise<{ count: number }>;
 }

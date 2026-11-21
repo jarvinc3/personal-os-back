@@ -35,6 +35,7 @@ export class AuthDeletionOutboxProcessor {
 
   /** Exposed for tests. */
   async processBatch(): Promise<number> {
+    await this.usersRepository.recoverExpiredAuthDeletions(MAX_ATTEMPTS);
     let processed = 0;
     for (let i = 0; i < BATCH_SIZE; i += 1) {
       const claimed =
@@ -53,31 +54,45 @@ export class AuthDeletionOutboxProcessor {
     userId: string;
     attempts: number;
   }): Promise<void> {
-    const nextAttempts = claimed.attempts + 1;
     const result = await this.supabaseAdminService.tryDeleteAuthUser(
       claimed.userId,
     );
 
     if (result.ok) {
-      await this.usersRepository.completeAuthDeletion(claimed.id);
+      const completed = await this.usersRepository.completeAuthDeletion(
+        claimed.id,
+        claimed.attempts,
+      );
+      if (completed.count === 0) {
+        this.logger.warn(
+          `auth_deletion_outbox lease lost userId=${claimed.userId} attempts=${claimed.attempts}`,
+        );
+        return;
+      }
       this.logger.log(
-        `auth_deletion_outbox completed userId=${claimed.userId} attempts=${nextAttempts}`,
+        `auth_deletion_outbox completed userId=${claimed.userId} attempts=${claimed.attempts}`,
       );
       return;
     }
 
-    const terminal = nextAttempts >= MAX_ATTEMPTS || !result.retryable;
-    const nextAttemptAt = this.computeNextAttemptAt(nextAttempts);
-    await this.usersRepository.failAuthDeletion(
+    const terminal = claimed.attempts >= MAX_ATTEMPTS || !result.retryable;
+    const nextAttemptAt = this.computeNextAttemptAt(claimed.attempts);
+    const failed = await this.usersRepository.failAuthDeletion(
       claimed.id,
-      nextAttempts,
+      claimed.attempts,
       result.message,
       nextAttemptAt,
       terminal,
     );
+    if (failed.count === 0) {
+      this.logger.warn(
+        `auth_deletion_outbox lease lost userId=${claimed.userId} attempts=${claimed.attempts}`,
+      );
+      return;
+    }
 
     this.logger.warn(
-      `auth_deletion_outbox ${terminal ? 'dead' : 'retry'} userId=${claimed.userId} attempts=${nextAttempts} message=${result.message}`,
+      `auth_deletion_outbox ${terminal ? 'dead' : 'retry'} userId=${claimed.userId} attempts=${claimed.attempts} message=${result.message}`,
     );
   }
 
