@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -23,6 +24,12 @@ import type { ExchangeRatePort } from './ports/exchange-rate.port';
 import { exchangeRateFailureException } from './exchange-rate-failure';
 
 const FINANCE_MODULE_SLUG = 'finance';
+const REBASE_CONCURRENCY = 25;
+
+export const CHANGE_BASE_CURRENCY_TIMEOUT_MS = 30_000;
+export const BASE_CURRENCY_CHANGED_CODE = 'BASE_CURRENCY_CHANGED';
+
+type RateCache = Map<string, Promise<number>>;
 
 const transactionSelect = {
   id: true,
@@ -114,6 +121,7 @@ export class ChangeBaseCurrencyUseCase {
       };
     }
 
+    const rateCache: RateCache = new Map();
     const transactions = await this.prisma.finTransaction.findMany({
       where: { userId },
       select: transactionSelect,
@@ -121,6 +129,7 @@ export class ChangeBaseCurrencyUseCase {
     const rebasedTransactions = await this.rebaseTransactions(
       transactions,
       nextBaseCurrency,
+      rateCache,
     );
     const baseAmountById = new Map(
       rebasedTransactions.map((row) => [row.id, row.amountBaseCurrency]),
@@ -138,6 +147,7 @@ export class ChangeBaseCurrencyUseCase {
           previousBaseCurrency,
           nextBaseCurrency,
           budget.periodStart,
+          rateCache,
         ),
         amountSpent: this.sumSpent(transactions, baseAmountById, budget),
       })),
@@ -149,29 +159,51 @@ export class ChangeBaseCurrencyUseCase {
       previousBaseCurrency,
     );
 
-    await this.prisma.$transaction(async (tx) => {
-      for (const row of rebasedTransactions) {
-        await tx.finTransaction.update({
-          where: { id: row.id },
-          data: { amountBaseCurrency: row.amountBaseCurrency },
-        });
-      }
-      for (const budget of rebasedBudgets) {
-        await tx.finBudget.update({
-          where: { id: budget.id },
-          data: {
-            amountLimit: budget.amountLimit,
-            amountSpent: budget.amountSpent,
-          },
-        });
-      }
-      if (userModule) {
-        await tx.userModule.update({
-          where: { id: userModule.id },
-          data: { config: nextConfig as Prisma.InputJsonValue },
-        });
-      }
-    });
+    await this.prisma.$transaction(
+      async (tx) => {
+        if (userModule) {
+          const storedModule = await tx.userModule.findUnique({
+            where: { id: userModule.id },
+            select: { config: true },
+          });
+          const storedConfig = storedModule?.config as
+            { baseCurrency?: unknown } | null | undefined;
+          const storedBaseCurrency = this.resolvePreviousBaseCurrency(
+            storedConfig?.baseCurrency,
+          );
+          if (storedBaseCurrency !== previousBaseCurrency) {
+            throw new ConflictException({
+              code: BASE_CURRENCY_CHANGED_CODE,
+              message:
+                'La moneda base cambió mientras se recalculaba; inténtalo de nuevo.',
+            });
+          }
+        }
+
+        for (const row of rebasedTransactions) {
+          await tx.finTransaction.update({
+            where: { id: row.id },
+            data: { amountBaseCurrency: row.amountBaseCurrency },
+          });
+        }
+        for (const budget of rebasedBudgets) {
+          await tx.finBudget.update({
+            where: { id: budget.id },
+            data: {
+              amountLimit: budget.amountLimit,
+              amountSpent: budget.amountSpent,
+            },
+          });
+        }
+        if (userModule) {
+          await tx.userModule.update({
+            where: { id: userModule.id },
+            data: { config: nextConfig as Prisma.InputJsonValue },
+          });
+        }
+      },
+      { timeout: CHANGE_BASE_CURRENCY_TIMEOUT_MS },
+    );
 
     this.logger.log(
       `base_currency_changed userId=${userId} from=${previousBaseCurrency} to=${nextBaseCurrency} transactions=${rebasedTransactions.length} budgets=${rebasedBudgets.length}`,
@@ -201,18 +233,33 @@ export class ChangeBaseCurrencyUseCase {
   private async rebaseTransactions(
     transactions: readonly RebaseTransaction[],
     nextBaseCurrency: string,
+    rateCache: RateCache,
   ): Promise<Array<{ id: string; amountBaseCurrency: Prisma.Decimal }>> {
-    return Promise.all(
-      transactions.map(async (transaction) => ({
-        id: transaction.id,
-        amountBaseCurrency: await this.convertToBase(
-          transaction.amount,
-          transaction.currency,
-          nextBaseCurrency,
-          transaction.transactionDate,
-        ),
-      })),
-    );
+    const rebasedTransactions: Array<{
+      id: string;
+      amountBaseCurrency: Prisma.Decimal;
+    }> = [];
+    for (
+      let start = 0;
+      start < transactions.length;
+      start += REBASE_CONCURRENCY
+    ) {
+      const chunk = transactions.slice(start, start + REBASE_CONCURRENCY);
+      const convertedChunk = await Promise.all(
+        chunk.map(async (transaction) => ({
+          id: transaction.id,
+          amountBaseCurrency: await this.convertToBase(
+            transaction.amount,
+            transaction.currency,
+            nextBaseCurrency,
+            transaction.transactionDate,
+            rateCache,
+          ),
+        })),
+      );
+      rebasedTransactions.push(...convertedChunk);
+    }
+    return rebasedTransactions;
   }
 
   private async rebaseLimit(
@@ -220,11 +267,13 @@ export class ChangeBaseCurrencyUseCase {
     previousBaseCurrency: string,
     nextBaseCurrency: string,
     periodStart: Date,
+    rateCache: RateCache,
   ): Promise<Prisma.Decimal> {
     const rate = await this.requireRate(
       previousBaseCurrency,
       nextBaseCurrency,
       periodStart,
+      rateCache,
     );
     return convertDecimal(amountLimit, rate);
   }
@@ -234,12 +283,18 @@ export class ChangeBaseCurrencyUseCase {
     currency: string,
     nextBaseCurrency: string,
     date: Date,
+    rateCache: RateCache,
   ): Promise<Prisma.Decimal> {
     const from = normalizeCurrencyCode(currency);
     if (from === nextBaseCurrency) {
       return roundDecimal(amount);
     }
-    const rate = await this.requireRate(from, nextBaseCurrency, date);
+    const rate = await this.requireRate(
+      from,
+      nextBaseCurrency,
+      date,
+      rateCache,
+    );
     return convertDecimal(amount, rate);
   }
 
@@ -247,8 +302,24 @@ export class ChangeBaseCurrencyUseCase {
     from: string,
     to: string,
     date: Date,
+    rateCache: RateCache,
   ): Promise<number> {
     const day = date.toISOString().slice(0, 10);
+    const key = `${from}:${to}:${day}`;
+    const cachedRate = rateCache.get(key);
+    if (cachedRate) {
+      return cachedRate;
+    }
+    const pendingRate = this.fetchRate(from, to, day);
+    rateCache.set(key, pendingRate);
+    return pendingRate;
+  }
+
+  private async fetchRate(
+    from: string,
+    to: string,
+    day: string,
+  ): Promise<number> {
     const rateResult = await this.rates.getLedgerRate({
       from,
       to,

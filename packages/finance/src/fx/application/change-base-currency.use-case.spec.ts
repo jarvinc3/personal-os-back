@@ -1,10 +1,15 @@
 import {
   BadRequestException,
+  ConflictException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { AppEvents } from '@personal-os/core';
 import { Prisma } from '@personal-os/database';
-import { ChangeBaseCurrencyUseCase } from './change-base-currency.use-case';
+import {
+  BASE_CURRENCY_CHANGED_CODE,
+  CHANGE_BASE_CURRENCY_TIMEOUT_MS,
+  ChangeBaseCurrencyUseCase,
+} from './change-base-currency.use-case';
 
 type MockPrisma = {
   module: { findUnique: jest.Mock };
@@ -177,9 +182,76 @@ describe('ChangeBaseCurrencyUseCase', () => {
         }),
       },
     });
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      timeout: CHANGE_BASE_CURRENCY_TIMEOUT_MS,
+    });
     expect(emit).toHaveBeenCalledWith(AppEvents.MODULE_CONFIG_UPDATED, {
       userId: 'user-1',
       slug: 'finance',
     });
+  });
+
+  it('consulta una sola vez cada par de moneda y fecha', async () => {
+    const sameDayPurchase = {
+      amount: 10,
+      currency: 'USD',
+      transactionDate: new Date('2026-08-10T12:00:00Z'),
+      type: 'DEBIT',
+      status: 'CONFIRMED',
+      categoryId: 'cat-1',
+    };
+    prisma.finTransaction.findMany.mockResolvedValue([
+      { id: 'tx-1', ...sameDayPurchase },
+      { id: 'tx-2', ...sameDayPurchase },
+      { id: 'tx-3', ...sameDayPurchase },
+    ]);
+    getLedgerRate.mockResolvedValue({
+      ok: true,
+      rate: 0.5,
+      source: 'cache',
+    });
+
+    await createUseCase().execute('user-1', 'EUR');
+
+    expect(getLedgerRate).toHaveBeenCalledTimes(2);
+    expect(getLedgerRate).toHaveBeenNthCalledWith(1, {
+      from: 'USD',
+      to: 'EUR',
+      date: '2026-08-10',
+    });
+    expect(getLedgerRate).toHaveBeenNthCalledWith(2, {
+      from: 'DOP',
+      to: 'EUR',
+      date: '2026-08-01',
+    });
+  });
+
+  it('responde 409 si otra petición cambió la moneda base mientras calculaba', async () => {
+    getLedgerRate.mockResolvedValue({
+      ok: true,
+      rate: 0.5,
+      source: 'cache',
+    });
+    prisma.userModule.findUnique
+      .mockResolvedValueOnce({
+        id: 'um-1',
+        config: { baseCurrency: 'DOP', trackedCurrencies: ['USD', 'EUR'] },
+      })
+      .mockResolvedValueOnce({
+        id: 'um-1',
+        config: { baseCurrency: 'EUR', trackedCurrencies: ['DOP', 'USD'] },
+      });
+
+    const conflictError = await createUseCase()
+      .execute('user-1', 'USD')
+      .catch((error: unknown) => error);
+
+    expect(conflictError).toBeInstanceOf(ConflictException);
+    expect((conflictError as ConflictException).getResponse()).toMatchObject({
+      code: BASE_CURRENCY_CHANGED_CODE,
+    });
+    expect(prisma.finTransaction.update).not.toHaveBeenCalled();
+    expect(prisma.finBudget.update).not.toHaveBeenCalled();
+    expect(prisma.userModule.update).not.toHaveBeenCalled();
   });
 });
