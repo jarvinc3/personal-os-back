@@ -26,6 +26,9 @@ export type EmailUsageMessage = {
   processingStatus: string;
 };
 
+/** El costo del día es del piloto completo, no de una cuenta. */
+const GLOBAL_COST_SCOPE = 'ALL_USERS';
+
 /** El tope diario de 100 llamadas acota el rango: 30 días son menos de 3 000 filas. */
 const USAGE_ROW_LIMIT = 5_000;
 
@@ -182,11 +185,7 @@ export class EmailUsageService {
         );
       }
     }
-    const [tokenBudget, connection, dailyCost] = await Promise.all([
-      this.prisma.aiEmailTokenBudget.findFirst({
-        where: { userId, budgetDate: today },
-        select: { tokens: true, tokenLimit: true },
-      }),
+    const [connection, dailyCost] = await Promise.all([
       this.prisma.aiEmailConnection.findUnique({
         where: { userId },
         select: { initialBudgetRemaining: true },
@@ -196,6 +195,13 @@ export class EmailUsageService {
         select: { costUsd: true },
       }),
     ]);
+    const summary = summarizeEmailUsage({
+      rows,
+      messages,
+      classificationTypes,
+    });
+    const todayKey = today.toISOString().slice(0, 10);
+    const todayUsage = summary.byDay.find((day) => day.day === todayKey);
     const usedUsd = Number(dailyCost?.costUsd ?? 0);
     return {
       range: {
@@ -203,7 +209,7 @@ export class EmailUsageService {
         from: from.toISOString(),
         to: new Date().toISOString(),
       },
-      ...summarizeEmailUsage({ rows, messages, classificationTypes }),
+      ...summary,
       caps: {
         perMinute: this.limits.classificationsPerMinute,
         initial: {
@@ -213,9 +219,11 @@ export class EmailUsageService {
         },
         daily: {
           limitTokens: this.limits.dailyTokenBudget,
-          usedTokens: tokenBudget?.tokens ?? 0,
+          usedTokens:
+            (todayUsage?.inputTokens ?? 0) + (todayUsage?.outputTokens ?? 0),
         },
         globalCost: {
+          scope: GLOBAL_COST_SCOPE,
           limitUsd: this.limits.dailyCostLimitUsd,
           usedUsd,
           alertRatio: this.limits.costAlertRatio,
