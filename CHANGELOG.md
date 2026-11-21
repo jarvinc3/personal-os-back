@@ -70,6 +70,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #438: el `wake` del outbox y su cron registran un fallo de base y resuelven, en vez de dejar una promesa rechazada que podía terminar el proceso. El cron de 30 s sigue siendo el reintento; los productores pueden seguir llamando `wake` con `void`.
 - #453: la prueba de caída del outbox espera hasta 30 s a que arranque el worker hijo, en vez de 10 s. El plazo solo aplica al arranque de la prueba; un worker que de verdad no llega sigue fallando.
 - #440: el borrado de Auth usa un lease de 5 minutos con `claimed_at`. Un proceso que cae después de reclamar deja la fila recuperable y el siguiente ciclo la reintenta; una fila sin `claimed_at` de un despliegue anterior también se recupera. El cierre exige el mismo intento y solo el worker que aún tiene el lease puede marcarla `COMPLETED`, `FAILED` o `DEAD`.
 - #439: cambiar la moneda base memoriza cada par moneda/fecha dentro de la petición, limita la concurrencia a lotes de 25 y amplía a 30 s el timeout de la petición y de la transacción. Antes de escribir, la transacción vuelve a leer la moneda configurada; si otra petición la cambió, responde 409 y no escribe nada.
