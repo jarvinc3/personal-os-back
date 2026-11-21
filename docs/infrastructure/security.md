@@ -16,4 +16,4 @@ Checklist verificable en `main.ts` + guards:
 - Cuentas: número cifrado con `DATA_ENCRYPTION_KEY` (AES-256-GCM) + hash HMAC para unicidad; la API solo expone `accountNumberLast4`. Ambas claves son independientes: rotar una no afecta a la otra.
 - Finance REST y tools: `EnabledModuleGuard` / `assertModuleEnabled`
 
-Límites de chat: throttle + `@Timeout(30000)` en `POST /ai/chat` y stream.
+Límites de chat: el throttle global (5 peticiones por segundo, 30 por 10 s y 100 por minuto, contadas por usuario o por IP en `CustomThrottlerGuard`) y el tope por defecto de 5 s de `TimeoutInterceptor`. `POST /api/intelligence/conversations` y `POST /api/intelligence/conversations/:id/messages` todavía no declaran su propio `@Timeout`, así que un turno largo corta a los 5 s: el tope real de esas rutas queda en el issue #466.
