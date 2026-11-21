@@ -105,6 +105,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #465: `multer` sube a 2.5.0, `follow-redirects` a 1.16.3 y `effect` a 3.22.5 con overrides de pnpm en `pnpm-workspace.yaml`, y el audit de dependencias de producción del CI deja de ser opcional: `pnpm audit --prod --audit-level=high` bloquea el job, así que una vulnerabilidad alta nueva no entra en verde. `pnpm audit --prod` queda sin altas (3 bajas y 5 moderadas, fuera de alcance).
 - #452: el controlador de la lista de conversaciones usa el `limit` que ya valida y completa el DTO de query, sin volver a recortarlo. Sin cambios de comportamiento, respuestas HTTP ni contrato.
 - #452: `GET /intelligence/conversations` pagina por cursor con `limit` de 1 a 100 (20 por defecto) y devuelve `{ items, nextCursor, hasMore }` en lugar del array completo, un cambio incompatible que la web adopta en personal-os-web#478. Mantiene el orden por última actualización descendente con desempate por id; el cursor codifica esa posición, así que una conversación nueva entre dos lecturas no repite ni salta filas de la tanda siguiente. La última página responde `hasMore: false` y `nextCursor: null`, y un cursor mal formado responde 400.
 - #446: la subida de logo de institución, comercio y suscripción responde `400` cuando el formato no es PNG, JPG o WEBP o pasa de 1 MB, y `503` cuando el storage no está configurado. Catálogo y Comercios dejan de convertir cualquier fallo en `400`, y el caso queda documentado en `docs/modules/logos/overview.md`.
