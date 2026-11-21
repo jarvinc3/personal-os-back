@@ -317,7 +317,16 @@ describe('Intelligence API (e2e)', () => {
       .get('/api/intelligence/conversations')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect(({ body }) => expect(body.data[0].messageCount).toBe(3));
+      .expect(({ body }) => {
+        expect(body.data.items[0].messageCount).toBe(3);
+        expect(body.data.hasMore).toBe(false);
+        expect(body.data.nextCursor).toBeNull();
+      });
+    expect(conversations.list).toHaveBeenCalledWith({
+      userId: 'user-123',
+      limit: 20,
+      after: null,
+    });
 
     const contextKey = 'a'.repeat(64);
     await request(app.getHttpServer())
@@ -424,6 +433,98 @@ describe('Intelligence API (e2e)', () => {
       .get('/api/ai/sessions')
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
+  });
+
+  it('pages the conversation history by cursor without repeating rows', async () => {
+    const newest = {
+      ...conversation,
+      id: 'conversation-3',
+      updatedAt: new Date('2026-11-03T10:00:00Z'),
+      _count: { messages: 2 },
+    };
+    const oldest = {
+      ...conversation,
+      id: 'conversation-1',
+      updatedAt: new Date('2026-11-01T10:00:00Z'),
+      _count: { messages: 3 },
+    };
+
+    conversations.list.mockResolvedValueOnce([newest, oldest]);
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/intelligence/conversations?limit=1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.items).toHaveLength(1);
+        expect(body.data.items[0]).toMatchObject({
+          id: 'conversation-3',
+          messageCount: 2,
+        });
+        expect(body.data.hasMore).toBe(true);
+        expect(typeof body.data.nextCursor).toBe('string');
+      });
+    expect(conversations.list).toHaveBeenCalledWith({
+      userId: 'user-123',
+      limit: 1,
+      after: null,
+    });
+
+    const nextCursor = firstPage.body.data.nextCursor as string;
+    conversations.list.mockResolvedValueOnce([oldest]);
+    await request(app.getHttpServer())
+      .get(`/api/intelligence/conversations?limit=1&cursor=${nextCursor}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.items).toHaveLength(1);
+        expect(body.data.items[0].id).toBe('conversation-1');
+        expect(body.data.hasMore).toBe(false);
+        expect(body.data.nextCursor).toBeNull();
+      });
+    expect(conversations.list).toHaveBeenLastCalledWith({
+      userId: 'user-123',
+      limit: 1,
+      after: { updatedAt: newest.updatedAt, id: 'conversation-3' },
+    });
+
+    conversations.list.mockResolvedValueOnce([]);
+    await request(app.getHttpServer())
+      .get('/api/intelligence/conversations')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data).toEqual({
+          items: [],
+          nextCursor: null,
+          hasMore: false,
+        });
+      });
+    expect(conversations.list).toHaveBeenLastCalledWith({
+      userId: 'user-123',
+      limit: 20,
+      after: null,
+    });
+  });
+
+  it('rejects an invalid conversation cursor or page size', async () => {
+    const forgedKey = Buffer.from(
+      JSON.stringify({ key: 'sin fecha', id: 'conversation-1' }),
+    ).toString('base64url');
+
+    for (const query of [
+      '?cursor=no-es-base64',
+      `?cursor=${forgedKey}`,
+      '?limit=0',
+      '?limit=101',
+      '?limit=abc',
+    ]) {
+      await request(app.getHttpServer())
+        .get(`/api/intelligence/conversations${query}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+    }
+
+    expect(conversations.list).not.toHaveBeenCalled();
   });
 
   it('lists own actions and exposes confirmation and cancellation routes', async () => {
@@ -908,6 +1009,36 @@ describe('Intelligence API (e2e)', () => {
     expect(
       document.paths?.['/api/intelligence/conversations']?.get,
     ).toBeDefined();
+    const conversationList = document.paths?.['/api/intelligence/conversations']
+      ?.get as {
+      parameters?: Array<{ name: string; schema?: Record<string, unknown> }>;
+      responses?: Record<string, { content?: Record<string, unknown> }>;
+    };
+    const conversationListParameter = (name: string) =>
+      (conversationList.parameters ?? []).find(
+        (parameter) => parameter.name === name,
+      );
+    expect(conversationListParameter('cursor')?.schema).toMatchObject({
+      type: 'string',
+    });
+    expect(conversationListParameter('limit')?.schema).toMatchObject({
+      type: 'integer',
+      minimum: 1,
+      maximum: 100,
+      default: 20,
+    });
+    expect(
+      conversationList.responses?.['200']?.content?.['application/json'],
+    ).toMatchObject({
+      schema: { $ref: '#/components/schemas/AiConversationPageDto' },
+    });
+    expect(document.components?.schemas?.AiConversationPageDto).toMatchObject({
+      properties: {
+        items: { type: 'array' },
+        nextCursor: { type: 'string', nullable: true },
+        hasMore: { type: 'boolean' },
+      },
+    });
     expect(document.paths?.['/api/intelligence/actions']?.get).toBeDefined();
     expect(
       document.paths?.['/api/intelligence/actions/{actionId}/confirm']?.post,
