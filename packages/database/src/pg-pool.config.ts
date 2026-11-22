@@ -59,6 +59,7 @@ export function poolConfigForPostgresUrl(
       ssl: sslConfig,
     };
   } catch {
+    // `pg` acepta formatos de conexión que `URL` no; conserva el string original.
     return {
       connectionString,
       ssl: sslConfig,
