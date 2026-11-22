@@ -165,7 +165,8 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     upsertUserModule,
     findById,
   } as unknown as UsersRepositoryPort;
-  const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
+  const emit = jest.fn();
+  const eventEmitter = { emit } as unknown as EventEmitter2;
   const supabaseAdminService = {} as unknown as SupabaseAdminService;
   const service = new UsersService(
     usersRepository,
@@ -204,6 +205,31 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(upsertUserModule).not.toHaveBeenCalled();
+  });
+
+  it('creates the module disabled when the first save keeps it off', async () => {
+    findModuleBySlug.mockResolvedValue({ id: 'mod-agenda' });
+    findUserModule.mockResolvedValue(null);
+
+    await service.updateModuleConfig('user-1', 'agenda', {
+      config: { defaultView: 'week' },
+      isEnabled: false,
+    });
+
+    expect(upsertUserModule).toHaveBeenCalledWith({
+      userId: 'user-1',
+      moduleId: 'mod-agenda',
+      config: { defaultView: 'week' },
+      isEnabled: false,
+    });
+    expect(emit).toHaveBeenCalledWith(AppEvents.MODULE_CONFIG_UPDATED, {
+      userId: 'user-1',
+      slug: 'agenda',
+    });
+    expect(emit).not.toHaveBeenCalledWith(
+      AppEvents.MODULE_ENABLED,
+      expect.anything(),
+    );
   });
 
   it('validates AI module settings through the registered descriptor before saving', async () => {
