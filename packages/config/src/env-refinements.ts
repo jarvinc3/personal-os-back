@@ -1,7 +1,6 @@
 import { z } from 'zod';
+import type { NodeEnvironment } from './env-helpers';
 import { parseCorsOriginPatterns } from './cors-origins';
-
-export type NodeEnvironment = 'development' | 'production' | 'test';
 
 type GmailSettings = {
   gmailConfigured: boolean;
