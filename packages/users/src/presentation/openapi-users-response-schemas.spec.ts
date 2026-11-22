@@ -47,10 +47,14 @@ function successSchema({
   method,
 }: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
-  return (
-    operation?.responses?.['200']?.content?.['application/json']?.schema ??
-    operation?.responses?.['201']?.content?.['application/json']?.schema
-  );
+  for (const status of ['200', '201']) {
+    const schema =
+      operation?.responses?.[status]?.content?.['application/json']?.schema;
+    if (schema) {
+      return schema;
+    }
+  }
+  return undefined;
 }
 
 describe('OpenAPI response schemas of the users profile', () => {

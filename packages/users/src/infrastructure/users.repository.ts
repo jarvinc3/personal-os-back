@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import type { AuthDeletionOutboxStatus, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type {
+  FailAuthDeletionInput,
   ModuleSettingsDefaults,
+  UpsertUserModuleInput,
   UsersRepositoryPort,
 } from '../application/ports/users.repository.port';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
@@ -109,12 +111,15 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
-  upsertUserModule(
-    userId: string,
-    moduleId: string,
-    config: Record<string, unknown>,
+  upsertUserModule({
+    userId,
+    moduleId,
+    config,
     isEnabled = true,
-  ) {
+  }: UpsertUserModuleInput) {
+    // Prisma stores the module config as a JSON column; the registry already
+    // produced a JSON-safe object.
+    const jsonConfig = config as Prisma.InputJsonValue;
     return this.prisma.userModule.upsert({
       where: {
         userId_moduleId: { userId, moduleId },
@@ -123,11 +128,11 @@ export class UsersRepository implements UsersRepositoryPort {
         userId,
         moduleId,
         isEnabled,
-        config: config as Prisma.InputJsonValue,
+        config: jsonConfig,
       },
       update: {
         isEnabled,
-        config: config as Prisma.InputJsonValue,
+        config: jsonConfig,
       },
       include: {
         module: true,
@@ -304,13 +309,13 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
-  async failAuthDeletion(
-    id: string,
-    attempts: number,
-    lastError: string,
-    nextAttemptAt: Date,
-    terminal: boolean,
-  ) {
+  async failAuthDeletion({
+    id,
+    attempts,
+    lastError,
+    nextAttemptAt,
+    terminal,
+  }: FailAuthDeletionInput) {
     return this.prisma.authDeletionOutbox.updateMany({
       where: { id, status: 'IN_PROGRESS', attempts },
       data: {

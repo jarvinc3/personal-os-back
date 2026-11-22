@@ -13,8 +13,27 @@ export type ParseUserPreferencesOptions = {
   locale: string;
 };
 
+const DEFAULTS = GLOBAL_USER_PREFERENCES_DEFAULTS;
+
 function isAiTone(value: unknown): value is AiTone {
   return value === 'concise' || value === 'balanced' || value === 'detailed';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+/** A stored boolean wins; any other stored type falls back to the default. */
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function readString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
 }
 
 function readStoredWeekStartsOn(value: unknown): WeekStartsOn | null {
@@ -33,32 +52,20 @@ export function parseUserPreferences(
   raw: unknown,
   options: ParseUserPreferencesOptions,
 ): ParsedUserPreferences {
-  const merged = mergeWithDefaults(
+  const merged = mergeWithDefaults<Record<string, unknown>>(
     typeof raw === 'object' && raw !== null ? raw : {},
-    GLOBAL_USER_PREFERENCES_DEFAULTS as unknown as Record<string, unknown>,
-  ) as {
-    regional: Record<string, unknown>;
-    ai: Record<string, unknown>;
-    notifications: Record<string, unknown>;
-  };
+    DEFAULTS,
+  );
 
-  const regionalRaw = merged.regional ?? {};
+  const regionalRaw = asRecord(merged.regional);
+  const aiRaw = asRecord(merged.ai);
+  const notifRaw = asRecord(merged.notifications);
+  const channelsRaw = asRecord(notifRaw.channels);
+  const quietRaw = asRecord(notifRaw.quietHours);
+
   const storedWeekStartsOn = readStoredWeekStartsOn(regionalRaw.weekStartsOn);
-
-  const aiRaw = merged.ai ?? {};
-  const notifRaw = merged.notifications ?? {};
-  const channelsRaw =
-    typeof notifRaw.channels === 'object' && notifRaw.channels !== null
-      ? (notifRaw.channels as Record<string, unknown>)
-      : {};
-  const quietRaw =
-    typeof notifRaw.quietHours === 'object' && notifRaw.quietHours !== null
-      ? (notifRaw.quietHours as Record<string, unknown>)
-      : {};
-
-  const tone = isAiTone(aiRaw.tone)
-    ? aiRaw.tone
-    : GLOBAL_USER_PREFERENCES_DEFAULTS.ai.tone;
+  const storedProvider = aiRaw.defaultProvider;
+  const storedTimezone = quietRaw.timezone;
 
   return {
     regional: {
@@ -66,56 +73,52 @@ export function parseUserPreferences(
         storedWeekStartsOn ?? weekStartsOnFromLocale(options.locale),
     },
     ai: {
-      tone,
-      proactiveInsights:
-        typeof aiRaw.proactiveInsights === 'boolean'
-          ? aiRaw.proactiveInsights
-          : GLOBAL_USER_PREFERENCES_DEFAULTS.ai.proactiveInsights,
-      confirmBeforeActions:
-        typeof aiRaw.confirmBeforeActions === 'boolean'
-          ? aiRaw.confirmBeforeActions
-          : GLOBAL_USER_PREFERENCES_DEFAULTS.ai.confirmBeforeActions,
+      tone: isAiTone(aiRaw.tone) ? aiRaw.tone : DEFAULTS.ai.tone,
+      proactiveInsights: readBoolean(
+        aiRaw.proactiveInsights,
+        DEFAULTS.ai.proactiveInsights,
+      ),
+      confirmBeforeActions: readBoolean(
+        aiRaw.confirmBeforeActions,
+        DEFAULTS.ai.confirmBeforeActions,
+      ),
+      // A stored null means "use the automatic provider"; any other type is
+      // ignored in favor of the default.
       defaultProvider:
-        typeof aiRaw.defaultProvider === 'string'
-          ? aiRaw.defaultProvider
-          : aiRaw.defaultProvider === null
-            ? null
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.ai.defaultProvider,
+        typeof storedProvider === 'string' || storedProvider === null
+          ? storedProvider
+          : DEFAULTS.ai.defaultProvider,
     },
     notifications: {
       channels: {
-        push:
-          typeof channelsRaw.push === 'boolean'
-            ? channelsRaw.push
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.channels.push,
-        email:
-          typeof channelsRaw.email === 'boolean'
-            ? channelsRaw.email
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.channels.email,
-        inApp:
-          typeof channelsRaw.inApp === 'boolean'
-            ? channelsRaw.inApp
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.channels.inApp,
+        push: readBoolean(
+          channelsRaw.push,
+          DEFAULTS.notifications.channels.push,
+        ),
+        email: readBoolean(
+          channelsRaw.email,
+          DEFAULTS.notifications.channels.email,
+        ),
+        inApp: readBoolean(
+          channelsRaw.inApp,
+          DEFAULTS.notifications.channels.inApp,
+        ),
       },
       quietHours: {
-        enabled:
-          typeof quietRaw.enabled === 'boolean'
-            ? quietRaw.enabled
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours.enabled,
-        start:
-          typeof quietRaw.start === 'string'
-            ? quietRaw.start
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours.start,
-        end:
-          typeof quietRaw.end === 'string'
-            ? quietRaw.end
-            : GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours.end,
+        enabled: readBoolean(
+          quietRaw.enabled,
+          DEFAULTS.notifications.quietHours.enabled,
+        ),
+        start: readString(
+          quietRaw.start,
+          DEFAULTS.notifications.quietHours.start,
+        ),
+        end: readString(quietRaw.end, DEFAULTS.notifications.quietHours.end),
+        // A stored zone wins; otherwise the request zone, then the default.
         timezone:
-          typeof quietRaw.timezone === 'string'
-            ? quietRaw.timezone
-            : (options.timezone ??
-              GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours
-                .timezone),
+          typeof storedTimezone === 'string'
+            ? storedTimezone
+            : (options.timezone ?? DEFAULTS.notifications.quietHours.timezone),
       },
     },
   };

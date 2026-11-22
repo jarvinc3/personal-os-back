@@ -70,13 +70,13 @@ describe('AuthDeletionOutboxProcessor', () => {
 
     await processor.processBatch();
 
-    expect(failAuthDeletion).toHaveBeenCalledWith(
-      'oob-2',
-      1,
-      'rate limited',
-      expect.any(Date),
-      false,
-    );
+    expect(failAuthDeletion).toHaveBeenCalledWith({
+      id: 'oob-2',
+      attempts: 1,
+      lastError: 'rate limited',
+      nextAttemptAt: expect.any(Date),
+      terminal: false,
+    });
   });
 
   it('marks DEAD on non-retryable failure', async () => {
@@ -95,13 +95,13 @@ describe('AuthDeletionOutboxProcessor', () => {
 
     await processor.processBatch();
 
-    expect(failAuthDeletion).toHaveBeenCalledWith(
-      'oob-4',
-      1,
-      'forbidden',
-      expect.any(Date),
-      true,
-    );
+    expect(failAuthDeletion).toHaveBeenCalledWith({
+      id: 'oob-4',
+      attempts: 1,
+      lastError: 'forbidden',
+      nextAttemptAt: expect.any(Date),
+      terminal: true,
+    });
   });
 
   it('marks DEAD after max attempts', async () => {
@@ -120,13 +120,13 @@ describe('AuthDeletionOutboxProcessor', () => {
 
     await processor.processBatch();
 
-    expect(failAuthDeletion).toHaveBeenCalledWith(
-      'oob-3',
-      8,
-      'still failing',
-      expect.any(Date),
-      true,
-    );
+    expect(failAuthDeletion).toHaveBeenCalledWith({
+      id: 'oob-3',
+      attempts: 8,
+      lastError: 'still failing',
+      nextAttemptAt: expect.any(Date),
+      terminal: true,
+    });
   });
 
   it('no cierra la fila si perdió el lease', async () => {

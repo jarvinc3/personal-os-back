@@ -106,13 +106,13 @@ describe('UsersRepository.claimNextAuthDeletion', () => {
     authDeletionOutbox.updateMany.mockResolvedValue({ count: 1 });
     const nextAttemptAt = new Date('2026-11-21T00:00:00.000Z');
 
-    await repository.failAuthDeletion(
-      'oob-1',
-      3,
-      'provider down',
+    await repository.failAuthDeletion({
+      id: 'oob-1',
+      attempts: 3,
+      lastError: 'provider down',
       nextAttemptAt,
-      false,
-    );
+      terminal: false,
+    });
 
     expect(authDeletionOutbox.updateMany).toHaveBeenCalledWith({
       where: { id: 'oob-1', status: 'IN_PROGRESS', attempts: 3 },
