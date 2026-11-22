@@ -14,27 +14,35 @@ export function parseStrictEnvBoolean(
     return value;
   }
   if (typeof value === 'number') {
-    if (value === 1) {
-      return true;
-    }
-    if (value === 0) {
-      return false;
-    }
-    throw new Error(
-      `${fieldName} must be true/false/1/0, received number ${value}`,
-    );
+    return booleanFromNumber(value, fieldName);
   }
   if (typeof value === 'string') {
-    const normalized = value.trim().toLowerCase();
-    if (normalized === 'true' || normalized === '1') {
-      return true;
-    }
-    if (normalized === 'false' || normalized === '0') {
-      return false;
-    }
-    throw new Error(`${fieldName} must be true/false/1/0, received "${value}"`);
+    return booleanFromString(value, fieldName);
   }
   throw new Error(
     `${fieldName} must be true/false/1/0, received ${typeof value}`,
   );
+}
+
+function booleanFromNumber(value: number, fieldName: string): boolean {
+  if (value === 1) {
+    return true;
+  }
+  if (value === 0) {
+    return false;
+  }
+  throw new Error(
+    `${fieldName} must be true/false/1/0, received number ${value}`,
+  );
+}
+
+function booleanFromString(value: string, fieldName: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'true' || normalized === '1') {
+    return true;
+  }
+  if (normalized === 'false' || normalized === '0') {
+    return false;
+  }
+  throw new Error(`${fieldName} must be true/false/1/0, received "${value}"`);
 }

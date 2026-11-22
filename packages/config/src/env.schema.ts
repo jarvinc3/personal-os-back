@@ -1,68 +1,21 @@
 import { z } from 'zod';
-import { parseCorsOriginPatterns } from './cors-origins';
-import { parseStrictEnvBoolean } from './parse-env-boolean';
-
-const optionalApiKey = z
-  .string()
-  .optional()
-  .transform((value) => {
-    const trimmed = value?.trim();
-    if (!trimmed || trimmed.startsWith('YOUR_')) {
-      return undefined;
-    }
-    return trimmed;
-  });
-
-/** Positive integer env value; a blank string falls back to the default. */
-const defaultedPositiveInt = (defaultValue: number) =>
-  z.preprocess(
-    (value) =>
-      typeof value === 'string' && value.trim() === '' ? undefined : value,
-    z.coerce.number().int().positive().default(defaultValue),
-  );
-
-/** true/false/1/0 only — never treat the string "false" as true. */
-const optionalStrictBoolean = z
-  .unknown()
-  .optional()
-  .transform((value, ctx) => {
-    try {
-      return parseStrictEnvBoolean(value, 'DATABASE_SSL_REJECT_UNAUTHORIZED');
-    } catch (error) {
-      ctx.addIssue({
-        code: 'custom',
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Invalid boolean environment value',
-      });
-      return z.NEVER;
-    }
-  });
-
-/**
- * Dominios bancarios que el piloto deja llegar al modelo. Son el valor por
- * defecto de `AI_EMAIL_BANK_SENDER_DOMAINS`; los subdominios se aceptan.
- *
- * Popular envía desde `popularenlinea.com` (no desde `popular.com.do`) y Qik
- * desde `mail.qik.com.do`, que cuelga de `qik.com.do`.
- */
-const DEFAULT_BANK_SENDER_DOMAINS = [
-  'bhd.com.do',
-  'popular.com.do',
-  'popularenlinea.com',
-  'qik.do',
-  'qik.com.do',
-  'banreservas.com',
-  'scotiabank.com.do',
-  'bancosantacruz.com.do',
-  'bancolopezdeharo.com',
-  'vimenca.com',
-  'bancocaribe.com.do',
-  'promerica.com.do',
-  'bdi.com.do',
-  'alaver.com.do',
-].join(',');
+import {
+  DEFAULT_BANK_SENDER_DOMAINS,
+  defaultedPositiveInt,
+  defaultedStrictBoolean,
+  optionalApiKey,
+  optionalStrictBoolean,
+} from './env-helpers';
+import {
+  checkAiProviderKey,
+  checkBullBoardCredentials,
+  checkCorsOriginPatterns,
+  checkGmailEncryptionKey,
+  checkOAuthKeysDiffer,
+  checkOAuthStateSecret,
+  requireEmailDeliveryDependencies,
+  requireRedisInProduction,
+} from './env-refinements';
 
 export const envSchema = z
   .object({
@@ -316,25 +269,10 @@ export const envSchema = z
       }),
 
     // ── Email delivery (Resend) ──────────────────────────────────
-    EMAIL_DELIVERY_ENABLED: z
-      .unknown()
-      .optional()
-      .transform((value, ctx) => {
-        try {
-          return (
-            parseStrictEnvBoolean(value, 'EMAIL_DELIVERY_ENABLED') ?? false
-          );
-        } catch (error) {
-          ctx.addIssue({
-            code: 'custom',
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Invalid boolean environment value',
-          });
-          return z.NEVER;
-        }
-      }),
+    EMAIL_DELIVERY_ENABLED: defaultedStrictBoolean(
+      'EMAIL_DELIVERY_ENABLED',
+      false,
+    ),
     RESEND_API_KEY: optionalApiKey,
     MAIL_FROM: z
       .string()
@@ -345,122 +283,61 @@ export const envSchema = z
       }),
   })
   .superRefine((data, ctx) => {
-    if (data.CORS_ORIGIN_PATTERNS) {
-      if (data.NODE_ENV === 'production') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'CORS_ORIGIN_PATTERNS is not allowed in production',
-          path: ['CORS_ORIGIN_PATTERNS'],
-        });
-      } else {
-        try {
-          parseCorsOriginPatterns(data.CORS_ORIGIN_PATTERNS);
-        } catch (error) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Invalid CORS_ORIGIN_PATTERNS',
-            path: ['CORS_ORIGIN_PATTERNS'],
-          });
-        }
-      }
-    }
+    const gmailConfigured =
+      Boolean(data.AI_GMAIL_CLIENT_ID) ||
+      Boolean(data.AI_GMAIL_CLIENT_SECRET) ||
+      Boolean(data.AI_GMAIL_REDIRECT_URI);
 
-    if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'REDIS_URL is required in production (BullMQ job queues)',
-        path: ['REDIS_URL'],
-      });
-    }
-
-    const hasBullBoardUser = data.BULL_BOARD_USER !== undefined;
-    const hasBullBoardPassword = data.BULL_BOARD_PASSWORD !== undefined;
-    if (hasBullBoardUser !== hasBullBoardPassword) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'BULL_BOARD_USER and BULL_BOARD_PASSWORD must both be set or both omitted',
-        path: hasBullBoardUser ? ['BULL_BOARD_PASSWORD'] : ['BULL_BOARD_USER'],
-      });
-    }
-
-    if (data.EMAIL_DELIVERY_ENABLED) {
-      if (!data.RESEND_API_KEY) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            'RESEND_API_KEY is required when EMAIL_DELIVERY_ENABLED=true',
-          path: ['RESEND_API_KEY'],
-        });
-      }
-      if (!data.MAIL_FROM) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'MAIL_FROM is required when EMAIL_DELIVERY_ENABLED=true',
-          path: ['MAIL_FROM'],
-        });
-      }
-    }
-
-    if (
-      (data.AI_GMAIL_CLIENT_ID ||
-        data.AI_GMAIL_CLIENT_SECRET ||
-        data.AI_GMAIL_REDIRECT_URI) &&
-      !data.AI_GMAIL_TOKEN_ENCRYPTION_KEY
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'AI_GMAIL_TOKEN_ENCRYPTION_KEY is required when Gmail OAuth is configured',
-        path: ['AI_GMAIL_TOKEN_ENCRYPTION_KEY'],
-      });
-    }
-
-    const gmailOAuthConfigured = Boolean(
-      data.AI_GMAIL_CLIENT_ID ||
-      data.AI_GMAIL_CLIENT_SECRET ||
-      data.AI_GMAIL_REDIRECT_URI,
+    checkCorsOriginPatterns(
+      { nodeEnv: data.NODE_ENV, patterns: data.CORS_ORIGIN_PATTERNS },
+      ctx,
     );
-    if (
-      (data.NODE_ENV === 'production' || gmailOAuthConfigured) &&
-      !data.OAUTH_STATE_SECRET
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'OAUTH_STATE_SECRET is required in production and when Gmail OAuth is configured',
-        path: ['OAUTH_STATE_SECRET'],
-      });
-    }
-    if (
-      data.OAUTH_STATE_SECRET &&
-      data.AI_GMAIL_TOKEN_ENCRYPTION_KEY &&
-      data.OAUTH_STATE_SECRET === data.AI_GMAIL_TOKEN_ENCRYPTION_KEY
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'OAUTH_STATE_SECRET must differ from AI_GMAIL_TOKEN_ENCRYPTION_KEY',
-        path: ['OAUTH_STATE_SECRET'],
-      });
-    }
-
-    // AI provider keys are optional under NODE_ENV=test (CI / e2e).
-    if (data.NODE_ENV === 'test') {
-      return;
-    }
-
-    if (!data.GROQ_API_KEY && !data.OPENROUTER_API_KEY) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'At least one AI provider key is required (GROQ_API_KEY or OPENROUTER_API_KEY)',
-        path: ['GROQ_API_KEY'],
-      });
-    }
+    requireRedisInProduction(
+      { nodeEnv: data.NODE_ENV, redisUrl: data.REDIS_URL },
+      ctx,
+    );
+    checkBullBoardCredentials(
+      { user: data.BULL_BOARD_USER, password: data.BULL_BOARD_PASSWORD },
+      ctx,
+    );
+    requireEmailDeliveryDependencies(
+      {
+        enabled: data.EMAIL_DELIVERY_ENABLED,
+        resendApiKey: data.RESEND_API_KEY,
+        mailFrom: data.MAIL_FROM,
+      },
+      ctx,
+    );
+    checkGmailEncryptionKey(
+      {
+        gmailConfigured,
+        tokenKey: data.AI_GMAIL_TOKEN_ENCRYPTION_KEY,
+      },
+      ctx,
+    );
+    checkOAuthStateSecret(
+      {
+        nodeEnv: data.NODE_ENV,
+        gmailConfigured,
+        stateSecret: data.OAUTH_STATE_SECRET,
+      },
+      ctx,
+    );
+    checkOAuthKeysDiffer(
+      {
+        stateSecret: data.OAUTH_STATE_SECRET,
+        tokenKey: data.AI_GMAIL_TOKEN_ENCRYPTION_KEY,
+      },
+      ctx,
+    );
+    checkAiProviderKey(
+      {
+        nodeEnv: data.NODE_ENV,
+        groqKey: data.GROQ_API_KEY,
+        openrouterKey: data.OPENROUTER_API_KEY,
+      },
+      ctx,
+    );
   });
 
 export type Env = z.infer<typeof envSchema>;
