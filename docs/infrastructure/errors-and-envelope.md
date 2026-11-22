@@ -35,7 +35,7 @@ Módulo finance deshabilitado: **403** `Finance module is disabled` (no 404).
 - Misma clave + otra ruta o cuerpo → **409**.
 - Clave en curso → **409**.
 - El handler falla → la clave se libera y el reintento puede correr.
-- La petición agota el tiempo de espera → la clave **no** se libera: el trabajo puede seguir vivo y un reintento duplicaría el encolado. `POST /api/finance/email-sync/sources/:id/sync` es el caso: el timeout de 8 s corta la respuesta, pero el job de BullMQ ya puede estar encolado.
+- La petición agota el tiempo de espera de `TimeoutInterceptor` → la clave **no** se libera: el handler puede seguir corriendo y un reintento duplicaría el trabajo. `POST /api/intelligence/email/sample-import` es el caso: guarda el trabajo y lo encola en `ai-email-sample-import` antes de responder `202`, así que si la respuesta se corta el trabajo ya está encolado y repetir con la misma clave responde **409** en vez de encolar otro.
 
 Las claves vencidas se borran a diario por lotes (`IdempotencyKeyRetentionScheduler`, 03:00).
 
