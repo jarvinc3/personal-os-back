@@ -29,6 +29,7 @@ import {
   decodeCursor,
   DEFAULT_PAGE_LIMIT,
   MAX_PAGE_LIMIT,
+  Timeout,
   toCursorPage,
 } from '@personal-os/core';
 import {
@@ -51,6 +52,14 @@ import {
   AiConversationLatestDto,
   LatestAiConversationQueryDto,
 } from './dto/ai-conversation.dto';
+
+/**
+ * Un turno hace hasta cuatro rondas de herramientas, así que el límite global
+ * de 5 s cortaría la respuesta con el trabajo a medias. Al agotarse el tope el
+ * mensaje del usuario ya está guardado: repetir su `clientMessageId` devuelve
+ * la respuesta si terminó o retoma el turno.
+ */
+const AGENT_TIMEOUT_MS = 30_000;
 
 function isVisibleMessage(role: string): role is 'user' | 'assistant' {
   return role === 'user' || role === 'assistant';
@@ -108,6 +117,7 @@ export class AiConversationController {
   ) {}
 
   @Post()
+  @Timeout(AGENT_TIMEOUT_MS)
   @ApiOperation({ summary: 'Crear una conversación privada del agente' })
   @ApiCreatedResponse({ type: AiConversationCreatedDto })
   @ApiBadRequestResponse({
@@ -195,6 +205,7 @@ export class AiConversationController {
   }
 
   @Post(':conversationId/messages')
+  @Timeout(AGENT_TIMEOUT_MS)
   @ApiOperation({
     summary:
       'Enviar un mensaje, ejecutar capacidades y responder JSON o text/event-stream',

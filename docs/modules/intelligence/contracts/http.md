@@ -332,6 +332,8 @@ Todas las rutas requieren JWT y operan con el `userId` autenticado. Una conversa
 
 Con `stream: true` la misma ruta responde `text/event-stream` (200) y emite `start`, `status`, `chunk`, `reset`, `done` y `error`. `done` lleva `conversationId`, `answer`, `provider`, `model` y `actions`. Un `reset` limpia el texto parcial cuando una herramienta cambia el rumbo de la respuesta. El `clientMessageId` es un UUID por turno: repetirlo con el mismo contenido reutiliza el mensaje del usuario y devuelve la respuesta guardada si ya existe; con otro contenido responde 409. Los mensajes internos de herramientas se guardan al cerrar el turno, no durante el flujo.
 
+Las dos rutas de escritura del agente declaran un tope de 30 s, porque un turno hace hasta cuatro rondas de herramientas. `POST /conversations` no llama al modelo: valida el contexto y crea la fila dentro del mismo tope. Un turno que agote los 30 s responde 408 `Request timed out after 30000ms`; con `stream: true` la conexión se corta sin `done` y el cliente recibe el flujo incompleto. En ambos casos el mensaje del usuario ya está guardado: repetir su `clientMessageId` devuelve la respuesta si el turno terminó o lo retoma desde ahí.
+
 El runtime ofrece herramientas `READ` y `WRITE`. `finance_monthly_summary` recibe `month` en formato `AAAA-MM`, calcula el intervalo con la zona horaria del usuario y usa el analizador financiero del dominio para devolver ingresos, gastos, flujo neto y moneda base confirmados. Los montos son cadenas decimales. Si Finance está desactivado, el runtime entrega un error de capacidad sanitizado al modelo y puede continuar la conversación. Cada `WRITE` requiere política AI-10; el endpoint de mensaje devuelve `actions` con la propuesta, su política, estado y payload para mostrar la confirmación al usuario.
 
 `ai_conversations` y `ai_conversation_messages` son privados por usuario, tienen RLS habilitado y revocan acceso a `anon`, `authenticated` y `PUBLIC`. Los datos completos persisten hasta un borrado explícito del usuario o de la cuenta; no hay purga automática en AI-9. La exportación AI los incluye y la rama de borrado correspondiente es `ai.conversations`.
@@ -348,6 +350,8 @@ Todas las rutas requieren JWT y operan con el `userId` autenticado. La vista se 
 | `DELETE` | `/api/intelligence/view-suggestions/:suggestionId`             | Descarta la sugerencia propia de forma persistente y cancela su acción pendiente; devuelve `{ "dismissed": true }`. Responde 404 si la sugerencia es de otro usuario o no existe.                                                      |
 
 El descarte es por usuario, vista y sugerencia: no oculta las sugerencias de otra vista ni afecta a otro usuario. El recurso no reutiliza `review-queue`, `knowledge` ni `signals`. Comportamiento y límites: [view-suggestions.md](../capabilities/view-suggestions.md).
+
+`GET /view-suggestions` declara un tope de 30 s, porque genera con el modelo cuando la caché venció. A diferencia de una respuesta sin modelo o sin presupuesto, un tope agotado responde 408 y no la lista vacía.
 
 # Acciones (AI-10)
 
