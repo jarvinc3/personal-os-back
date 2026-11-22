@@ -13,11 +13,13 @@ describe('HealthController', () => {
   const health = {
     check: jest.fn(),
   } as unknown as HealthCheckService;
+  const prismaPingCheck = jest.fn();
   const prismaIndicator = {
-    pingCheck: jest.fn(),
+    pingCheck: prismaPingCheck,
   } as unknown as PrismaHealthIndicator;
+  const httpPingCheck = jest.fn();
   const http = {
-    pingCheck: jest.fn(),
+    pingCheck: httpPingCheck,
   } as unknown as HttpHealthIndicator;
   const prismaService = {} as PrismaService;
   const redisHealthIndicator = {
@@ -29,20 +31,33 @@ describe('HealthController', () => {
     get: jest.fn(),
   } as unknown as ConfigService;
 
-  const controller = new HealthController(
-    health,
-    prismaIndicator,
-    http,
-    prismaService,
-    redisHealthIndicator,
-    configService as unknown as ConfigService<never, true>,
-  );
+  let controller: HealthController;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    redisHealthIndicator.isEnabled = jest.fn().mockReturnValue(false);
+    jest.useRealTimers();
+    (redisHealthIndicator.isEnabled as jest.Mock).mockReturnValue(false);
+    httpPingCheck.mockResolvedValue({
+      jwks: { status: 'up' },
+    });
+    (health.check as jest.Mock).mockImplementation(
+      async (indicators: Array<() => Promise<unknown>>) => {
+        for (const indicator of indicators) {
+          await indicator();
+        }
+        return { status: 'ok' };
+      },
+    );
     (configService.getOrThrow as jest.Mock).mockReturnValue(
       'https://example.supabase.co',
+    );
+    controller = new HealthController(
+      health,
+      prismaIndicator,
+      http,
+      prismaService,
+      redisHealthIndicator,
+      configService as unknown as ConfigService<never, true>,
     );
   });
 
@@ -75,6 +90,38 @@ describe('HealthController', () => {
       status: 'ok',
       timestamp: expect.any(String),
     });
+  });
+
+  it('readiness does not depend on JWKS', async () => {
+    await controller.readiness();
+
+    expect(prismaPingCheck).toHaveBeenCalledWith('database', prismaService);
+    expect(httpPingCheck).not.toHaveBeenCalled();
+  });
+
+  it('startup pings JWKS with a bounded timeout', async () => {
+    await controller.startup();
+
+    expect(httpPingCheck).toHaveBeenCalledWith(
+      'jwks',
+      'https://example.supabase.co/auth/v1/.well-known/jwks.json',
+      { timeout: 2_000 },
+    );
+  });
+
+  it('startup reuses the JWKS result for a minute and retries after it', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-11-21T00:00:00Z'));
+
+    await controller.startup();
+    await controller.startup();
+    expect(httpPingCheck).toHaveBeenCalledTimes(1);
+
+    jest.setSystemTime(new Date('2026-11-21T00:01:01Z'));
+    await controller.startup();
+    expect(httpPingCheck).toHaveBeenCalledTimes(2);
+
+    jest.useRealTimers();
   });
 
   it('readiness throws ServiceUnavailableException without dependency details', async () => {
