@@ -11,6 +11,7 @@ import { EntitiesController } from '../../entities/presentation/entities.control
 import { ChangeBaseCurrencyUseCase } from '../../fx/application/change-base-currency.use-case';
 import { GetExchangeRatesUseCase } from '../../fx/application/get-exchange-rates.use-case';
 import { ExchangeRateHostAdapter } from '../../fx/infrastructure/exchange-rate-host.adapter';
+import { MAX_EXCHANGE_RATE_QUOTES } from '../../fx/presentation/dto/exchange-rates-query.dto';
 import { CurrenciesController } from '../../fx/presentation/currencies.controller';
 import { MerchantsService } from '../../merchants/application/merchants.service';
 import { MerchantsController } from '../../merchants/presentation/merchants.controller';
@@ -22,12 +23,19 @@ import { RecycleBinService } from '../../shared/application/recycle-bin.service'
 import { RecycleBinController } from '../../shared/presentation/recycle-bin.controller';
 
 type OperationObject = {
+  parameters?: ParameterObject[];
   responses?: Record<
     string,
     {
       content?: Record<string, { schema?: Record<string, unknown> }>;
     }
   >;
+};
+
+type ParameterObject = {
+  name?: string;
+  in?: string;
+  schema?: Record<string, unknown>;
 };
 
 type OpenApiDocument = {
@@ -215,6 +223,17 @@ describe('OpenAPI response schemas of the finance catalog and analytics', () => 
     expect(schema.type).toBe('array');
     expect(schema.items?.oneOf).toHaveLength(10);
     expect(schema.items?.nullable).toBe(true);
+  });
+
+  it('publishes the quotes limit of the exchange rates', () => {
+    const quotes = document.paths[
+      '/api/finance/exchange-rates'
+    ]?.get?.parameters?.find((parameter) => parameter.name === 'quotes');
+
+    expect(quotes?.schema).toMatchObject({
+      type: 'array',
+      maxItems: MAX_EXCHANGE_RATE_QUOTES,
+    });
   });
 
   it('publishes the recycle-bin types and the category response', () => {

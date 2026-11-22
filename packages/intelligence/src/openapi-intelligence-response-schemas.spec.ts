@@ -4,6 +4,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Test } from '@nestjs/testing';
 import { AiConsentService } from './consent/ai-consent.service';
 import { AiConsentController } from './consent/ai-consent.controller';
+import { AiConversationStore } from './conversations/application/ai-conversation.store';
+import { AiOrchestrator } from './conversations/application/ai.orchestrator';
+import { AiConversationController } from './conversations/presentation/ai-conversation.controller';
 import { AiEmailSourceService } from './email/ai-email-source.service';
 import { GmailSyncService } from './email/gmail-sync.service';
 import { EmailSampleImportService } from './email/email-sample-import.service';
@@ -19,10 +22,17 @@ import { AiSignalsService } from './signals/ai-signals.service';
 import { AI_EMAIL_MESSAGE_STATUS_FILTERS } from './email/ai-email-message-status';
 
 type OperationObject = {
+  parameters?: ParameterObject[];
   responses?: Record<
     string,
     { content?: Record<string, { schema?: Record<string, unknown> }> }
   >;
+};
+
+type ParameterObject = {
+  name?: string;
+  in?: string;
+  schema?: Record<string, unknown>;
 };
 
 type OpenApiDocument = {
@@ -34,6 +44,7 @@ async function buildDocument(): Promise<OpenApiDocument> {
   const moduleRef = await Test.createTestingModule({
     controllers: [
       AiConsentController,
+      AiConversationController,
       AiIntelligenceController,
       EmailProductProposalsController,
       AiEvidenceController,
@@ -42,6 +53,8 @@ async function buildDocument(): Promise<OpenApiDocument> {
     ],
     providers: [
       { provide: AiConsentService, useValue: {} },
+      { provide: AiConversationStore, useValue: {} },
+      { provide: AiOrchestrator, useValue: {} },
       { provide: AiEmailSourceService, useValue: {} },
       { provide: GmailSyncService, useValue: {} },
       { provide: EmailSampleImportService, useValue: {} },
@@ -255,6 +268,23 @@ describe('OpenAPI response schemas of intelligence', () => {
     ] as { properties?: { messageIds?: { maxItems?: number } } } | undefined;
 
     expect(schema?.properties?.messageIds?.maxItems).toBe(20);
+  });
+
+  it('publishes the same integer type for the cursor page size of both listings', () => {
+    for (const path of [
+      '/api/intelligence/messages',
+      '/api/intelligence/conversations',
+    ]) {
+      const limit = document.paths[path]?.get?.parameters?.find(
+        (parameter) => parameter.name === 'limit',
+      );
+
+      expect(limit?.schema).toMatchObject({
+        type: 'integer',
+        minimum: 1,
+        maximum: 100,
+      });
+    }
   });
 
   it('publishes the dashboard, runs and roles shapes', () => {
