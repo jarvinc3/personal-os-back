@@ -1,4 +1,41 @@
-import type { JsonObject, SettingsDescriptor } from './index';
+import type { JsonObject } from './primitives';
+
+export const MODULE_SETTINGS_READER = Symbol.for(
+  'personal-os.contracts.module-settings-reader',
+);
+export const MODULE_SETTINGS_REGISTRY = Symbol.for(
+  'personal-os.contracts.module-settings-registry',
+);
+
+export interface SettingsDescriptor<T extends JsonObject = JsonObject> {
+  readonly slug: string;
+  readonly version: number;
+  readonly defaults: Readonly<T>;
+  // Module-owned migration/merge/validation; registry has no business fields.
+  normalize(stored: unknown): T;
+  applyPatch(current: T, patch: unknown): T;
+  notificationEnabled(config: T, key: string): boolean;
+}
+export interface ModuleSettingsRegistry {
+  register(descriptor: SettingsDescriptor): void;
+  has(slug: string): boolean;
+  get(slug: string): SettingsDescriptor;
+  list(): readonly SettingsDescriptor[];
+  normalize(slug: string, stored: unknown): JsonObject;
+  applyPatch(slug: string, current: unknown, patch: unknown): JsonObject;
+}
+export interface ModuleSettingsReader {
+  hasDescriptor(slug: string): boolean;
+  read(
+    userId: string,
+    slug: string,
+  ): Promise<{ enabled: boolean; version: number; config: JsonObject }>;
+  notificationEnabled(
+    userId: string,
+    slug: string,
+    key: string,
+  ): Promise<boolean>;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
