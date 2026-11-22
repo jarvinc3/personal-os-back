@@ -17,6 +17,7 @@ import {
 import {
   requestDurationMs,
   requestLogPath,
+  type TimedRequest,
 } from '../observability/request-log';
 
 type PrismaKnownErrorLike = Error & {
@@ -39,16 +40,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<{
-      url: string;
-      originalUrl?: string;
-      baseUrl?: string;
-      route?: { path?: string | string[] };
-      id?: string;
-      method: string;
-      user?: { sub?: string };
-      startedAt?: number;
-    }>();
+    const request = ctx.getRequest<
+      TimedRequest & {
+        url: string;
+        originalUrl?: string;
+        baseUrl?: string;
+        route?: { path?: string | string[] };
+        id?: string;
+        method: string;
+        user?: { sub?: string };
+      }
+    >();
     const response = ctx.getResponse<{
       headersSent: boolean;
       status: (code: number) => { json: (body: unknown) => void };
