@@ -205,12 +205,6 @@ export class UsersService {
       );
     }
 
-    if (!existing && dto.isEnabled === false) {
-      throw new BadRequestException(
-        'El módulo aún no está configurado; no se puede desactivar antes de configurarlo',
-      );
-    }
-
     return { moduleId: moduleRecord.id, existing };
   }
 
