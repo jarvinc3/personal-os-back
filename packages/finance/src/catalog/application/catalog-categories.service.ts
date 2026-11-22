@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogCategoryRepository } from '../infrastructure/catalog-category.repository';
 import type { CreateCategoryDto } from '../presentation/dto/create-category.dto';
 import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto';
 
@@ -13,7 +13,7 @@ import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto'
 @Injectable()
 export class CatalogCategoriesService {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly repo: CatalogCategoryRepository,
     private readonly ownership: FinanceOwnershipService,
   ) {}
 
@@ -76,18 +76,18 @@ export class CatalogCategoriesService {
       requestedType: dto.type,
     });
 
-    const updated = await this.repo.updateCategory(
+    const updated = await this.repo.updateCategory({
       userId,
       id,
-      {
+      categoryUpdate: {
         name: dto.name,
         icon: dto.icon,
         color: dto.color,
         parentId: dto.parentId,
         ...(cascadeType ? { type: cascadeType } : {}),
       },
-      cascadeType,
-    );
+      cascadeTypeToChildren: cascadeType,
+    });
     if (!updated) {
       throw new NotFoundException('Categoría no encontrada');
     }

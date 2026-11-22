@@ -9,7 +9,14 @@ import { CatalogInstitutionsService } from './catalog-institutions.service';
 import { CatalogViews } from './catalog-views';
 import type { LogoService } from '@personal-os/logos';
 import type { UsersService } from '@personal-os/users';
-import type { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import type { CatalogCardBalanceRepository } from '../infrastructure/catalog-card-balance.repository';
+import type { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import type { CatalogCashRepository } from '../infrastructure/catalog-cash.repository';
+import type { CatalogCategoryRepository } from '../infrastructure/catalog-category.repository';
+import type { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
+
+type RepositoryMock = Record<string, jest.Mock>;
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
@@ -95,16 +102,20 @@ function baseCurrencyMock(currency = 'DOP'): ResolveUserBaseCurrencyUseCase {
  * keeps passing only the collaborators it cares about.
  */
 function createService(
-  repo: CatalogRepository,
+  repo: RepositoryMock,
   ownership: FinanceOwnershipService,
   purge: PurgeInstrumentLedgerUseCase,
   logos?: LogoService,
   users?: UsersService,
 ) {
+  const accountsRepo = repo as unknown as CatalogAccountRepository;
+  const cardsRepo = repo as unknown as CatalogCardRepository;
+  const institutionsRepo = repo as unknown as CatalogInstitutionRepository;
   const views = new CatalogViews(logos, users);
   const numbers = new CatalogAccountNumbersService(configMock());
   const accounts = new CatalogAccountsService(
-    repo,
+    accountsRepo,
+    repo as unknown as CatalogCashRepository,
     ownership,
     purge,
     ensureMock(),
@@ -112,14 +123,35 @@ function createService(
     numbers,
     views,
   );
-  const cards = new CatalogCardsService(repo, ownership, purge, views);
+  const cards = new CatalogCardsService(cardsRepo, ownership, purge, views);
   return new CatalogService(
     accounts,
-    new CatalogInstitutionsService(repo, ownership, purge, logos, views),
+    new CatalogInstitutionsService(
+      institutionsRepo,
+      accountsRepo,
+      cardsRepo,
+      ownership,
+      purge,
+      logos,
+      views,
+    ),
     cards,
-    new CatalogCardBalancesService(repo),
-    new CatalogEmailProductsService(repo, numbers, accounts, cards),
-    new CatalogCategoriesService(repo, ownership),
+    new CatalogCardBalancesService(
+      repo as unknown as CatalogCardBalanceRepository,
+      cardsRepo,
+    ),
+    new CatalogEmailProductsService(
+      accountsRepo,
+      cardsRepo,
+      institutionsRepo,
+      numbers,
+      accounts,
+      cards,
+    ),
+    new CatalogCategoriesService(
+      repo as unknown as CatalogCategoryRepository,
+      ownership,
+    ),
   );
 }
 
@@ -134,7 +166,7 @@ describe('CatalogService cards archive', () => {
     updateCard,
     listCards,
     findAccountById,
-  } as unknown as CatalogRepository;
+  } as unknown as RepositoryMock;
 
   const service = createService(repo, ownershipMock(), purgeMock());
 
@@ -214,7 +246,7 @@ describe('CatalogService createAccount', () => {
     listInstitutions,
     findAccountById,
     findSystemCashInstitution: jest.fn().mockResolvedValue({ id: 'cash-inst' }),
-  } as unknown as CatalogRepository;
+  } as unknown as RepositoryMock;
 
   const service = createService(repo, ownershipMock(), purgeMock());
 
@@ -367,7 +399,7 @@ describe('CatalogService updateAccount number', () => {
   const repo = {
     updateAccount,
     findAccountById,
-  } as unknown as CatalogRepository;
+  } as unknown as RepositoryMock;
   const service = createService(repo, ownershipMock(), purgeMock());
 
   const existing = {
@@ -414,7 +446,7 @@ describe('CatalogService updateAccount number', () => {
       {
         ...repo,
         hasSavingsGoalMoney: jest.fn().mockResolvedValue(true),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -433,7 +465,7 @@ describe('CatalogService updateAccount number', () => {
       {
         ...repo,
         hasSavingsGoalMoney: jest.fn().mockResolvedValue(false),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -517,7 +549,7 @@ describe('CatalogService email product proposals', () => {
     createInstitution,
     createAccount,
     createCard,
-  } as unknown as CatalogRepository;
+  } as unknown as RepositoryMock;
   const service = createService(repo, ownershipMock(), purgeMock());
 
   const accountDraft: EmailProductProposalDraft = {
@@ -610,7 +642,7 @@ describe('CatalogService email product proposals', () => {
 
 describe('CatalogService createCard lastFour', () => {
   const createCard = jest.fn();
-  const repo = { createCard } as unknown as CatalogRepository;
+  const repo = { createCard } as unknown as RepositoryMock;
   const service = createService(repo, ownershipMock(), purgeMock());
 
   it('rejects cards without lastFour', async () => {
@@ -642,7 +674,7 @@ describe('CatalogService archive institution', () => {
       {
         updateInstitution,
         findInstitution: jest.fn().mockResolvedValue({ id: 'inst-1' }),
-      } as unknown as CatalogRepository,
+      },
       ownership,
       purgeMock(),
     );
@@ -662,7 +694,7 @@ describe('CatalogService updateCardBalance', () => {
   const findCardById = jest.fn();
   const upsertCardBalance = jest.fn();
   const service = createService(
-    { findCardById, upsertCardBalance } as unknown as CatalogRepository,
+    { findCardById, upsertCardBalance },
     ownershipMock(),
     purgeMock(),
   );
@@ -710,13 +742,13 @@ describe('CatalogService updateCardBalance', () => {
       balance: 42467,
       creditLimit: 48000,
     });
-    expect(upsertCardBalance).toHaveBeenCalledWith(
-      'user-1',
-      'card-1',
-      'DOP',
-      42467,
-      48000,
-    );
+    expect(upsertCardBalance).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      currency: 'DOP',
+      balance: 42467,
+      creditLimit: 48000,
+    });
     expect(result).toMatchObject({
       balance: '42467',
       creditLimit: '48000',
@@ -728,7 +760,7 @@ describe('CatalogService deleteCardBalance', () => {
   const findCardById = jest.fn();
   const deleteCardBalance = jest.fn();
   const service = createService(
-    { findCardById, deleteCardBalance } as unknown as CatalogRepository,
+    { findCardById, deleteCardBalance },
     ownershipMock(),
     purgeMock(),
   );
@@ -773,7 +805,7 @@ describe('CatalogService categories', () => {
     listCategories,
     createCategory,
     updateCategory,
-  } as unknown as CatalogRepository;
+  } as unknown as RepositoryMock;
   const assertParentCategory = jest.fn();
   const assertCategoryVisible = jest.fn();
   const ownership = ownershipMock({
@@ -834,18 +866,18 @@ describe('CatalogService categories', () => {
       type: 'INCOME',
     });
 
-    expect(updateCategory).toHaveBeenCalledWith(
-      'user-1',
-      'cat-1',
-      {
+    expect(updateCategory).toHaveBeenCalledWith({
+      userId: 'user-1',
+      id: 'cat-1',
+      categoryUpdate: {
         name: 'Mercado',
         icon: undefined,
         color: undefined,
         parentId: undefined,
         type: 'INCOME',
       },
-      'INCOME',
-    );
+      cascadeTypeToChildren: 'INCOME',
+    });
   });
 
   it('rejects a type change while the category still has a parent', async () => {
@@ -876,17 +908,17 @@ describe('CatalogService categories', () => {
     await service.updateCategory('user-1', 'cat-1', { parentId: null });
 
     expect(assertParentCategory).not.toHaveBeenCalled();
-    expect(updateCategory).toHaveBeenCalledWith(
-      'user-1',
-      'cat-1',
-      {
+    expect(updateCategory).toHaveBeenCalledWith({
+      userId: 'user-1',
+      id: 'cat-1',
+      categoryUpdate: {
         name: undefined,
         icon: undefined,
         color: undefined,
         parentId: null,
       },
-      undefined,
-    );
+      cascadeTypeToChildren: undefined,
+    });
   });
 
   it('checks a new parent against the resulting type', async () => {
@@ -930,7 +962,7 @@ describe('CatalogService hard delete', () => {
       {
         findAccountById,
         deleteAccount,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       {
         forAccount,
@@ -953,7 +985,7 @@ describe('CatalogService hard delete', () => {
     const service = createService(
       {
         findAccountById: jest.fn().mockResolvedValue(null),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -972,7 +1004,7 @@ describe('CatalogService hard delete', () => {
           currency: 'DOP',
         }),
         deleteAccount,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -994,7 +1026,7 @@ describe('CatalogService hard delete', () => {
           currency: 'USD',
         }),
         deleteAccount,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       {
         forAccount,
@@ -1015,7 +1047,7 @@ describe('CatalogService hard delete', () => {
       {
         findCardById: jest.fn().mockResolvedValue({ id: 'card-1' }),
         deleteCard,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       {
         forAccount: jest.fn(),
@@ -1051,7 +1083,7 @@ describe('CatalogService hard delete', () => {
         listAccountsByInstitution,
         listCardsByInstitution,
         deleteInstitution,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       { forAccount, forCard } as unknown as PurgeInstrumentLedgerUseCase,
     );
@@ -1082,7 +1114,7 @@ describe('CatalogService hard delete', () => {
       {
         updateInstitution,
         findInstitution: jest.fn().mockResolvedValue({ id: 'inst-1' }),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock({ assertInstitutionCanArchive }),
       purgeMock(),
     );
@@ -1142,7 +1174,7 @@ describe('CatalogService card credit', () => {
         .mockResolvedValue({ timezone: 'America/Santo_Domingo' }),
     };
     const service = createService(
-      { findCardById } as unknown as CatalogRepository,
+      { findCardById },
       ownershipMock(),
       purgeMock(),
       undefined,
@@ -1186,7 +1218,7 @@ describe('CatalogService card credit', () => {
       transactions: [],
     });
     const service = createService(
-      { findCardById } as unknown as CatalogRepository,
+      { findCardById },
       ownershipMock(),
       purgeMock(),
     );
@@ -1212,7 +1244,7 @@ describe('CatalogService cash institution rules', () => {
       {
         findInstitution: jest.fn().mockResolvedValue(systemInstitution),
         updateInstitution: jest.fn(),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -1227,7 +1259,7 @@ describe('CatalogService cash institution rules', () => {
       {
         findInstitution: jest.fn().mockResolvedValue(systemInstitution),
         updateInstitution: jest.fn(),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -1243,7 +1275,7 @@ describe('CatalogService cash institution rules', () => {
       {
         findInstitution: jest.fn().mockResolvedValue(systemInstitution),
         deleteInstitution,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -1262,7 +1294,7 @@ describe('CatalogService cash institution rules', () => {
           .fn()
           .mockResolvedValue({ id: 'inst-1', isSystem: false }),
         updateInstitution,
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );
@@ -1276,7 +1308,7 @@ describe('CatalogService cash institution rules', () => {
   it('rejects creating another cash institution', async () => {
     const createInstitution = jest.fn();
     const service = createService(
-      { createInstitution } as unknown as CatalogRepository,
+      { createInstitution },
       ownershipMock(),
       purgeMock(),
     );
@@ -1290,7 +1322,7 @@ describe('CatalogService cash institution rules', () => {
   it('rejects a card on the cash institution', async () => {
     const createCard = jest.fn();
     const service = createService(
-      { createCard } as unknown as CatalogRepository,
+      { createCard },
       ownershipMock({
         assertInstitutionAcceptsBankProducts: jest
           .fn()
@@ -1322,7 +1354,7 @@ describe('CatalogService cash institution rules', () => {
         findSystemCashInstitution: jest
           .fn()
           .mockResolvedValue({ id: 'cash-inst' }),
-      } as unknown as CatalogRepository,
+      },
       ownershipMock(),
       purgeMock(),
     );

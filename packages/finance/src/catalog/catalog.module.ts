@@ -15,7 +15,13 @@ import { CatalogInstitutionsService } from './application/catalog-institutions.s
 import { CatalogViews } from './application/catalog-views';
 import { EnsureCashInstitutionUseCase } from './application/ensure-cash-institution.use-case';
 import { InstrumentHistoryService } from './application/instrument-history.service';
-import { CatalogRepository } from './infrastructure/catalog.repository';
+import { CatalogAccountRepository } from './infrastructure/catalog-account.repository';
+import { CatalogCardBalanceRepository } from './infrastructure/catalog-card-balance.repository';
+import { CatalogCardRepository } from './infrastructure/catalog-card.repository';
+import { CatalogCashRepository } from './infrastructure/catalog-cash.repository';
+import { CatalogCategoryRepository } from './infrastructure/catalog-category.repository';
+import { CatalogInstitutionRepository } from './infrastructure/catalog-institution.repository';
+import { CatalogInstrumentHistoryRepository } from './infrastructure/catalog-instrument-history.repository';
 import { AccountsController } from './presentation/accounts.controller';
 import { CardsController } from './presentation/cards.controller';
 import { CategoriesController } from './presentation/categories.controller';
@@ -36,7 +42,13 @@ import { InstitutionsController } from './presentation/institutions.controller';
     CategoriesController,
   ],
   providers: [
-    CatalogRepository,
+    CatalogAccountRepository,
+    CatalogCardBalanceRepository,
+    CatalogCardRepository,
+    CatalogCashRepository,
+    CatalogCategoryRepository,
+    CatalogInstitutionRepository,
+    CatalogInstrumentHistoryRepository,
     CatalogViews,
     CatalogAccountNumbersService,
     CatalogAccountsService,
@@ -50,8 +62,10 @@ import { InstitutionsController } from './presentation/institutions.controller';
     EnsureCashInstitutionUseCase,
   ],
   exports: [
+    CatalogAccountRepository,
+    CatalogCardRepository,
+    CatalogInstitutionRepository,
     CatalogService,
-    CatalogRepository,
     CatalogCategoriesService,
     InstrumentHistoryService,
     EnsureCashInstitutionUseCase,

@@ -7,7 +7,9 @@ import {
 } from '@personal-os/core';
 import { decimalToString } from '../../shared/domain/mappers';
 import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import { CatalogInstrumentHistoryRepository } from '../infrastructure/catalog-instrument-history.repository';
 
 type InstrumentTarget = { accountId?: string; cardId?: string };
 
@@ -29,14 +31,18 @@ function asPayload(value: unknown): Record<string, unknown> {
 
 @Injectable()
 export class InstrumentHistoryService {
-  constructor(private readonly repo: CatalogRepository) {}
+  constructor(
+    private readonly accounts: CatalogAccountRepository,
+    private readonly cards: CatalogCardRepository,
+    private readonly history: CatalogInstrumentHistoryRepository,
+  ) {}
 
   async getAccountHistory(
     userId: string,
     accountId: string,
     query: CursorQueryDto,
   ) {
-    const account = await this.repo.findAccountById(accountId, userId);
+    const account = await this.accounts.findAccountById(accountId, userId);
     if (!account) {
       throw new NotFoundException('Cuenta no encontrada');
     }
@@ -44,7 +50,7 @@ export class InstrumentHistoryService {
   }
 
   async getCardHistory(userId: string, cardId: string, query: CursorQueryDto) {
-    const card = await this.repo.findCardById(userId, cardId);
+    const card = await this.cards.findCardById(userId, cardId);
     if (!card) {
       throw new NotFoundException('Tarjeta no encontrada');
     }
@@ -60,8 +66,8 @@ export class InstrumentHistoryService {
     const cursor = query.cursor ? decodeCursor(query.cursor) : null;
     const take = limit + 1;
     const [events, adjustments] = await Promise.all([
-      this.repo.findInstrumentEvents(userId, target, { cursor, take }),
-      this.repo.findAdjustmentTransactions(userId, target, { cursor, take }),
+      this.history.findInstrumentEvents(userId, target, { cursor, take }),
+      this.history.findAdjustmentTransactions(userId, target, { cursor, take }),
     ]);
 
     const items: InstrumentHistoryItem[] = [

@@ -17,7 +17,9 @@ import { FinanceOwnershipService } from '../../shared/application/finance-owners
 import { assertRestored } from '../../shared/application/assert-restored';
 import { isCashInstitution } from '../../shared/domain/cash';
 import { institutionOrderKey } from '../domain/institution-order';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 import type { CreateInstitutionDto } from '../presentation/dto/create-institution.dto';
 import type { UpdateInstitutionDto } from '../presentation/dto/update-institution.dto';
 import { CatalogViews } from './catalog-views';
@@ -27,7 +29,9 @@ import { fallbackLogos } from './catalog-fallbacks';
 @Injectable()
 export class CatalogInstitutionsService {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly repo: CatalogInstitutionRepository,
+    private readonly accounts: CatalogAccountRepository,
+    private readonly cards: CatalogCardRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly logos: LogoService = fallbackLogos,
@@ -154,12 +158,12 @@ export class CatalogInstitutionsService {
     }
     this.assertInstitutionEditable(existing);
     const movements: LedgerTransactionRow[] = [];
-    const accounts = await this.repo.listAccountsByInstitution(userId, id);
+    const accounts = await this.accounts.listAccountsByInstitution(userId, id);
     for (const account of accounts) {
       const purged = await this.purgeLedger.forAccount(userId, account.id);
       movements.push(...purged.rows);
     }
-    const cards = await this.repo.listCardsByInstitution(userId, id);
+    const cards = await this.cards.listCardsByInstitution(userId, id);
     for (const card of cards) {
       const purged = await this.purgeLedger.forCard(userId, card.id);
       movements.push(...purged.rows);

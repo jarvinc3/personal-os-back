@@ -8,7 +8,9 @@ import {
   type EmailProductProposalProductLookup,
 } from '@personal-os/contracts';
 import { CatalogService } from './catalog.service';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 
 type ProductMatch = {
   id: string;
@@ -21,7 +23,9 @@ type ProductMatch = {
 export class FinanceEmailProductProposalCatalog implements EmailProductProposalCatalogPort {
   constructor(
     private readonly catalog: CatalogService,
-    private readonly repo: CatalogRepository,
+    private readonly accounts: CatalogAccountRepository,
+    private readonly cards: CatalogCardRepository,
+    private readonly institutions: CatalogInstitutionRepository,
   ) {}
 
   prepareAccountNumber(input: {
@@ -45,7 +49,9 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
     userId: string,
     productId: string,
   ): Promise<EmailProductProposalLinkableProduct | null> {
-    const [account] = await this.repo.findAccountsByIds(userId, [productId]);
+    const [account] = await this.accounts.findAccountsByIds(userId, [
+      productId,
+    ]);
     if (account) {
       return {
         productId: account.id,
@@ -56,7 +62,7 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
         institutionIsSystem: account.institutionRef?.isSystem ?? false,
       };
     }
-    const [card] = await this.repo.findCardsByIds(userId, [productId]);
+    const [card] = await this.cards.findCardsByIds(userId, [productId]);
     if (!card) {
       return null;
     }
@@ -73,7 +79,7 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
   async listInstitutions(
     userId: string,
   ): Promise<EmailProductProposalInstitutionCandidate[]> {
-    const institutions = await this.repo.findInstitutionsByUser(userId);
+    const institutions = await this.institutions.findInstitutionsByUser(userId);
     return institutions.map((institution) => ({
       id: institution.id,
       name: institution.name,
@@ -88,13 +94,13 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
     if (!lookups.length) {
       return [];
     }
-    const institutions = await this.repo.findInstitutionsByUser(userId);
+    const institutions = await this.institutions.findInstitutionsByUser(userId);
     const lastFours = [...new Set(lookups.map((lookup) => lookup.lastFour))];
     const accounts: ProductMatch[] = lookups.some(
       (lookup) => lookup.productType === 'ACCOUNT',
     )
       ? (
-          await this.repo.findEmailAccountCandidatesByLastFours(
+          await this.accounts.findEmailAccountCandidatesByLastFours(
             userId,
             lastFours,
           )
@@ -108,7 +114,7 @@ export class FinanceEmailProductProposalCatalog implements EmailProductProposalC
       (lookup) => lookup.productType === 'CARD',
     )
       ? (
-          await this.repo.findEmailCardCandidatesByLastFours(userId, lastFours)
+          await this.cards.findEmailCardCandidatesByLastFours(userId, lastFours)
         ).map((row) => ({
           id: row.id,
           lastFour: row.lastFour,

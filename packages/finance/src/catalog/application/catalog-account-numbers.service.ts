@@ -14,7 +14,7 @@ import {
   encryptAccountNumber,
   fingerprintAccountNumber,
 } from '../../shared/infrastructure/account-number-encryption.util';
-import type { AccountNumberColumns } from '../infrastructure/catalog.repository';
+import type { AccountNumberColumns } from '../infrastructure/catalog-account.repository';
 
 const LAST_FOUR_PATTERN = /^\d{4}$/;
 const PROPOSAL_ACCOUNT_NUMBER_PATTERN = /^[0-9\s-]{4,48}$/;
