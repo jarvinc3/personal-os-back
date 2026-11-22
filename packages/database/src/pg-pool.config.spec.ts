@@ -37,6 +37,15 @@ describe('pg-pool.config', () => {
     });
   });
 
+  it('keeps the original string when URL parsing fails', () => {
+    const config = poolConfigForPostgresUrl('host=db?sslmode=require', {
+      rejectUnauthorized: true,
+    });
+
+    expect(config.connectionString).toBe('host=db?sslmode=require');
+    expect(config.ssl).toEqual({ rejectUnauthorized: true });
+  });
+
   it('defaults to strict TLS verification in production only', () => {
     expect(defaultRejectUnauthorized('production', undefined)).toBe(true);
     expect(defaultRejectUnauthorized('development', undefined)).toBe(false);

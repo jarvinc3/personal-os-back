@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
+import type { PrismaClient as PrismaClientInstance } from './generated/client';
 import { getPrismaClientClass } from './generated/internal/class';
 import {
   defaultRejectUnauthorized,
@@ -10,7 +11,7 @@ import {
  * Standalone client for one-off scripts. Mirrors `PrismaService`: reads
  * `DATABASE_URL` and applies the same TLS defaults, without a Nest context.
  */
-export function createScriptPrismaClient() {
+export function createScriptPrismaClient(): PrismaClientInstance {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL is required to run this script');
