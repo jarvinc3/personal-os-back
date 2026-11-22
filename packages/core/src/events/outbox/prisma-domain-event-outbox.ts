@@ -21,6 +21,8 @@ export class PrismaDomainEventOutbox
   constructor(private readonly prisma: PrismaService) {}
 
   async enqueue(draft: DomainEventDraft, tx?: unknown): Promise<void> {
+    // The port accepts an opaque `tx` so callers can pass their transaction
+    // client; anything else falls back to the injected Prisma service.
     const client = (tx as TxClient | undefined) ?? this.prisma;
     await client.domainEventOutbox.create({
       data: {

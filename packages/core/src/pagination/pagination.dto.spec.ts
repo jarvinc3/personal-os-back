@@ -94,4 +94,12 @@ describe('toCursorPage', () => {
     expect(page.hasMore).toBe(false);
     expect(page.nextCursor).toBeNull();
   });
+
+  it('does not mutate the rows it receives', () => {
+    const input = [...rows];
+
+    toCursorPage(input, 1, keyOf);
+
+    expect(input).toEqual(rows);
+  });
 });

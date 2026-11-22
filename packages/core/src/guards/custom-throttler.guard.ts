@@ -4,6 +4,8 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   protected getTracker(req: Record<string, unknown>): Promise<string> {
+    // Passport attaches the verified token payload to `req.user`; the base
+    // signature types the request as a plain record.
     const user = req.user as { sub?: string } | undefined;
     const ip = typeof req.ip === 'string' ? req.ip : 'unknown';
     return Promise.resolve(user?.sub ?? ip);

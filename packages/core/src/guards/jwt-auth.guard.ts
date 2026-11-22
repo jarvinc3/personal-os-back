@@ -28,6 +28,8 @@ export class JwtAuthGuard extends AuthGuard('supabase-jwt') {
 
   handleRequest<TUser = unknown>(err: unknown, user: TUser | false): TUser {
     if (err || !user) {
+      // The strategy rejects with the Error it produced; the framework types
+      // the rejection as unknown.
       throw (
         (err as Error | undefined) ??
         new UnauthorizedException('Authentication required')

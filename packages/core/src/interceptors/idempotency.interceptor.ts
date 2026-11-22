@@ -11,6 +11,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { Observable, TimeoutError, from, of, throwError } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { IdempotencyStatus, PrismaService } from '@personal-os/database';
+import { PRISMA_ERROR_CODE } from '../exceptions/prisma-error-code';
 
 /**
  * Header the client sends to make a mutation retry-safe. It is optional: a
@@ -27,8 +28,6 @@ const IDEMPOTENT_METHODS: ReadonlySet<string> = new Set([
 
 /** Saved responses stop being reusable 24 h after the first attempt. */
 const KEY_TTL_MS = 24 * 60 * 60 * 1000;
-
-const PRISMA_UNIQUE_VIOLATION = 'P2002';
 
 const IN_PROGRESS_MESSAGE =
   'Ya hay una petición con esa Idempotency-Key en curso; inténtalo de nuevo.';
@@ -124,9 +123,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (!sameRequest(stored, scope)) {
       throw new ConflictException(MISMATCH_MESSAGE);
     }
-    return stored.responseBody === null
-      ? undefined
-      : (JSON.parse(stored.responseBody) as unknown);
+    if (stored.responseBody === null) {
+      return undefined;
+    }
+    // The stored body was serialized from a handler response; it is replayed
+    // as-is, not inspected.
+    const savedBody: unknown = JSON.parse(stored.responseBody);
+    return savedBody;
   }
 
   private runOnce(
@@ -263,6 +266,7 @@ function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
     return `[${value.map(stableStringify).join(',')}]`;
   }
+  // A body is any JSON value; `Object.entries` needs the record view here.
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, entryValue]) => entryValue !== undefined)
     .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
@@ -288,9 +292,11 @@ function isTimeoutError(error: unknown): boolean {
 }
 
 function isUniqueViolation(error: unknown): boolean {
+  // A rejection carries no declared shape; the unique violation is the only
+  // field this check reads.
   return (
     typeof error === 'object' &&
     error !== null &&
-    (error as { code?: unknown }).code === PRISMA_UNIQUE_VIOLATION
+    (error as { code?: unknown }).code === PRISMA_ERROR_CODE.UNIQUE_VIOLATION
   );
 }

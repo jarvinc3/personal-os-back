@@ -1,6 +1,8 @@
 import { timingSafeEqual } from 'crypto';
 import type { NextFunction, Request, Response } from 'express';
 
+const BASIC_PREFIX = 'Basic ';
+
 function unauthorized(res: Response): void {
   res.setHeader('WWW-Authenticate', 'Basic realm="Bull Board"');
   res.status(401).send('Unauthorized');
@@ -31,20 +33,17 @@ export function createBullBoardAuthMiddleware(
 
   return (req, res, next) => {
     const header = req.headers.authorization;
-    if (!header?.startsWith('Basic ')) {
+    if (!header?.startsWith(BASIC_PREFIX)) {
       unauthorized(res);
       return;
     }
 
-    let decoded: string;
-    try {
-      decoded = Buffer.from(header.slice('Basic '.length), 'base64').toString(
-        'utf8',
-      );
-    } catch {
-      unauthorized(res);
-      return;
-    }
+    // Node's base64 decoder never throws on a malformed payload; the separator
+    // check below rejects whatever it produces.
+    const decoded = Buffer.from(
+      header.slice(BASIC_PREFIX.length),
+      'base64',
+    ).toString('utf8');
 
     const separatorIndex = decoded.indexOf(':');
     if (separatorIndex < 0) {
