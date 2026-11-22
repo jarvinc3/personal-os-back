@@ -171,7 +171,7 @@ export class UsersService {
     return this.findById(userId);
   }
 
-  /** Validates the patch before it touches the database and returns the rows it needs. */
+  /** Checks the patch and loads the rows it needs; this method does not write. */
   private async loadModuleForConfigUpdate({
     userId,
     slug,
