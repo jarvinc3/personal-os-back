@@ -7,13 +7,20 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from '@personal-os/core';
+import { CurrentUser, Timeout } from '@personal-os/core';
 import { ViewSuggestionsService } from '../application/view-suggestions.service';
 import {
   ViewSuggestionDismissedDto,
   ViewSuggestionsListDto,
   ViewSuggestionsQueryDto,
 } from './dto/view-suggestion.dto';
+
+/**
+ * Si la caché venció, la lista se genera con el modelo. El límite global de 5 s
+ * cortaría esa generación y la vista quedaría vacía sin que el cliente sepa por
+ * qué; el tope iguala al del resto de las rutas del agente.
+ */
+const VIEW_SUGGESTIONS_TIMEOUT_MS = 30_000;
 
 @ApiTags('intelligence-view-suggestions')
 @ApiBearerAuth('access-token')
@@ -22,6 +29,7 @@ export class ViewSuggestionsController {
   constructor(private readonly suggestions: ViewSuggestionsService) {}
 
   @Get()
+  @Timeout(VIEW_SUGGESTIONS_TIMEOUT_MS)
   @ApiOperation({
     summary: 'Listar las sugerencias activas de la vista del usuario',
   })
