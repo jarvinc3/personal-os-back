@@ -7,6 +7,11 @@ const TARGET_REVIEW_CODES = [
   'ATM_',
 ];
 
+const TRANSACTION_DATE_REASON = {
+  SUGGESTED: 'TRANSACTION_DATE_SUGGESTED',
+  MISSING: 'TRANSACTION_DATE_MISSING',
+} as const;
+
 type CandidateValidationInput = {
   kind?: string;
   amount?: number | null;
@@ -31,28 +36,48 @@ export function financeValidationReviewReasons(
   if (!candidate.currency) {
     reasons.push('CURRENCY_MISSING');
   }
-  if (!candidate.transactionDate) {
-    if (
-      candidate.suggestedTransactionDate &&
-      candidate.suggestedTransactionDateSource === 'EMAIL_HEADER' &&
-      !Number.isNaN(Date.parse(candidate.suggestedTransactionDate))
-    ) {
-      reasons.push('TRANSACTION_DATE_SUGGESTED');
-    } else {
-      reasons.push('TRANSACTION_DATE_MISSING');
-    }
-  } else if (Number.isNaN(Date.parse(candidate.transactionDate))) {
-    reasons.push('TRANSACTION_DATE_MISSING');
+  const dateReason = transactionDateReason(candidate);
+  if (dateReason) {
+    reasons.push(dateReason);
   }
-  if (
-    !candidate.direction ||
-    (candidate.direction === 'TRANSFER' &&
-      candidate.movementClass !== 'TRANSFER_OUT' &&
-      candidate.movementClass !== 'TRANSFER_IN')
-  ) {
+  if (directionMissing(candidate)) {
     reasons.push('DIRECTION_MISSING');
   }
   return reasons;
+}
+
+function transactionDateReason(
+  candidate: CandidateValidationInput,
+): string | null {
+  if (!candidate.transactionDate) {
+    return hasEmailHeaderDate(candidate)
+      ? TRANSACTION_DATE_REASON.SUGGESTED
+      : TRANSACTION_DATE_REASON.MISSING;
+  }
+  return Number.isNaN(Date.parse(candidate.transactionDate))
+    ? TRANSACTION_DATE_REASON.MISSING
+    : null;
+}
+
+function hasEmailHeaderDate(candidate: CandidateValidationInput): boolean {
+  if (!candidate.suggestedTransactionDate) {
+    return false;
+  }
+  if (candidate.suggestedTransactionDateSource !== 'EMAIL_HEADER') {
+    return false;
+  }
+  return !Number.isNaN(Date.parse(candidate.suggestedTransactionDate));
+}
+
+function directionMissing(candidate: CandidateValidationInput): boolean {
+  if (!candidate.direction) {
+    return true;
+  }
+  return (
+    candidate.direction === 'TRANSFER' &&
+    candidate.movementClass !== 'TRANSFER_OUT' &&
+    candidate.movementClass !== 'TRANSFER_IN'
+  );
 }
 
 function severity(code: string): number {
@@ -76,13 +101,22 @@ function severity(code: string): number {
   return 3;
 }
 
+function compareCodes(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
 /** Stable severity order for the additive Finance preview contract. */
 export function orderFinanceReviewReasons(
   reasons: readonly string[],
 ): string[] {
   return [...new Set(reasons)].sort(
     (left, right) =>
-      severity(left) - severity(right) ||
-      (left < right ? -1 : left > right ? 1 : 0),
+      severity(left) - severity(right) || compareCodes(left, right),
   );
 }
