@@ -26,11 +26,13 @@ type TestResponse = {
   destroy: jest.Mock;
 };
 
-function run(
-  exception: unknown,
-  headersSent = false,
-  startedAt?: number,
-): TestResponse {
+type RunOptions = {
+  headersSent?: boolean;
+  startedAt?: number;
+};
+
+function run(exception: unknown, options: RunOptions = {}): TestResponse {
+  const { headersSent = false, startedAt } = options;
   const json = jest.fn();
   const status = jest.fn().mockReturnValue({ json });
   const destroy = jest.fn();
@@ -98,7 +100,7 @@ describe('AllExceptionsFilter response writing', () => {
   });
 
   it('destroys the response instead of writing over sent headers', () => {
-    const response = run(new Error('turn failed'), true);
+    const response = run(new Error('turn failed'), { headersSent: true });
 
     expect(response.status).not.toHaveBeenCalled();
     expect(response.json).not.toHaveBeenCalled();
@@ -106,7 +108,7 @@ describe('AllExceptionsFilter response writing', () => {
   });
 
   it('still reports a 500 to Sentry after the response started', () => {
-    run(new Error('turn failed'), true);
+    run(new Error('turn failed'), { headersSent: true });
 
     expect(captureExceptionMock).toHaveBeenCalledTimes(1);
   });
@@ -120,7 +122,9 @@ describe('AllExceptionsFilter failure log', () => {
   });
 
   it('logs a 400 as a warning without a stack', () => {
-    run(new BadRequestException('Cursor inválido'), false, Date.now() - 5);
+    run(new BadRequestException('Cursor inválido'), {
+      startedAt: Date.now() - 5,
+    });
 
     expect(loggerMock.error).not.toHaveBeenCalled();
     expect(loggerMock.warn).toHaveBeenCalledTimes(1);
@@ -140,7 +144,7 @@ describe('AllExceptionsFilter failure log', () => {
   });
 
   it('logs a 500 as an error with the stack', () => {
-    run(new Error('database down'), false, Date.now() - 5);
+    run(new Error('database down'), { startedAt: Date.now() - 5 });
 
     expect(loggerMock.warn).not.toHaveBeenCalled();
     expect(loggerMock.error).toHaveBeenCalledTimes(1);
@@ -154,7 +158,9 @@ describe('AllExceptionsFilter failure log', () => {
   });
 
   it('reports the duration when the interceptor timed the request', () => {
-    run(new BadRequestException('Cursor inválido'), false, Date.now() - 25);
+    run(new BadRequestException('Cursor inválido'), {
+      startedAt: Date.now() - 25,
+    });
 
     const logFields = loggerMock.warn.mock.calls[0][0] as {
       durationMs?: number;
