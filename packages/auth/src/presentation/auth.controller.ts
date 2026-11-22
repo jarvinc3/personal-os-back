@@ -35,7 +35,9 @@ export class AuthController {
     description: 'Current authenticated user context',
     type: AuthSessionResponseDto,
   })
-  async session(@CurrentUser() user: AuthUserContext) {
+  async session(
+    @CurrentUser() user: AuthUserContext,
+  ): Promise<AuthUserContext> {
     const cacheKey = `user.logged_in:${user.sub}`;
     const cached = await this.cache.get(cacheKey);
 

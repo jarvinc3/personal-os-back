@@ -1,27 +1,24 @@
-type JwksClientOptions = {
-  cache: boolean;
-  rateLimit: boolean;
-  jwksRequestsPerMinute: number;
-  jwksUri: string;
-};
+import type { JwksClientOptions } from './jwks-client-options';
 
 export type JwksClientInstance = {
   getSigningKey: (kid: string) => Promise<{ getPublicKey: () => string }>;
 };
 
-type PassportJwtSecret = (
-  options: JwksClientOptions,
-) => (
+export type PassportJwksSecret = (
   req: unknown,
   rawJwtToken: string,
   done: (err: unknown, secret?: string) => void,
 ) => void;
+
+type PassportJwtSecret = (options: JwksClientOptions) => PassportJwksSecret;
 
 type JwksRsaModule = ((options: JwksClientOptions) => JwksClientInstance) & {
   passportJwtSecret: PassportJwtSecret;
 };
 
 function loadJwksRsa(): JwksRsaModule {
+  // `jwks-rsa` loads as the module itself under CommonJS and as `default`
+  // under ESM interop; support both without guessing at call sites.
   const loaded = require('jwks-rsa') as
     JwksRsaModule | { default: JwksRsaModule };
 
@@ -42,6 +39,8 @@ export function createJwksClient(
   return loadJwksRsa()(options);
 }
 
-export function createPassportJwksSecret(options: JwksClientOptions) {
+export function createPassportJwksSecret(
+  options: JwksClientOptions,
+): PassportJwksSecret {
   return loadJwksRsa().passportJwtSecret(options);
 }

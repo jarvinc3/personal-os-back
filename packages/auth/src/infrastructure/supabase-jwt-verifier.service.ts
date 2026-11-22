@@ -1,13 +1,19 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt, { type JwtHeader, type JwtPayload } from 'jsonwebtoken';
-import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
+import {
+  type Env,
+  type SupabaseAuthConfig,
+  getSupabaseAuthConfig,
+} from '@personal-os/config';
+import { SUPPORTED_JWT_ALGORITHMS } from '../domain/jwt-algorithms';
 import type { AuthUserContext } from '../domain/supabase-jwt-payload';
+import { buildJwksClientOptions } from './jwks-client-options';
 import { createJwksClient, type JwksClientInstance } from './jwks-rsa.loader';
 
 @Injectable()
 export class SupabaseJwtVerifierService {
-  private readonly authConfig;
+  private readonly authConfig: SupabaseAuthConfig;
   private client: JwksClientInstance | null = null;
 
   constructor(config: ConfigService<Env, true>) {
@@ -30,7 +36,7 @@ export class SupabaseJwtVerifierService {
         {
           issuer: this.authConfig.issuer,
           audience: this.authConfig.audience,
-          algorithms: ['RS256', 'ES256'],
+          algorithms: [...SUPPORTED_JWT_ALGORITHMS],
         },
         (err, decoded) => {
           if (err) {
@@ -66,12 +72,7 @@ export class SupabaseJwtVerifierService {
       throw new UnauthorizedException('Falta el id de la clave JWT');
     }
 
-    this.client ??= createJwksClient({
-      cache: true,
-      rateLimit: true,
-      jwksRequestsPerMinute: 10,
-      jwksUri: this.authConfig.jwksUri,
-    });
+    this.client ??= createJwksClient(buildJwksClientOptions(this.authConfig));
 
     const key = await this.client.getSigningKey(kid);
     return key.getPublicKey();
