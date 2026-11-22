@@ -24,6 +24,7 @@ import {
 } from '../domain/week-starts-on';
 import {
   USERS_REPOSITORY,
+  type UserModuleRecord,
   type UserWithModulesRecord,
   type UsersRepositoryPort,
 } from './ports/users.repository.port';
@@ -136,6 +137,50 @@ export class UsersService {
     slug: string,
     dto: UpdateModuleConfigDto,
   ) {
+    const { moduleId, existing } = await this.loadModuleForConfigUpdate({
+      userId,
+      slug,
+      dto,
+    });
+
+    // The stored config is untyped JSON; each descriptor validates its patch.
+    const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
+    const normalizedConfig = this.settingsRegistry.applyPatch(
+      slug,
+      currentConfig,
+      dto.config ?? {},
+    );
+    const isEnabled = dto.isEnabled ?? existing?.isEnabled ?? true;
+
+    await this.usersRepository.upsertUserModule({
+      userId,
+      moduleId,
+      config: normalizedConfig,
+      isEnabled,
+    });
+
+    this.emitModuleConfigEvents({
+      userId,
+      slug,
+      wasEnabled: existing?.isEnabled ?? false,
+      isEnabled,
+      requestedEnabled: dto.isEnabled,
+      hasConfigPatch: dto.config !== undefined,
+    });
+
+    return this.findById(userId);
+  }
+
+  /** Validates the patch before it touches the database and returns the rows it needs. */
+  private async loadModuleForConfigUpdate({
+    userId,
+    slug,
+    dto,
+  }: {
+    userId: string;
+    slug: string;
+    dto: UpdateModuleConfigDto;
+  }): Promise<{ moduleId: string; existing: UserModuleRecord | null }> {
     if (!this.settingsRegistry.has(slug)) {
       throw new BadRequestException(`Módulo desconocido "${slug}"`);
     }
@@ -160,44 +205,42 @@ export class UsersService {
       );
     }
 
-    if (!existing && dto.isEnabled === false && dto.config === undefined) {
+    if (!existing && dto.isEnabled === false) {
       throw new BadRequestException(
         'El módulo aún no está configurado; no se puede desactivar antes de configurarlo',
       );
     }
 
-    const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
-    // Each descriptor merges its own defaults and validates its own fields.
-    const normalizedConfig = this.settingsRegistry.applyPatch(
-      slug,
-      currentConfig,
-      dto.config ?? {},
-    );
+    return { moduleId: moduleRecord.id, existing };
+  }
 
-    const isEnabled = dto.isEnabled ?? existing?.isEnabled ?? true;
-
-    await this.usersRepository.upsertUserModule(
-      userId,
-      moduleRecord.id,
-      normalizedConfig,
-      isEnabled,
-    );
-
-    const wasEnabled = existing?.isEnabled ?? false;
+  private emitModuleConfigEvents({
+    userId,
+    slug,
+    wasEnabled,
+    isEnabled,
+    requestedEnabled,
+    hasConfigPatch,
+  }: {
+    userId: string;
+    slug: string;
+    wasEnabled: boolean;
+    isEnabled: boolean;
+    requestedEnabled: boolean | undefined;
+    hasConfigPatch: boolean;
+  }): void {
     if (!wasEnabled && isEnabled) {
       this.eventEmitter.emit(AppEvents.MODULE_ENABLED, { userId, slug });
-    } else if (wasEnabled && dto.isEnabled === false) {
+    } else if (wasEnabled && requestedEnabled === false) {
       this.eventEmitter.emit(AppEvents.MODULE_DISABLED, { userId, slug });
     }
 
-    if (dto.config !== undefined) {
+    if (hasConfigPatch) {
       this.eventEmitter.emit(AppEvents.MODULE_CONFIG_UPDATED, {
         userId,
         slug,
       });
     }
-
-    return this.findById(userId);
   }
 
   /**

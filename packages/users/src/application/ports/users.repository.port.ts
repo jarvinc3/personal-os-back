@@ -57,7 +57,6 @@ export type AuthDeletionClaim = {
   userId: string;
   attempts: number;
 };
-
 export interface UsersRepositoryPort {
   findById(id: string): Promise<UserWithModulesRecord | null>;
   findModuleBySlug(slug: string): Promise<ModuleRecord | null>;
@@ -79,12 +78,7 @@ export interface UsersRepositoryPort {
     data: UpdateProfileData,
   ): Promise<UserWithModulesRecord>;
   setLastSeenReleaseVersion(id: string, version: string): Promise<void>;
-  upsertUserModule(
-    userId: string,
-    moduleId: string,
-    config: Record<string, unknown>,
-    isEnabled?: boolean,
-  ): Promise<unknown>;
+  upsertUserModule(input: UpsertUserModuleInput): Promise<unknown>;
   deleteAccountWithAuthOutbox(userId: string): Promise<void>;
   resetSettingsToDefaults(
     userId: string,
@@ -97,11 +91,20 @@ export interface UsersRepositoryPort {
     id: string,
     attempts: number,
   ): Promise<{ count: number }>;
-  failAuthDeletion(
-    id: string,
-    attempts: number,
-    lastError: string,
-    nextAttemptAt: Date,
-    terminal: boolean,
-  ): Promise<{ count: number }>;
+  failAuthDeletion(input: FailAuthDeletionInput): Promise<{ count: number }>;
 }
+
+export type UpsertUserModuleInput = {
+  userId: string;
+  moduleId: string;
+  config: Record<string, unknown>;
+  isEnabled?: boolean;
+};
+
+export type FailAuthDeletionInput = {
+  id: string;
+  attempts: number;
+  lastError: string;
+  nextAttemptAt: Date;
+  terminal: boolean;
+};

@@ -48,3 +48,58 @@ describe('parseUserPreferences regional', () => {
     expect(prefs.notifications.quietHours.timezone).toBe('Europe/Madrid');
   });
 });
+
+describe('parseUserPreferences stored values', () => {
+  const options = { locale: 'es-DO', timezone: 'America/Santo_Domingo' };
+
+  it('falls back to the defaults for a stored value of the wrong type', () => {
+    const prefs = parseUserPreferences(
+      {
+        ai: { proactiveInsights: 'yes', confirmBeforeActions: 1 },
+        notifications: { channels: { push: 'true', email: null, inApp: 0 } },
+      },
+      options,
+    );
+
+    expect(prefs.ai.proactiveInsights).toBe(true);
+    expect(prefs.ai.confirmBeforeActions).toBe(true);
+    expect(prefs.notifications.channels).toEqual({
+      push: true,
+      email: false,
+      inApp: true,
+    });
+  });
+
+  it('keeps a stored provider and an explicit null', () => {
+    expect(
+      parseUserPreferences({ ai: { defaultProvider: 'groq' } }, options).ai
+        .defaultProvider,
+    ).toBe('groq');
+    expect(
+      parseUserPreferences({ ai: { defaultProvider: null } }, options).ai
+        .defaultProvider,
+    ).toBeNull();
+    expect(
+      parseUserPreferences({ ai: { defaultProvider: 42 } }, options).ai
+        .defaultProvider,
+    ).toBeNull();
+  });
+
+  it('prefers the stored quiet-hours zone over the request zone', () => {
+    expect(
+      parseUserPreferences(
+        { notifications: { quietHours: { timezone: 'Europe/Madrid' } } },
+        options,
+      ).notifications.quietHours.timezone,
+    ).toBe('Europe/Madrid');
+    expect(
+      parseUserPreferences({}, options).notifications.quietHours.timezone,
+    ).toBe('America/Santo_Domingo');
+    expect(
+      parseUserPreferences(
+        { notifications: { quietHours: { timezone: null } } },
+        options,
+      ).notifications.quietHours.timezone,
+    ).toBe('America/Santo_Domingo');
+  });
+});

@@ -77,13 +77,13 @@ export class AuthDeletionOutboxProcessor {
 
     const terminal = claimed.attempts >= MAX_ATTEMPTS || !result.retryable;
     const nextAttemptAt = this.computeNextAttemptAt(claimed.attempts);
-    const failed = await this.usersRepository.failAuthDeletion(
-      claimed.id,
-      claimed.attempts,
-      result.message,
+    const failed = await this.usersRepository.failAuthDeletion({
+      id: claimed.id,
+      attempts: claimed.attempts,
+      lastError: result.message,
       nextAttemptAt,
       terminal,
-    );
+    });
     if (failed.count === 0) {
       this.logger.warn(
         `auth_deletion_outbox lease lost userId=${claimed.userId} attempts=${claimed.attempts}`,
