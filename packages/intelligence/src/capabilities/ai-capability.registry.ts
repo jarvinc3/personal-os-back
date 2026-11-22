@@ -12,48 +12,24 @@ import {
 } from '@personal-os/contracts';
 import { aiActionArgumentDigest } from '../actions/application/ai-action-argument-digest';
 import { AiActionsRepository } from '../actions/infrastructure/ai-actions.repository';
+import {
+  errorMessage,
+  isJsonObject,
+  isJsonValue,
+  readProviderDefinitions,
+  toCapabilityDescriptor,
+} from './ai-capability-definition';
 
 type RegisteredCapability = {
   provider: AiCapabilityProvider;
   definition: AiCapabilityDefinition;
 };
 
-function isJsonValue(value: unknown): value is JsonValue {
-  if (
-    value === null ||
-    typeof value === 'string' ||
-    typeof value === 'boolean'
-  ) {
-    return true;
-  }
-  if (typeof value === 'number') {
-    return Number.isFinite(value);
-  }
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
-  }
-  if (typeof value === 'object') {
-    return Object.values(value).every(isJsonValue);
-  }
-  return false;
-}
-
-function isJsonObject(value: unknown): value is JsonObject {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    isJsonValue(value)
-  );
-}
-
-function cloneSchema(schema: JsonObject): JsonObject {
-  return JSON.parse(JSON.stringify(schema)) as JsonObject;
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Capability provider failed';
-}
+type MutationAuthorization = {
+  registered: RegisteredCapability;
+  ctx: AiExecutionContext;
+  validatedArgs: JsonObject;
+};
 
 @Injectable()
 export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
@@ -64,73 +40,9 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
   constructor(private readonly actions: AiActionsRepository) {}
 
   register(provider: AiCapabilityProvider): void {
-    if (
-      typeof provider.moduleSlug !== 'string' ||
-      !provider.moduleSlug.trim() ||
-      this.registeredInstances.has(provider)
-    ) {
-      throw new AiCapabilityError(
-        'CAPABILITY_CONFLICT',
-        `Capability provider is already registered or has no module slug`,
-        { moduleSlug: provider.moduleSlug },
-      );
-    }
-
-    let definitions: readonly AiCapabilityDefinition[];
-    try {
-      definitions = provider.describe();
-    } catch (error) {
-      throw new AiCapabilityError(
-        'CAPABILITY_INVALID_DEFINITION',
-        `Could not describe capabilities for ${provider.moduleSlug}: ${errorMessage(error)}`,
-        { moduleSlug: provider.moduleSlug },
-      );
-    }
-    if (!Array.isArray(definitions)) {
-      throw new AiCapabilityError(
-        'CAPABILITY_INVALID_DEFINITION',
-        `Capability provider ${provider.moduleSlug} must return an array of definitions`,
-        { moduleSlug: provider.moduleSlug },
-      );
-    }
-
-    const pending = new Set<string>();
-    for (const definition of definitions) {
-      if (
-        typeof definition.id !== 'string' ||
-        !definition.id.trim() ||
-        definition.moduleSlug !== provider.moduleSlug ||
-        !Number.isInteger(definition.version) ||
-        definition.version < 1 ||
-        typeof definition.description !== 'string' ||
-        !definition.description.trim() ||
-        !isJsonObject(definition.inputSchema) ||
-        !isJsonObject(definition.outputSchema) ||
-        !['READ', 'WRITE'].includes(definition.effect) ||
-        (definition.effect === 'WRITE' &&
-          !['AUTO_ALLOWED', 'CONFIRM_REQUIRED', 'FORBIDDEN'].includes(
-            definition.actionPolicy ?? '',
-          )) ||
-        (definition.effect === 'READ' &&
-          definition.actionPolicy !== undefined) ||
-        typeof definition.validateInput !== 'function' ||
-        typeof definition.validateOutput !== 'function'
-      ) {
-        throw new AiCapabilityError(
-          'CAPABILITY_INVALID_DEFINITION',
-          `Invalid capability definition from ${provider.moduleSlug}`,
-          { moduleSlug: provider.moduleSlug, capabilityId: definition.id },
-        );
-      }
-      if (this.capabilities.has(definition.id) || pending.has(definition.id)) {
-        throw new AiCapabilityError(
-          'CAPABILITY_CONFLICT',
-          `Capability ${definition.id} is already registered`,
-          { capabilityId: definition.id, moduleSlug: definition.moduleSlug },
-        );
-      }
-      pending.add(definition.id);
-    }
+    this.assertProviderRegistrable(provider);
+    const definitions = readProviderDefinitions(provider);
+    this.assertCapabilitiesAvailable(definitions);
 
     this.registeredInstances.add(provider);
     const moduleProviders = this.providers.get(provider.moduleSlug) ?? [];
@@ -146,18 +58,7 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
       .filter(
         ({ definition }) => !moduleSlug || definition.moduleSlug === moduleSlug,
       )
-      .map(({ definition }) => ({
-        id: definition.id,
-        moduleSlug: definition.moduleSlug,
-        version: definition.version,
-        description: definition.description,
-        inputSchema: cloneSchema(definition.inputSchema),
-        outputSchema: cloneSchema(definition.outputSchema),
-        effect: definition.effect,
-        ...(definition.actionPolicy
-          ? { actionPolicy: definition.actionPolicy }
-          : {}),
-      }))
+      .map(({ definition }) => toCapabilityDescriptor(definition))
       .sort((left, right) => left.id.localeCompare(right.id));
   }
 
@@ -178,37 +79,11 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
     const validatedArgs = this.validateInput(capabilityId, args);
 
     if (registered.definition.effect === 'WRITE') {
-      const authorization = ctx.authorization;
-      const allowedPolicy = registered.definition.actionPolicy;
-      if (
-        !authorization?.actionId ||
-        !authorization.argumentDigest ||
-        authorization.capabilityId !== capabilityId ||
-        authorization.policyVersion !== AI_ACTION_POLICY_VERSION ||
-        authorization.decision !== allowedPolicy ||
-        authorization.argumentDigest !== aiActionArgumentDigest(validatedArgs)
-      ) {
-        throw new AiCapabilityError(
-          'CAPABILITY_MUTATION_POLICY_REQUIRED',
-          `Capability ${capabilityId} requires an authorized AI action`,
-          { capabilityId },
-        );
-      }
-      const claimed = await this.actions.findClaimedForExecution({
-        id: authorization.actionId,
-        userId: ctx.userId,
-        actionType: capabilityId,
-        policy: authorization.decision,
-        policyVersion: authorization.policyVersion,
-        argumentDigest: authorization.argumentDigest,
+      await this.assertMutationAuthorized({
+        registered,
+        ctx,
+        validatedArgs,
       });
-      if (!claimed) {
-        throw new AiCapabilityError(
-          'CAPABILITY_MUTATION_POLICY_REQUIRED',
-          `Capability ${capabilityId} requires a claimed AI action`,
-          { capabilityId },
-        );
-      }
     }
 
     let result: JsonValue;
@@ -329,6 +204,88 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
       }
     }
     return null;
+  }
+
+  private assertProviderRegistrable(provider: AiCapabilityProvider): void {
+    if (
+      typeof provider.moduleSlug !== 'string' ||
+      !provider.moduleSlug.trim() ||
+      this.registeredInstances.has(provider)
+    ) {
+      throw new AiCapabilityError(
+        'CAPABILITY_CONFLICT',
+        `Capability provider is already registered or has no module slug`,
+        { moduleSlug: provider.moduleSlug },
+      );
+    }
+  }
+
+  private assertCapabilitiesAvailable(
+    definitions: readonly AiCapabilityDefinition[],
+  ): void {
+    const pending = new Set<string>();
+    for (const definition of definitions) {
+      if (this.capabilities.has(definition.id) || pending.has(definition.id)) {
+        throw new AiCapabilityError(
+          'CAPABILITY_CONFLICT',
+          `Capability ${definition.id} is already registered`,
+          { capabilityId: definition.id, moduleSlug: definition.moduleSlug },
+        );
+      }
+      pending.add(definition.id);
+    }
+  }
+
+  private async assertMutationAuthorized({
+    registered,
+    ctx,
+    validatedArgs,
+  }: MutationAuthorization): Promise<void> {
+    const authorization = ctx.authorization;
+    if (
+      !authorization ||
+      !this.hasValidAuthorization(
+        authorization,
+        registered.definition,
+        validatedArgs,
+      )
+    ) {
+      throw new AiCapabilityError(
+        'CAPABILITY_MUTATION_POLICY_REQUIRED',
+        `Capability ${registered.definition.id} requires an authorized AI action`,
+        { capabilityId: registered.definition.id },
+      );
+    }
+    const claimed = await this.actions.findClaimedForExecution({
+      id: authorization.actionId,
+      userId: ctx.userId,
+      actionType: registered.definition.id,
+      policy: authorization.decision,
+      policyVersion: authorization.policyVersion,
+      argumentDigest: authorization.argumentDigest,
+    });
+    if (!claimed) {
+      throw new AiCapabilityError(
+        'CAPABILITY_MUTATION_POLICY_REQUIRED',
+        `Capability ${registered.definition.id} requires a claimed AI action`,
+        { capabilityId: registered.definition.id },
+      );
+    }
+  }
+
+  private hasValidAuthorization(
+    authorization: NonNullable<AiExecutionContext['authorization']>,
+    definition: AiCapabilityDefinition,
+    validatedArgs: JsonObject,
+  ): boolean {
+    return (
+      Boolean(authorization.actionId) &&
+      Boolean(authorization.argumentDigest) &&
+      authorization.capabilityId === definition.id &&
+      authorization.policyVersion === AI_ACTION_POLICY_VERSION &&
+      authorization.decision === definition.actionPolicy &&
+      authorization.argumentDigest === aiActionArgumentDigest(validatedArgs)
+    );
   }
 
   private async assertAvailable(
