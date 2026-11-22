@@ -28,11 +28,7 @@ export class CatalogCategoriesService {
   }
 
   async createCategory(userId: string, dto: CreateCategoryDto) {
-    if (dto.type === 'TRANSFER') {
-      throw new BadRequestException(
-        'El tipo de categoría debe ser EXPENSE o INCOME',
-      );
-    }
+    this.assertCategoryType(dto.type);
     const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
       await this.ownership.assertParentCategory(
@@ -52,11 +48,7 @@ export class CatalogCategoriesService {
   }
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
-    if (dto.type === 'TRANSFER') {
-      throw new BadRequestException(
-        'El tipo de categoría debe ser EXPENSE o INCOME',
-      );
-    }
+    this.assertCategoryType(dto.type);
     const existing = await this.ownership.assertCategoryVisible(userId, id);
     const nextParentId =
       dto.parentId === undefined ? existing.parentId : dto.parentId;
@@ -78,12 +70,11 @@ export class CatalogCategoriesService {
       );
     }
 
-    const cascadeType =
-      typeChanged &&
-      !nextParentId &&
-      (dto.type === 'EXPENSE' || dto.type === 'INCOME')
-        ? dto.type
-        : undefined;
+    const cascadeType = this.resolveCascadeType({
+      typeChanged,
+      nextParentId,
+      requestedType: dto.type,
+    });
 
     const updated = await this.repo.updateCategory(
       userId,
@@ -115,5 +106,33 @@ export class CatalogCategoriesService {
     const restored = await this.repo.restoreCategory(userId, id, now);
     assertRestored(restored, 'Category not found');
     return { success: true };
+  }
+
+  private assertCategoryType(
+    type: 'EXPENSE' | 'INCOME' | 'TRANSFER' | undefined,
+  ): asserts type is 'EXPENSE' | 'INCOME' | undefined {
+    if (type === 'TRANSFER') {
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
+    }
+  }
+
+  private resolveCascadeType({
+    typeChanged,
+    nextParentId,
+    requestedType,
+  }: {
+    typeChanged: boolean;
+    nextParentId: string | null;
+    requestedType: 'EXPENSE' | 'INCOME' | 'TRANSFER' | undefined;
+  }): 'EXPENSE' | 'INCOME' | undefined {
+    if (!typeChanged || nextParentId) {
+      return undefined;
+    }
+    if (requestedType === 'EXPENSE' || requestedType === 'INCOME') {
+      return requestedType;
+    }
+    return undefined;
   }
 }
