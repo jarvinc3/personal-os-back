@@ -26,6 +26,7 @@ export class ExchangeRatesQueryDto {
     example: 'USD,EUR',
     description: `Comma-separated ISO-3 currency codes, at most ${MAX_EXCHANGE_RATE_QUOTES}`,
     type: [String],
+    maxItems: MAX_EXCHANGE_RATE_QUOTES,
   })
   @Transform(({ value }) => toQuoteList(value))
   @IsArray()

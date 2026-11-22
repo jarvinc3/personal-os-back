@@ -36,9 +36,9 @@ huella y no requiere conservar el texto original.
 Las escrituras de telemetría son best effort: un fallo se registra como warning
 sanitizado y no descarta una inferencia válida. El cron diario elimina filas
 vencidas. La telemetría vence 90 días después de crearse. El FK elimina las
-filas al borrar al usuario; el usuario también
-puede borrarlas desde la rama `ai.inferences` de `GET /api/users/me/data/branches`
-y `DELETE /api/users/me/data`.
+filas al borrar al usuario; el usuario también puede vaciarlas con
+`POST /api/users/me/data/wipe` y `{ "branches": ["ai.inferences"] }`, una de
+las ramas que lista `GET /api/users/me/data/branches`.
 
 Cada fallo de proveedor deja una línea de log con proveedor, modelo, estado
 HTTP, si era reintentable, si se intentó el siguiente proveedor y una causa
