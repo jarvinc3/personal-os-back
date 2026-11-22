@@ -58,7 +58,6 @@ export async function listClearedAccountLinks(
   ];
 }
 
-/** Cards, their balances and their statements, as rows to restore. */
 export function cardSnapshotRows(
   cards: readonly CardSnapshotSource[],
 ): DeletionRow[] {
@@ -86,7 +85,6 @@ export function cardSnapshotRows(
   ];
 }
 
-/** Loans and their installments, as rows to restore. */
 export function loanSnapshotRows(
   loans: readonly LoanSnapshotSource[],
 ): DeletionRow[] {
