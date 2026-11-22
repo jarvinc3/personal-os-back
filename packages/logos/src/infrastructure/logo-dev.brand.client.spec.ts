@@ -89,4 +89,31 @@ describe('LogoDevBrandClient', () => {
       buffer: Buffer.from([1, 2, 3]),
     });
   });
+
+  it('ignores rows that are not objects', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve([
+          { name: 'Visa', domain: 'visa.com' },
+          'not-a-row',
+          ['array-row'],
+        ]),
+    });
+    const client = new LogoDevBrandClient(config());
+
+    await expect(client.search('visa')).resolves.toEqual([
+      { name: 'Visa', domain: 'visa.com' },
+    ]);
+  });
+
+  it('returns no hits when the payload has an empty row', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([{ name: 'Visa', domain: 'visa.com' }, null]),
+    });
+    const client = new LogoDevBrandClient(config());
+
+    await expect(client.search('visa')).resolves.toEqual([]);
+  });
 });

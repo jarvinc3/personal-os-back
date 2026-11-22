@@ -11,6 +11,20 @@ import { normalizeDomain } from '../domain/normalize-domain';
 const SEARCH_TIMEOUT_MS = 5000;
 const DOWNLOAD_TIMEOUT_MS = 5000;
 
+function readSearchHit(row: unknown): BrandSearchHit | null {
+  if (row === null || row === undefined) {
+    throw new Error('Logo.dev search returned an empty row');
+  }
+  if (typeof row !== 'object') {
+    return null;
+  }
+  const name = 'name' in row && typeof row.name === 'string' ? row.name : '';
+  const domain =
+    'domain' in row && typeof row.domain === 'string' ? row.domain : '';
+  const normalizedDomain = normalizeDomain(domain);
+  return name && normalizedDomain ? { name, domain: normalizedDomain } : null;
+}
+
 @Injectable()
 export class LogoDevBrandClient implements BrandLogoPort {
   private readonly log = new Logger(LogoDevBrandClient.name);
@@ -34,17 +48,10 @@ export class LogoDevBrandClient implements BrandLogoPort {
         this.log.warn(`Logo.dev search failed: ${res.status}`);
         return [];
       }
-      const payload = (await res.json()) as unknown;
-      const rows = Array.isArray(payload) ? payload : [];
+      const payload: unknown = await res.json();
+      const rows: unknown[] = Array.isArray(payload) ? payload : [];
       return rows
-        .map((row) => {
-          const record = row as { name?: unknown; domain?: unknown };
-          const name = typeof record.name === 'string' ? record.name : '';
-          const domain = normalizeDomain(
-            typeof record.domain === 'string' ? record.domain : '',
-          );
-          return name && domain ? { name, domain } : null;
-        })
+        .map(readSearchHit)
         .filter((row): row is BrandSearchHit => row !== null);
     } catch (error) {
       this.log.warn(
