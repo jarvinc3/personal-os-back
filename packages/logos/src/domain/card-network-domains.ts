@@ -8,14 +8,15 @@ export const CARD_NETWORK_DOMAINS = {
 
 export type CardNetworkWithLogo = keyof typeof CARD_NETWORK_DOMAINS;
 
+function isCardNetworkWithLogo(value: string): value is CardNetworkWithLogo {
+  return Object.hasOwn(CARD_NETWORK_DOMAINS, value);
+}
+
 export function cardNetworkDomain(
   network: string | null | undefined,
 ): string | null {
-  if (!network || network === 'OTHER') {
+  if (!network || !isCardNetworkWithLogo(network)) {
     return null;
   }
-  if (network in CARD_NETWORK_DOMAINS) {
-    return CARD_NETWORK_DOMAINS[network as CardNetworkWithLogo];
-  }
-  return null;
+  return CARD_NETWORK_DOMAINS[network];
 }
