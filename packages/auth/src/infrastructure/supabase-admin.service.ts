@@ -45,7 +45,8 @@ export class SupabaseAdminService {
     const result = await this.tryDeleteAuthUser(userId);
     if (!result.ok) {
       this.logger.error(
-        `Failed to delete Supabase auth user ${userId}: ${result.message}`,
+        { userId, error: result.message },
+        'Failed to delete Supabase auth user',
       );
       throw new InternalServerErrorException(
         'No se pudo completar la eliminación de la cuenta de autenticación.',

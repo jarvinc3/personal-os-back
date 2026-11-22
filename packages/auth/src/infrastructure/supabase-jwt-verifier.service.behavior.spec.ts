@@ -141,4 +141,17 @@ describe('SupabaseJwtVerifierService behavior', () => {
       createService().verifyAccessToken(signToken({ sub: undefined })),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
+
+  it('construye el cliente JWKS con las opciones compartidas', async () => {
+    mockedCreateJwksClient.mockClear();
+
+    await createService().verifyAccessToken(signToken());
+
+    expect(mockedCreateJwksClient).toHaveBeenCalledWith({
+      cache: true,
+      rateLimit: true,
+      jwksRequestsPerMinute: 10,
+      jwksUri: 'https://project.supabase.co/auth/v1/.well-known/jwks.json',
+    });
+  });
 });

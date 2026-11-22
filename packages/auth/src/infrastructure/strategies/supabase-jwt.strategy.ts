@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
+import { SUPPORTED_JWT_ALGORITHMS } from '../../domain/jwt-algorithms';
 import { createJwksSecretProvider } from '../jwks-secret-provider';
 import type {
   AuthUserContext,
@@ -23,7 +24,7 @@ export class SupabaseJwtStrategy extends PassportStrategy(
       ignoreExpiration: false,
       issuer: authConfig.issuer,
       audience: authConfig.audience,
-      algorithms: ['RS256', 'ES256'] as const,
+      algorithms: [...SUPPORTED_JWT_ALGORITHMS],
       // Lazy JWKS load so constructing the strategy does not require `jose`/jwks-rsa
       // (keeps Jest e2e bootable when the strategy is not overridden).
       secretOrKeyProvider: (request, rawJwtToken, done) => {
