@@ -1,5 +1,14 @@
 import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
+import { CatalogAccountNumbersService } from './catalog-account-numbers.service';
+import { CatalogAccountsService } from './catalog-accounts.service';
+import { CatalogCardBalancesService } from './catalog-card-balances.service';
+import { CatalogCardsService } from './catalog-cards.service';
+import { CatalogEmailProductsService } from './catalog-email-products.service';
+import { CatalogInstitutionsService } from './catalog-institutions.service';
+import { CatalogViews } from './catalog-views';
+import type { LogoService } from '@personal-os/logos';
+import type { UsersService } from '@personal-os/users';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
@@ -89,19 +98,28 @@ function createService(
   repo: CatalogRepository,
   ownership: FinanceOwnershipService,
   purge: PurgeInstrumentLedgerUseCase,
-  logos?: never,
-  users?: never,
+  logos?: LogoService,
+  users?: UsersService,
 ) {
-  return new CatalogService(
+  const views = new CatalogViews(logos, users);
+  const numbers = new CatalogAccountNumbersService(configMock());
+  const accounts = new CatalogAccountsService(
     repo,
     ownership,
-    new CatalogCategoriesService(repo, ownership),
     purge,
     ensureMock(),
     baseCurrencyMock(),
-    logos,
-    users,
-    configMock(),
+    numbers,
+    views,
+  );
+  const cards = new CatalogCardsService(repo, ownership, purge, views);
+  return new CatalogService(
+    accounts,
+    new CatalogInstitutionsService(repo, ownership, purge, logos, views),
+    cards,
+    new CatalogCardBalancesService(repo),
+    new CatalogEmailProductsService(repo, numbers, accounts, cards),
+    new CatalogCategoriesService(repo, ownership),
   );
 }
 
