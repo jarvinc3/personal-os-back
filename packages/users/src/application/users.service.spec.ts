@@ -226,7 +226,10 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
       userId: 'user-1',
       slug: 'agenda',
     });
-    expect(emit).not.toHaveBeenCalledWith(AppEvents.MODULE_ENABLED, expect.anything());
+    expect(emit).not.toHaveBeenCalledWith(
+      AppEvents.MODULE_ENABLED,
+      expect.anything(),
+    );
   });
 
   it('validates AI module settings through the registered descriptor before saving', async () => {
