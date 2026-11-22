@@ -171,22 +171,14 @@ export class PushSenderService {
       }
 
       const result = (await response.json()) as ExpoPushResponse;
+      const tickets = this.readExpoTickets({
+        tickets: result.data,
+        chunk,
+      });
 
-      for (let index = 0; index < (result.data ?? []).length; index += 1) {
-        const ticket = result.data[index];
-        const token = chunk[index];
-        if (ticket.status === 'ok') {
-          sent += 1;
-        } else {
-          failed += 1;
-          if (ticket.details?.error === 'DeviceNotRegistered') {
-            deactivatedTokens.push(token);
-          }
-          this.logger.warn(
-            `Expo push ticket error: ${ticket.message ?? 'unknown'} ${ticket.details?.error ?? ''}`,
-          );
-        }
-      }
+      sent += tickets.sent;
+      failed += tickets.failed;
+      deactivatedTokens.push(...tickets.deactivatedTokens);
     }
 
     return { sent, failed, deactivatedTokens };
@@ -248,5 +240,42 @@ export class PushSenderService {
         this.notificationsRepo.deactivatePushTokenByToken(token),
       ),
     );
+  }
+
+  /**
+   * Counts the tickets of one Expo chunk and flags the tokens the provider
+   * asked to drop. Tickets and chunk may differ in length; a missing token is
+   * not counted.
+   */
+  private readExpoTickets({
+    tickets,
+    chunk,
+  }: {
+    tickets: ExpoPushTicket[];
+    chunk: string[];
+  }): PushSendResult {
+    const outcome: PushSendResult = {
+      sent: 0,
+      failed: 0,
+      deactivatedTokens: [],
+    };
+
+    for (let index = 0; index < tickets.length; index += 1) {
+      const ticket = tickets[index];
+      if (ticket.status === 'ok') {
+        outcome.sent += 1;
+        continue;
+      }
+
+      outcome.failed += 1;
+      if (ticket.details?.error === 'DeviceNotRegistered') {
+        outcome.deactivatedTokens.push(chunk[index]);
+      }
+      this.logger.warn(
+        `Expo push ticket error: ${ticket.message ?? 'unknown'} ${ticket.details?.error ?? ''}`,
+      );
+    }
+
+    return outcome;
   }
 }

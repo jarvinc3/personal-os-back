@@ -34,33 +34,26 @@ export class EmailSyncProcessor extends WorkerHost {
     const deliveryEnabled = this.config.get('EMAIL_DELIVERY_ENABLED', {
       infer: true,
     });
+    const jobId = job.id;
 
     if (!deliveryEnabled) {
       this.logger.warn(
-        `EMAIL delivery disabled: email-sync job ${job.id ?? 'unknown'} skipped ` +
-          `(user=${userId} template=${template})`,
+        { jobId, userId, template },
+        'EMAIL delivery disabled: email-sync job skipped',
       );
       return;
     }
 
     if (!subject?.trim()) {
-      this.logger.warn(
-        `Email sync job ${job.id ?? 'unknown'} skipped: empty subject`,
-      );
+      this.logger.warn({ jobId }, 'Email sync job skipped: empty subject');
       return;
     }
 
-    const explicitTo = to?.trim();
-    let recipient = explicitTo || '';
-    if (!recipient) {
-      const user = await this.usersRepository.findById(userId);
-      recipient = user?.email?.trim() ?? '';
-    }
-
+    const recipient = await this.resolveRecipient(userId, to);
     if (!recipient) {
       this.logger.warn(
-        `Email sync job ${job.id ?? 'unknown'} skipped: no recipient ` +
-          `(user=${userId} to empty and profile email missing)`,
+        { jobId, userId },
+        'Email sync job skipped: no recipient',
       );
       return;
     }
@@ -72,15 +65,35 @@ export class EmailSyncProcessor extends WorkerHost {
     });
 
     this.logger.log(
-      `EMAIL sent for job ${job.id ?? 'unknown'} user=${userId} to=${recipient} ` +
-        `template=${template}`,
+      { jobId, userId, template, to: maskRecipient(recipient) },
+      'EMAIL sent',
     );
+  }
+
+  /** Explicit recipient first, then the profile email; empty when neither exists. */
+  private async resolveRecipient(
+    userId: string,
+    requestedTo: string | undefined,
+  ): Promise<string> {
+    const explicitTo = requestedTo?.trim();
+    if (explicitTo) {
+      return explicitTo;
+    }
+    const user = await this.usersRepository.findById(userId);
+    return user?.email?.trim() ?? '';
   }
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<EmailSyncJob>, error: Error) {
     this.logger.error(
-      `Email sync job ${job.id ?? 'unknown'} failed: ${error.message}`,
+      { jobId: job.id, error: error.message },
+      'Email sync job failed',
     );
   }
+}
+
+/** Keeps the domain for correlation; the local part never reaches the logs. */
+function maskRecipient(address: string): string {
+  const domain = address.split('@')[1];
+  return domain ? `***@${domain}` : '***';
 }

@@ -47,10 +47,26 @@ function successSchema({
   method,
 }: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
-  return (
-    operation?.responses?.['200']?.content?.['application/json']?.schema ??
-    operation?.responses?.['201']?.content?.['application/json']?.schema
-  );
+  for (const status of ['200', '201']) {
+    const schema =
+      operation?.responses?.[status]?.content?.['application/json']?.schema;
+    if (schema) {
+      return schema;
+    }
+  }
+  return undefined;
+}
+
+function resolveSchema(
+  document: OpenApiDocument,
+  schema: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  const reference = schema?.$ref;
+  if (typeof reference !== 'string') {
+    return schema;
+  }
+  const name = reference.split('/').at(-1);
+  return name ? document.components?.schemas?.[name] : undefined;
 }
 
 describe('OpenAPI response schemas of notifications', () => {
@@ -81,19 +97,15 @@ describe('OpenAPI response schemas of notifications', () => {
   });
 
   it('declares the cursor fields of the notification list', () => {
-    const schema = document.paths['/api/notifications']?.get?.responses?.['200']
-      ?.content?.['application/json']?.schema as {
-      $ref?: string;
-    };
-    const name = schema?.$ref?.split('/').at(-1);
-    const resolved = name
-      ? (document.components?.schemas?.[name] as {
-          properties?: Record<string, unknown>;
-        })
-      : undefined;
+    const schema = successSchema({
+      document,
+      path: '/api/notifications',
+      method: 'get',
+    });
+    const page = resolveSchema(document, schema);
 
-    expect(resolved?.properties).toHaveProperty('nextCursor');
-    expect(resolved?.properties).toHaveProperty('hasMore');
+    expect(page?.properties).toHaveProperty('nextCursor');
+    expect(page?.properties).toHaveProperty('hasMore');
     expect(document.components?.schemas?.PushTokenResponseDto).toBeDefined();
   });
 });

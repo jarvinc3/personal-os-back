@@ -1,11 +1,25 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type {
+  IsoInstant,
   JsonObject,
   NotificationIntent,
   NotificationIntentConsumer,
 } from '@personal-os/contracts';
 
-const notificationChannels = new Set(['IN_APP', 'PUSH', 'EMAIL']);
+const NOTIFICATION_CHANNELS = new Set<string>(['IN_APP', 'PUSH', 'EMAIL']);
+
+const REQUIRED_STRING_FIELDS = [
+  'userId',
+  'sourceDomain',
+  'type',
+  'title',
+  'body',
+  'deduplicationKey',
+  'occurredAt',
+] as const;
+
+const ISO_INSTANT_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function isJsonValue(value: unknown, ancestors = new Set<object>()): boolean {
   if (
@@ -38,84 +52,102 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function validateNotificationIntent(input: unknown): NotificationIntent {
-  if (!isObject(input)) {
-    throw new BadRequestException('Notification intent must be an object');
-  }
-
-  const requiredStrings = [
-    'userId',
-    'sourceDomain',
-    'type',
-    'title',
-    'body',
-    'deduplicationKey',
-    'occurredAt',
-  ] as const;
-  for (const field of requiredStrings) {
+function assertRequiredStrings(input: Record<string, unknown>): void {
+  for (const field of REQUIRED_STRING_FIELDS) {
     if (typeof input[field] !== 'string') {
       throw new BadRequestException(
         `Notification intent ${field} must be a string`,
       );
     }
   }
-  if (input.schemaVersion !== 1) {
-    throw new BadRequestException(
-      'Notification intent schemaVersion must be 1',
-    );
-  }
+}
+
+function assertOccurredAt(value: unknown): asserts value is IsoInstant {
   if (
-    typeof input.occurredAt !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(
-      input.occurredAt,
-    ) ||
-    !Number.isFinite(Date.parse(input.occurredAt))
+    typeof value !== 'string' ||
+    !ISO_INSTANT_PATTERN.test(value) ||
+    !Number.isFinite(Date.parse(value))
   ) {
     throw new BadRequestException(
       'Notification intent occurredAt must be an ISO instant',
     );
   }
-  if (
-    input.preferenceKey !== undefined &&
-    typeof input.preferenceKey !== 'string'
-  ) {
+}
+
+function assertPreferenceKey(
+  value: unknown,
+): asserts value is string | undefined {
+  if (value !== undefined && typeof value !== 'string') {
     throw new BadRequestException(
       'Notification intent preferenceKey must be a string',
     );
   }
+}
+
+function assertRequestedChannels(
+  value: unknown,
+): asserts value is NotificationIntent['requestedChannels'] {
   if (
-    !Array.isArray(input.requestedChannels) ||
-    !input.requestedChannels.every(
+    !Array.isArray(value) ||
+    !value.every(
       (channel) =>
-        typeof channel === 'string' && notificationChannels.has(channel),
+        typeof channel === 'string' && NOTIFICATION_CHANNELS.has(channel),
     )
   ) {
     throw new BadRequestException(
       'Notification intent requestedChannels contains an unsupported channel',
     );
   }
-  if (
-    input.data !== undefined &&
-    (!isObject(input.data) || !isJsonValue(input.data))
-  ) {
+}
+
+function assertJsonData(
+  value: unknown,
+): asserts value is JsonObject | undefined {
+  if (value !== undefined && (!isObject(value) || !isJsonValue(value))) {
     throw new BadRequestException(
       'Notification intent data must be a JSON object',
     );
   }
-  if (input.cause !== undefined) {
-    if (
-      !isObject(input.cause) ||
-      typeof input.cause.eventId !== 'string' ||
-      typeof input.cause.eventName !== 'string'
-    ) {
-      throw new BadRequestException(
-        'Notification intent cause requires eventId and eventName strings',
-      );
-    }
+}
+
+function assertCause(
+  value: unknown,
+): asserts value is { eventId: string; eventName: string } | undefined {
+  if (value === undefined) {
+    return;
   }
+  if (
+    !isObject(value) ||
+    typeof value.eventId !== 'string' ||
+    typeof value.eventName !== 'string'
+  ) {
+    throw new BadRequestException(
+      'Notification intent cause requires eventId and eventName strings',
+    );
+  }
+}
+
+export function validateNotificationIntent(input: unknown): NotificationIntent {
+  if (!isObject(input)) {
+    throw new BadRequestException('Notification intent must be an object');
+  }
+
+  assertRequiredStrings(input);
+  if (input.schemaVersion !== 1) {
+    throw new BadRequestException(
+      'Notification intent schemaVersion must be 1',
+    );
+  }
+  assertOccurredAt(input.occurredAt);
+  assertPreferenceKey(input.preferenceKey);
+  assertRequestedChannels(input.requestedChannels);
+  assertJsonData(input.data);
+  assertCause(input.cause);
 
   return {
     schemaVersion: 1,
+    // `assertRequiredStrings` checked these fields; the casts restore what it
+    // proved, because it cannot narrow seven properties at once.
     userId: input.userId as string,
     sourceDomain: input.sourceDomain as string,
     type: input.type as string,
@@ -124,20 +156,16 @@ export function validateNotificationIntent(input: unknown): NotificationIntent {
       : { preferenceKey: input.preferenceKey }),
     title: input.title as string,
     body: input.body as string,
-    ...(input.data === undefined
-      ? {}
-      : { data: structuredClone(input.data) as JsonObject }),
-    requestedChannels: [
-      ...input.requestedChannels,
-    ] as NotificationIntent['requestedChannels'],
+    ...(input.data === undefined ? {} : { data: structuredClone(input.data) }),
+    requestedChannels: [...input.requestedChannels],
     deduplicationKey: input.deduplicationKey as string,
     occurredAt: input.occurredAt,
     ...(input.cause === undefined
       ? {}
       : {
           cause: {
-            eventId: input.cause.eventId as string,
-            eventName: input.cause.eventName as string,
+            eventId: input.cause.eventId,
+            eventName: input.cause.eventName,
           },
         }),
   };
