@@ -171,8 +171,10 @@ export class PushSenderService {
       }
 
       const result = (await response.json()) as ExpoPushResponse;
+      // The cast trusts the provider shape; a response without `data` still
+      // means "no tickets" like before.
       const tickets = this.readExpoTickets({
-        tickets: result.data,
+        tickets: result.data ?? [],
         chunk,
       });
 
