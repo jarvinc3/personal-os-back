@@ -50,6 +50,22 @@ describe('PushSenderService', () => {
     expect(result.failed).toBe(0);
   });
 
+  it('treats an Expo response without data as no tickets', async () => {
+    const service = createService({ EXPO_ACCESS_TOKEN: 'expo-token' });
+
+    jest.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    } as Response);
+
+    const result = await service.sendToTokenEntries(
+      [{ token: 'ExponentPushToken[abc]', platform: 'ios' }],
+      { title: 'Hello', body: 'World' },
+    );
+
+    expect(result).toEqual({ sent: 0, failed: 0, deactivatedTokens: [] });
+  });
+
   it('skips web tokens when VAPID is not configured', async () => {
     const service = createService({});
 
