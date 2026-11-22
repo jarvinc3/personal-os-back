@@ -29,10 +29,11 @@ type TestResponse = {
 type RunOptions = {
   headersSent?: boolean;
   startedAt?: number;
+  nodeEnv?: string;
 };
 
 function run(exception: unknown, options: RunOptions = {}): TestResponse {
-  const { headersSent = false, startedAt } = options;
+  const { headersSent = false, startedAt, nodeEnv = 'production' } = options;
   const json = jest.fn();
   const status = jest.fn().mockReturnValue({ json });
   const destroy = jest.fn();
@@ -47,7 +48,7 @@ function run(exception: unknown, options: RunOptions = {}): TestResponse {
       getResponse: () => ({ headersSent, status, destroy }),
     }),
   } as unknown as ArgumentsHost;
-  createFilter().catch(exception, host);
+  createFilter(nodeEnv).catch(exception, host);
   return { status, json, destroy };
 }
 
@@ -186,6 +187,50 @@ describe('AllExceptionsFilter failure log', () => {
     expect(loggerMock.warn).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: HttpStatus.UNAUTHORIZED }),
       'HTTP request failed',
+    );
+  });
+});
+
+describe('AllExceptionsFilter resolved error', () => {
+  function responseBody(response: TestResponse): Record<string, unknown> {
+    return response.json.mock.calls[0][0] as Record<string, unknown>;
+  }
+
+  it('hides the internal message in production', () => {
+    const response = run(new Error('database down'), { nodeEnv: 'production' });
+
+    expect(responseBody(response).message).toBe('Internal server error');
+  });
+
+  it('keeps the real message outside production', () => {
+    const response = run(new Error('database down'), {
+      nodeEnv: 'development',
+    });
+
+    expect(responseBody(response).message).toBe('database down');
+  });
+
+  it('falls back to a generic message for a non-Error rejection', () => {
+    const response = run('boom', { nodeEnv: 'development' });
+
+    expect(responseBody(response).message).toBe('Unexpected error');
+  });
+
+  it('maps a Prisma unique violation to 409', () => {
+    const response = run({ code: 'P2002' });
+
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+    expect(responseBody(response).message).toBe(
+      'Ya existe un registro con esos datos',
+    );
+  });
+
+  it('maps a Prisma missing record to 404', () => {
+    const response = run({ code: 'P2025' });
+
+    expect(response.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+    expect(responseBody(response).message).toBe(
+      'No se encontró el recurso solicitado',
     );
   });
 });

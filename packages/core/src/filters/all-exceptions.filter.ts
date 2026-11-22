@@ -14,6 +14,7 @@ import {
   httpExceptionDetails,
   toErrorField,
 } from '../exceptions/http-error.util';
+import { PRISMA_ERROR_CODE } from '../exceptions/prisma-error-code';
 import {
   requestDurationMs,
   requestLogPath,
@@ -168,6 +169,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
 
       if (typeof payload === 'object' && payload !== null) {
+        // `getResponse()` is typed as the base object; only envelope keys are
+        // read from it here.
         const body = payload as Record<string, unknown>;
         const details = httpExceptionDetails(body);
         return {
@@ -185,8 +188,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
+    // A rejection that is not an HttpException may still be a Prisma client
+    // error; only its `code` is read.
     const prisma = exception as PrismaKnownErrorLike;
-    if (prisma.code === 'P2002') {
+    if (prisma.code === PRISMA_ERROR_CODE.UNIQUE_VIOLATION) {
       return {
         statusCode: HttpStatus.CONFLICT,
         error: 'Conflict',
@@ -194,7 +199,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    if (prisma.code === 'P2025') {
+    if (prisma.code === PRISMA_ERROR_CODE.RECORD_NOT_FOUND) {
       return {
         statusCode: HttpStatus.NOT_FOUND,
         error: 'Not Found',
@@ -205,11 +210,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       error: 'Internal Server Error',
-      message: isProduction
-        ? 'Internal server error'
-        : exception instanceof Error
-          ? exception.message
-          : 'Unexpected error',
+      message: serverErrorMessage(exception, isProduction),
     };
   }
+}
+
+/** Production hides the detail; elsewhere the real message helps the developer. */
+function serverErrorMessage(exception: unknown, isProduction: boolean): string {
+  if (isProduction) {
+    return 'Internal server error';
+  }
+  if (exception instanceof Error) {
+    return exception.message;
+  }
+  return 'Unexpected error';
 }

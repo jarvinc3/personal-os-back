@@ -70,6 +70,22 @@ describe('createBullBoardAuthMiddleware', () => {
     expect(res.statusCode).toBe(401);
   });
 
+  it('returns 401 when the decoded header has no separator', () => {
+    const middleware = createBullBoardAuthMiddleware('admin', 'secret');
+    const next = jest.fn() as NextFunction;
+    const res = mockRes();
+    const token = Buffer.from('admin-without-separator').toString('base64');
+
+    middleware(
+      { headers: { authorization: `Basic ${token}` } } as Request,
+      res,
+      next,
+    );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+  });
+
   it('calls next when credentials match', () => {
     const middleware = createBullBoardAuthMiddleware('admin', 'secret');
     const next = jest.fn() as NextFunction;

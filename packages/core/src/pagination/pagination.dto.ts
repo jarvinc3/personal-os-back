@@ -71,17 +71,18 @@ function isCursorPoint(value: unknown): value is CursorPoint {
   if (typeof value !== 'object' || value === null) {
     return false;
   }
+  // The decoded JSON has no declared shape; only these two fields are read.
   const point = value as Partial<CursorPoint>;
   return typeof point.key === 'string' && typeof point.id === 'string';
 }
 
 export function toCursorPage<T extends { id: string }>(
-  rows: T[],
+  rows: readonly T[],
   limit: number,
   keyOf: (row: T) => string,
 ): CursorPage<T> {
   const hasMore = rows.length > limit;
-  const items = hasMore ? rows.slice(0, limit) : rows;
+  const items = hasMore ? rows.slice(0, limit) : [...rows];
   const last = items.at(-1);
   return {
     items,

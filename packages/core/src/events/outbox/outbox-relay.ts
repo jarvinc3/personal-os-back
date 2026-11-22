@@ -136,6 +136,8 @@ export class OutboxRelay implements DomainEventRelay {
     >,
   ): Promise<void> {
     try {
+      // The outbox column is a Prisma JSON value; the consumers read it as a
+      // flat record of event fields.
       const payload = (row.payload ?? {}) as Record<string, unknown>;
       await this.eventEmitter.emitAsync(row.eventName, {
         ...payload,
