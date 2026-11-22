@@ -1,4 +1,6 @@
-import type { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import type { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import type { CatalogInstrumentHistoryRepository } from '../infrastructure/catalog-instrument-history.repository';
 import { InstrumentHistoryService } from './instrument-history.service';
 
 function event(
@@ -29,9 +31,13 @@ describe('InstrumentHistoryService', () => {
     findCardById,
     findInstrumentEvents,
     findAdjustmentTransactions,
-  } as unknown as CatalogRepository;
+  } as unknown as CatalogAccountRepository;
 
-  const service = new InstrumentHistoryService(repo);
+  const service = new InstrumentHistoryService(
+    repo,
+    repo as unknown as CatalogCardRepository,
+    repo as unknown as CatalogInstrumentHistoryRepository,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -6,7 +6,9 @@ import {
 import { matchesProposalInstitution } from '@personal-os/contracts';
 import type { EmailProductProposalDraft } from '@personal-os/contracts';
 import { isCashInstitution } from '../../shared/domain/cash';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 import type { ProposalAccountNumberInput } from './catalog-account-numbers.service';
 import { CatalogAccountNumbersService } from './catalog-account-numbers.service';
 import { CatalogAccountsService } from './catalog-accounts.service';
@@ -35,7 +37,9 @@ type ProposalCreation = {
 @Injectable()
 export class CatalogEmailProductsService {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly accountsRepo: CatalogAccountRepository,
+    private readonly cardsRepo: CatalogCardRepository,
+    private readonly institutionsRepo: CatalogInstitutionRepository,
     private readonly numbers: CatalogAccountNumbersService,
     private readonly accounts: CatalogAccountsService,
     private readonly cards: CatalogCardsService,
@@ -50,10 +54,10 @@ export class CatalogEmailProductsService {
     draft: EmailProductProposalDraft,
   ): Promise<{ productId: string; ambiguous: boolean } | null> {
     const [institutions, products] = await Promise.all([
-      this.repo.findInstitutionsByUser(userId),
+      this.institutionsRepo.findInstitutionsByUser(userId),
       draft.productType === 'ACCOUNT'
-        ? this.repo.findEmailAccountCandidates(userId, draft.lastFour)
-        : this.repo.findEmailCardCandidates(userId, draft.lastFour),
+        ? this.accountsRepo.findEmailAccountCandidates(userId, draft.lastFour)
+        : this.cardsRepo.findEmailCardCandidates(userId, draft.lastFour),
     ]);
     const institutionIds = new Set(
       institutions
@@ -159,9 +163,10 @@ export class CatalogEmailProductsService {
     userId: string,
     draft: EmailProductProposalDraft,
   ): Promise<{ id: string }> {
-    const matches = (await this.repo.findInstitutionsByUser(userId)).filter(
-      (institution) =>
-        matchesProposalInstitution(institution, draft.institution),
+    const matches = (
+      await this.institutionsRepo.findInstitutionsByUser(userId)
+    ).filter((institution) =>
+      matchesProposalInstitution(institution, draft.institution),
     );
     if (matches.length > 1) {
       throw new ConflictException(
@@ -181,7 +186,7 @@ export class CatalogEmailProductsService {
     if (matches[0]) {
       return matches[0];
     }
-    return this.repo.createInstitution(userId, {
+    return this.institutionsRepo.createInstitution(userId, {
       name: draft.institution.name,
       type: draft.institution.type,
       domain: draft.institution.domain,

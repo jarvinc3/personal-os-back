@@ -1,6 +1,6 @@
 import { Prisma } from '@personal-os/database';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import type { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { CatalogCashRepository } from '../infrastructure/catalog-cash.repository';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 
 describe('EnsureCashInstitutionUseCase', () => {
@@ -17,7 +17,7 @@ describe('EnsureCashInstitutionUseCase', () => {
     assignInstitutionlessCashAccounts,
     findFirstCashAccount,
     ensureCashAccount,
-  } as unknown as CatalogRepository;
+  } as unknown as CatalogCashRepository;
 
   const createUseCase = () =>
     new EnsureCashInstitutionUseCase(repo, {

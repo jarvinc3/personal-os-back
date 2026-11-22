@@ -9,11 +9,13 @@ import {
   decimalToString,
 } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
-import type { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import type { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
+import type { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 import { fallbackLogos, fallbackUsers } from './catalog-fallbacks';
 
 type CardRow = NonNullable<
-  Awaited<ReturnType<CatalogRepository['findCardById']>>
+  Awaited<ReturnType<CatalogCardRepository['findCardById']>>
 >;
 
 function mapCardBalance(
@@ -51,7 +53,7 @@ export class CatalogViews {
   ) {}
   account(
     account: NonNullable<
-      Awaited<ReturnType<CatalogRepository['findAccountById']>>
+      Awaited<ReturnType<CatalogAccountRepository['findAccountById']>>
     >,
     earmarkedAmount = 0,
   ) {
@@ -79,7 +81,7 @@ export class CatalogViews {
 
   institution(
     institution: Awaited<
-      ReturnType<CatalogRepository['listInstitutions']>
+      ReturnType<CatalogInstitutionRepository['listInstitutions']>
     >[number],
   ) {
     return {

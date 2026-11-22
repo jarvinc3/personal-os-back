@@ -9,13 +9,13 @@ import type { CursorQueryDto } from '@personal-os/core';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
 import type { UpdateCardDto } from '../presentation/dto/update-card.dto';
 import { CatalogViews } from './catalog-views';
 
 type CardDetailRow = NonNullable<
-  Awaited<ReturnType<CatalogRepository['findCardById']>>
+  Awaited<ReturnType<CatalogCardRepository['findCardById']>>
 >;
 
 type CardRelocationInput = {
@@ -30,7 +30,7 @@ type CardRelocationInput = {
 @Injectable()
 export class CatalogCardsService {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly repo: CatalogCardRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly views: CatalogViews,

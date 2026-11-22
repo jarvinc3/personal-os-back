@@ -18,14 +18,15 @@ import {
   ACCOUNT_HAS_GOAL_MONEY_MESSAGE,
 } from '../../shared/domain/savings-goal';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
+import { CatalogCashRepository } from '../infrastructure/catalog-cash.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
 import { CatalogAccountNumbersService } from './catalog-account-numbers.service';
 import { CatalogViews } from './catalog-views';
 
 type AccountDetailRow = NonNullable<
-  Awaited<ReturnType<CatalogRepository['findAccountById']>>
+  Awaited<ReturnType<CatalogAccountRepository['findAccountById']>>
 >;
 
 type InstitutionResolution = {
@@ -51,7 +52,8 @@ function omitAccountNumber<
 @Injectable()
 export class CatalogAccountsService {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly repo: CatalogAccountRepository,
+    private readonly cashRepo: CatalogCashRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly ensureCashInstitution: EnsureCashInstitutionUseCase,
@@ -272,7 +274,7 @@ export class CatalogAccountsService {
     requestedInstitutionId: string | undefined;
   }): Promise<string> {
     await this.ensureCashInstitution.execute(userId);
-    const cash = await this.repo.findSystemCashInstitution(userId);
+    const cash = await this.cashRepo.findSystemCashInstitution(userId);
     if (!cash) {
       throw new NotFoundException('Efectivo no está disponible');
     }

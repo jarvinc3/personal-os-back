@@ -18,7 +18,11 @@ import { EmailProductProposalsService } from '../../packages/intelligence/src/em
 // eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
 import { AiSignalsService } from '../../packages/intelligence/src/signals/ai-signals.service';
 // eslint-disable-next-line no-restricted-imports -- The integration test drives the controller against a real database.
-import { CatalogRepository } from '../../packages/finance/src/catalog/infrastructure/catalog.repository';
+import { CatalogAccountRepository } from '../../packages/finance/src/catalog/infrastructure/catalog-account.repository';
+// eslint-disable-next-line no-restricted-imports -- The integration test wires the repositories against a real database.
+import { CatalogCardRepository } from '../../packages/finance/src/catalog/infrastructure/catalog-card.repository';
+// eslint-disable-next-line no-restricted-imports -- The integration test wires the repositories against a real database.
+import { CatalogInstitutionRepository } from '../../packages/finance/src/catalog/infrastructure/catalog-institution.repository';
 // eslint-disable-next-line no-restricted-imports -- The integration test wires the Finance adapter directly.
 import { FinanceEmailProductProposalCatalog } from '../../packages/finance/src/catalog/application/email-product-proposal-catalog';
 
@@ -164,7 +168,9 @@ describe('Email product proposals with PostgreSQL', () => {
   beforeAll(async () => {
     const adapter = new FinanceEmailProductProposalCatalog(
       {} as never,
-      new CatalogRepository(prismaService, {} as never),
+      new CatalogAccountRepository(prismaService, {} as never),
+      new CatalogCardRepository(prismaService, {} as never),
+      new CatalogInstitutionRepository(prismaService, {} as never),
     );
     const moduleRef = await Test.createTestingModule({
       controllers: [EmailProductProposalsController],

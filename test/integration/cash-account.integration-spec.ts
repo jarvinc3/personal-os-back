@@ -7,7 +7,7 @@ import {
   type PrismaService,
 } from '@personal-os/database';
 // eslint-disable-next-line no-restricted-imports -- The integration test drives the repository against a real database.
-import { CatalogRepository } from '../../packages/finance/src/catalog/infrastructure/catalog.repository';
+import { CatalogCashRepository } from '../../packages/finance/src/catalog/infrastructure/catalog-cash.repository';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (
@@ -24,7 +24,7 @@ if (
 const pool = new Pool({ connectionString });
 const PrismaClient = getPrismaClientClass();
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
-const repo = new CatalogRepository(prisma as PrismaService, {} as never);
+const repo = new CatalogCashRepository(prisma as PrismaService);
 
 let userId = '';
 let institutionId = '';

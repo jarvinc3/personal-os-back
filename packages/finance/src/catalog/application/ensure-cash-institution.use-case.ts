@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CASH_INSTITUTION_NAME } from '../../shared/domain/cash';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogCashRepository } from '../infrastructure/catalog-cash.repository';
 
 /**
  * Guarantees the user has the system "Efectivo" institution (pendiente 16).
@@ -18,7 +18,7 @@ import { CatalogRepository } from '../infrastructure/catalog.repository';
 @Injectable()
 export class EnsureCashInstitutionUseCase {
   constructor(
-    private readonly repo: CatalogRepository,
+    private readonly repo: CatalogCashRepository,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
 

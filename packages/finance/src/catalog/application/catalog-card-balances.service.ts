@@ -7,17 +7,21 @@ import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
-import { CatalogRepository } from '../infrastructure/catalog.repository';
+import { CatalogCardBalanceRepository } from '../infrastructure/catalog-card-balance.repository';
+import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
 import type { UpdateCardBalanceDto } from '../presentation/dto/update-card-balance.dto';
 
 type CardBalanceRow = NonNullable<
-  Awaited<ReturnType<CatalogRepository['upsertCardBalance']>>
+  Awaited<ReturnType<CatalogCardBalanceRepository['upsertCardBalance']>>
 >;
 
 /** Balances of a credit card: one row per currency plus its limit. */
 @Injectable()
 export class CatalogCardBalancesService {
-  constructor(private readonly repo: CatalogRepository) {}
+  constructor(
+    private readonly repo: CatalogCardBalanceRepository,
+    private readonly cards: CatalogCardRepository,
+  ) {}
 
   async updateCardBalance(
     userId: string,
@@ -35,13 +39,13 @@ export class CatalogCardBalancesService {
         'Las tarjetas CREDIT requieren creditLimit',
       );
     }
-    const updated = await this.repo.upsertCardBalance(
+    const updated = await this.repo.upsertCardBalance({
       userId,
-      id,
-      dto.currency.toUpperCase(),
-      dto.balance,
-      dto.creditLimit,
-    );
+      cardId: id,
+      currency: dto.currency.toUpperCase(),
+      balance: dto.balance,
+      creditLimit: dto.creditLimit,
+    });
     if (!updated) {
       throw new NotFoundException('Tarjeta no encontrada');
     }
@@ -59,12 +63,12 @@ export class CatalogCardBalancesService {
         'Solo las tarjetas de crédito tienen límite',
       );
     }
-    const updated = await this.repo.setCardCreditLimit(
+    const updated = await this.repo.setCardCreditLimit({
       userId,
-      id,
-      dto.currency,
-      dto.creditLimit,
-    );
+      cardId: id,
+      currency: dto.currency,
+      creditLimit: dto.creditLimit,
+    });
     if (!updated) {
       throw new NotFoundException('Tarjeta no encontrada');
     }
@@ -86,7 +90,7 @@ export class CatalogCardBalancesService {
   }
 
   private async findCard(userId: string, id: string) {
-    const card = await this.repo.findCardById(userId, id);
+    const card = await this.cards.findCardById(userId, id);
     if (!card) {
       throw new NotFoundException('Tarjeta no encontrada');
     }

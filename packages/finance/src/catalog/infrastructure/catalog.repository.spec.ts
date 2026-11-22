@@ -1,4 +1,6 @@
-import { CatalogRepository } from './catalog.repository';
+import { CatalogAccountRepository } from './catalog-account.repository';
+import { CatalogCardRepository } from './catalog-card.repository';
+import { CatalogCashRepository } from './catalog-cash.repository';
 import type { PrismaService } from '@personal-os/database';
 
 describe('CatalogRepository createAccount', () => {
@@ -20,7 +22,7 @@ describe('CatalogRepository createAccount', () => {
       finAccount: { create },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogAccountRepository(prisma, {} as never);
     await repo.createAccount('user-1', {
       name: 'QA Cuenta',
       type: 'SAVINGS',
@@ -54,7 +56,7 @@ describe('CatalogRepository createAccount', () => {
       finAccount: { create },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogAccountRepository(prisma, {} as never);
     await repo.createAccount('user-1', {
       name: 'Nómina',
       type: 'CHECKING',
@@ -100,7 +102,7 @@ describe('CatalogRepository ensureCashAccount', () => {
     );
     const prisma = { $transaction: transaction } as unknown as PrismaService;
     return {
-      repo: new CatalogRepository(prisma, {} as never),
+      repo: new CatalogCashRepository(prisma),
       queryRaw,
       findFirst,
       create,
@@ -146,7 +148,7 @@ describe('CatalogRepository email product candidates', () => {
       finAccount: { findMany },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogAccountRepository(prisma, {} as never);
     await repo.findEmailAccountCandidates('user-1', '0016');
 
     expect(findMany).toHaveBeenCalledWith(
@@ -166,7 +168,7 @@ describe('CatalogRepository email product candidates', () => {
       finCard: { findMany },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogCardRepository(prisma, {} as never);
     await repo.findEmailCardCandidates('user-1', '6506');
 
     expect(findMany).toHaveBeenCalledWith(
@@ -184,7 +186,7 @@ describe('CatalogRepository batch email candidates', () => {
       finAccount: { findMany },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogAccountRepository(prisma, {} as never);
     await repo.findEmailAccountCandidatesByLastFours('user-1', [
       '0016',
       '6506',
@@ -207,7 +209,7 @@ describe('CatalogRepository batch email candidates', () => {
       finCard: { findMany },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma, {} as never);
+    const repo = new CatalogCardRepository(prisma, {} as never);
     await repo.findEmailCardCandidatesByLastFours('user-1', ['6506']);
 
     expect(findMany).toHaveBeenCalledWith(
