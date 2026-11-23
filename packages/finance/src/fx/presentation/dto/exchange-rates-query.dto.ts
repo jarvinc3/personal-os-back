@@ -7,14 +7,19 @@ export const MAX_EXCHANGE_RATE_QUOTES = 20;
 
 /** Acepta `?quotes=USD,EUR` o un parámetro repetido. */
 function toQuoteList(value: unknown): string[] {
-  const entries = Array.isArray(value)
-    ? value
-    : typeof value === 'string'
-      ? value.split(',')
-      : [];
-  return entries
+  return quoteEntries(value)
     .map((entry) => String(entry).trim())
     .filter((entry) => entry.length > 0);
+}
+
+function quoteEntries(value: unknown): unknown[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return value.split(',');
+  }
+  return [];
 }
 
 export class ExchangeRatesQueryDto {

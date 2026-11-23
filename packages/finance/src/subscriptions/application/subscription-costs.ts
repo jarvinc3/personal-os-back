@@ -76,12 +76,12 @@ export class SubscriptionCosts {
   ): Promise<Prisma.Decimal> {
     let total = new Prisma.Decimal(0);
     for (const [currency, amount] of buckets) {
-      const inBase = await this.resolveAmounts.toBaseCurrency(
+      const inBase = await this.resolveAmounts.toBaseCurrency({
         amount,
         currency,
         baseCurrency,
         asOf,
-      );
+      });
       total = total.plus(inBase);
     }
     return total;
@@ -93,12 +93,12 @@ export class SubscriptionCosts {
   ): Promise<Prisma.Decimal> {
     let total = new Prisma.Decimal(0);
     for (const payment of payments) {
-      const inBase = await this.resolveAmounts.toBaseCurrency(
-        payment.amount,
-        payment.currency,
+      const inBase = await this.resolveAmounts.toBaseCurrency({
+        amount: payment.amount,
+        currency: payment.currency,
         baseCurrency,
-        payment.paidAt,
-      );
+        asOf: payment.paidAt,
+      });
       total = total.plus(inBase);
     }
     return total;
@@ -116,12 +116,12 @@ export class SubscriptionCosts {
         cycle: row.billingCycle,
         interval: row.billingInterval,
       });
-      const inBase = await this.resolveAmounts.toBaseCurrency(
-        annual,
-        row.currency,
+      const inBase = await this.resolveAmounts.toBaseCurrency({
+        amount: annual,
+        currency: row.currency,
         baseCurrency,
         asOf,
-      );
+      });
       total = total.plus(inBase);
     }
     return total;
@@ -163,12 +163,12 @@ export class SubscriptionCosts {
     baseCurrency: string;
     asOf: Date;
   }): Promise<Prisma.Decimal> {
-    return this.resolveAmounts.toBaseCurrency(
+    return this.resolveAmounts.toBaseCurrency({
       amount,
       currency,
       baseCurrency,
       asOf,
-    );
+    });
   }
 
   private addToBucket(

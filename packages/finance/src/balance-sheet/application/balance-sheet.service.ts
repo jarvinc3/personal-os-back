@@ -279,25 +279,25 @@ export class BalanceSheetService {
 
     const rateCache: FxRateRequestCache = new Map();
     const convert = (amount: MoneyLike, currency: string) =>
-      this.resolveAmounts.toBaseCurrency(
+      this.resolveAmounts.toBaseCurrency({
         amount,
         currency,
         baseCurrency,
         asOf,
-        rateCache,
-      );
+        cache: rateCache,
+      });
     const lines: Array<Omit<BalanceSheetLine, 'entity'>> = [];
 
     for (const account of accounts) {
       const currency = normalizeCurrencyCode(account.currency);
       const isCash = account.type === CASH_ACCOUNT_TYPE;
-      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
-        account.balance,
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull({
+        amount: account.balance,
         currency,
         baseCurrency,
         asOf,
-        rateCache,
-      );
+        cache: rateCache,
+      });
       const drift = driftValue(
         driftByAccount.get(accountKey(account.id, currency)),
       );
@@ -448,13 +448,13 @@ export class BalanceSheetService {
       const currency = normalizeCurrencyCode(receivable.currency);
       const doubtful =
         receivable.dueDate !== null && receivable.dueDate < doubtfulCutoff;
-      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
-        outstanding,
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull({
+        amount: outstanding,
         currency,
         baseCurrency,
         asOf,
-        rateCache,
-      );
+        cache: rateCache,
+      });
       if (converted === null && !doubtful) {
         global.issues.push({ code: 'MISSING_RATE', currency });
       }
@@ -560,13 +560,13 @@ export class BalanceSheetService {
     let totalBase = roundDecimal(0);
     let incomplete = false;
     for (const [currency, group] of grouped) {
-      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
-        group.total,
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull({
+        amount: group.total,
         currency,
         baseCurrency,
         asOf,
-        rateCache,
-      );
+        cache: rateCache,
+      });
       if (converted === null) {
         incomplete = true;
       } else {

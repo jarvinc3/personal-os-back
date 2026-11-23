@@ -84,7 +84,9 @@ function build() {
   };
   const baseCurrency = { execute: jest.fn().mockResolvedValue('DOP') };
   const resolveAmounts = {
-    toBaseCurrency: jest.fn((amount: number) => Promise.resolve(amount)),
+    toBaseCurrency: jest.fn(({ amount }: { amount: number }) =>
+      Promise.resolve(amount),
+    ),
   };
   const usersRepository = {
     findUserModuleBySlug: jest.fn().mockResolvedValue(null),

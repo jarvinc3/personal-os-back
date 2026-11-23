@@ -79,8 +79,9 @@ function build(options: { reminderDaysBefore?: number } = {}) {
   };
   const baseCurrency = { execute: jest.fn().mockResolvedValue('DOP') };
   const resolveAmounts = {
-    toBaseCurrency: jest.fn((amount: number, currency: string) =>
-      Promise.resolve(currency === 'USD' ? amount * 60 : amount),
+    toBaseCurrency: jest.fn(
+      ({ amount, currency }: { amount: number; currency: string }) =>
+        Promise.resolve(currency === 'USD' ? amount * 60 : amount),
     ),
   };
   const usersRepository = {
