@@ -167,12 +167,12 @@ describe('CardStatementsService', () => {
       ],
     );
 
-    const statements = await service.listCardStatements(
-      'user-1',
-      'card-1',
-      { limit: 10 },
-      utc(2026, 3, 1),
-    );
+    const statements = await service.listCardStatements({
+      userId: 'user-1',
+      cardId: 'card-1',
+      query: { limit: 10 },
+      now: utc(2026, 3, 1),
+    });
 
     expect(statements.items).toEqual([
       {
@@ -195,12 +195,12 @@ describe('CardStatementsService', () => {
     const { service } = setup(null);
 
     await expect(
-      service.listCardStatements(
-        'user-1',
-        'card-1',
-        { limit: 10 },
-        utc(2026, 3, 1),
-      ),
+      service.listCardStatements({
+        userId: 'user-1',
+        cardId: 'card-1',
+        query: { limit: 10 },
+        now: utc(2026, 3, 1),
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

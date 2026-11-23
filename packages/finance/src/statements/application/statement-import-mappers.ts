@@ -58,6 +58,57 @@ function money(value: number | null): string | null {
   return value === null ? null : value.toFixed(2);
 }
 
+function targetView(
+  context: StatementImportContext,
+  parsed: StatementImportParsed,
+): StatementImportTargetView {
+  if (context.card) {
+    return {
+      kind: 'CARD',
+      id: context.card.id,
+      name: context.card.name,
+      currency: context.card.balances[0]?.currency ?? parsed.header.currency,
+    };
+  }
+  return {
+    kind: 'ACCOUNT',
+    id: context.account?.id ?? '',
+    name: context.account?.name ?? '',
+    currency: context.account?.currency ?? parsed.header.currency,
+  };
+}
+
+function lineView(
+  line: StatementImportContext['lines'][number],
+  categoryNames: Map<string, string>,
+): StatementImportLineView {
+  return {
+    id: line.id,
+    date: line.date.toISOString().slice(0, 10),
+    description: line.description,
+    amount: line.amount.toFixed(2),
+    currency: line.currency,
+    type: line.type,
+    reference: line.reference,
+    decision: line.decision,
+    categoryId: line.categoryId,
+    categoryName: line.categoryId
+      ? (categoryNames.get(line.categoryId) ?? null)
+      : null,
+    transactionId: line.transactionId,
+  };
+}
+
+function adjustmentView(
+  difference: number | null,
+  currency: string,
+): { amount: string; currency: string } | null {
+  if (difference === null || Math.abs(difference) < 0.005) {
+    return null;
+  }
+  return { amount: difference.toFixed(2), currency };
+}
+
 export function mapStatementImport({
   context,
   parsed,
@@ -69,24 +120,10 @@ export function mapStatementImport({
   difference: number | null;
   categories: readonly { id: string; name: string }[];
 }): StatementImportView {
-  const target: StatementImportTargetView = context.card
-    ? {
-        kind: 'CARD',
-        id: context.card.id,
-        name: context.card.name,
-        currency: context.card.balances[0]?.currency ?? parsed.header.currency,
-      }
-    : {
-        kind: 'ACCOUNT',
-        id: context.account?.id ?? '',
-        name: context.account?.name ?? '',
-        currency: context.account?.currency ?? parsed.header.currency,
-      };
+  const target = targetView(context, parsed);
   const categoryNames = new Map(
     categories.map((category) => [category.id, category.name]),
   );
-  const adjustmentAmount =
-    difference === null || Math.abs(difference) < 0.005 ? null : difference;
 
   return {
     id: context.id,
@@ -105,32 +142,13 @@ export function mapStatementImport({
     },
     period: parsed.period,
     counts: parsed.counts,
-    lines: context.lines.map((line) => ({
-      id: line.id,
-      date: line.date.toISOString().slice(0, 10),
-      description: line.description,
-      amount: line.amount.toFixed(2),
-      currency: line.currency,
-      type: line.type,
-      reference: line.reference,
-      decision: line.decision,
-      categoryId: line.categoryId,
-      categoryName: line.categoryId
-        ? (categoryNames.get(line.categoryId) ?? null)
-        : null,
-      transactionId: line.transactionId,
-    })),
+    lines: context.lines.map((line) => lineView(line, categoryNames)),
     extra: parsed.extra.map((movement) => ({
       ...movement,
       amount: movement.amount.toFixed(2),
     })),
     difference: money(difference),
-    adjustment: adjustmentAmount
-      ? {
-          amount: adjustmentAmount.toFixed(2),
-          currency: parsed.header.currency,
-        }
-      : null,
+    adjustment: adjustmentView(difference, parsed.header.currency),
     createdAt: context.createdAt.toISOString(),
     appliedAt: context.appliedAt?.toISOString() ?? null,
   };
