@@ -1,4 +1,5 @@
 import { FinanceEvents } from '../../contracts';
+import { CardPaymentReminderOutbox } from './card-payment-reminder-outbox';
 import { CardPaymentRemindersService } from './card-payment-reminders.service';
 
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -68,9 +69,7 @@ function build(
   const service = new CardPaymentRemindersService(
     repo as never,
     users as never,
-    events,
-    outbox,
-    dispatcher,
+    new CardPaymentReminderOutbox(events, outbox, dispatcher),
   );
 
   return { service, repo, events };

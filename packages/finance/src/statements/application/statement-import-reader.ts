@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { roundMoney } from '../../shared/domain/money';
 import {
   readParsedStatement,
@@ -15,6 +15,7 @@ import {
 import { STATEMENT_IMPORT_NOT_FOUND_MESSAGE } from './statement-import.constants';
 
 /** Reads an import, its lines and the balance difference it would cover. */
+@Injectable()
 export class StatementImportReader {
   constructor(private readonly repo: StatementImportsRepository) {}
 

@@ -12,6 +12,15 @@ import {
 } from './application/ports/statement-pdf.port';
 import { ProcessStatementImportUseCase } from './application/process-statement-import.use-case';
 import { StatementImportsService } from './application/statement-imports.service';
+import { StatementImportApplier } from './application/statement-import-applier';
+import { StatementImportLedgerWriter } from './application/statement-import-ledger-writer';
+import { StatementImportParsing } from './application/statement-import-parsing';
+import { StatementImportReader } from './application/statement-import-reader';
+import { StatementImportRegistration } from './application/statement-import-registration';
+import { StatementImportState } from './application/statement-import-state';
+import { StatementImportStatementSync } from './application/statement-import-statement-sync';
+import { StatementImportUpload } from './application/statement-import-upload';
+import { CardPaymentReminderOutbox } from './application/card-payment-reminder-outbox';
 import { CardPaymentRemindersService } from './application/card-payment-reminders.service';
 import { CardStatementsService } from './application/card-statements.service';
 import { AiStatementExtractor } from './infrastructure/ai-statement.extractor';
@@ -47,9 +56,18 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     CardStatementsRepository,
     CardStatementsService,
     CardStatementsScheduler,
+    CardPaymentReminderOutbox,
     CardPaymentRemindersService,
     CardPaymentRemindersScheduler,
     StatementImportsRepository,
+    StatementImportReader,
+    StatementImportState,
+    StatementImportRegistration,
+    StatementImportParsing,
+    StatementImportUpload,
+    StatementImportLedgerWriter,
+    StatementImportStatementSync,
+    StatementImportApplier,
     StatementImportsService,
     ProcessStatementImportUseCase,
     { provide: STATEMENT_PDF_TEXT, useClass: PdfjsStatementTextExtractor },
