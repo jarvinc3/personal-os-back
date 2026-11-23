@@ -1,29 +1,10 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  clampPageLimit,
-  toCursorPage,
-  type CursorQueryDto,
-} from '@personal-os/core';
-import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { assertRestored } from '../../shared/application/assert-restored';
-import { roundMoney } from '../../shared/domain/money';
-import { budgetCategoryIds } from '../../shared/infrastructure/budget-spent.reader';
+import { Injectable } from '@nestjs/common';
+import { type CursorQueryDto } from '@personal-os/core';
 import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
 import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
-import {
-  BUDGET_ROLLOVER,
-  carriedOverFrom,
-  type BudgetRollover,
-} from '../domain/budget-rollover';
-import { endOfUtcDay } from '../../shared/domain/local-day';
-import { nextBudgetPeriod } from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -32,24 +13,19 @@ import type { UpdateBudgetDto } from '../presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import type { UpdateReceivableDto } from '../presentation/dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from '../presentation/dto/update-savings-goal.dto';
-import {
-  mapBudget,
-  mapLoan,
-  mapLoanInstallment,
-  mapReceivable,
-  mapReceivablePayment,
-  mapSavingsGoal,
-  mapSavingsGoalContribution,
-} from './planning-mappers';
+import { PlanningBudgets } from './planning-budgets';
+import { PlanningLoans } from './planning-loans';
+import { PlanningReceivables } from './planning-receivables';
+import { PlanningSavingsGoals } from './planning-savings-goals';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
-
-/** Budget row as the repository returns it: category plus every joined category. */
-type BudgetRow = NonNullable<
-  Awaited<ReturnType<PlanningRepository['findBudget']>>
->;
 
 @Injectable()
 export class PlanningService {
+  private readonly budgets: PlanningBudgets;
+  private readonly savingsGoals: PlanningSavingsGoals;
+  private readonly loans: PlanningLoans;
+  private readonly receivables: PlanningReceivables;
+
   constructor(
     private readonly repo: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
@@ -57,840 +33,183 @@ export class PlanningService {
     private readonly ledger: LedgerQueryService,
     private readonly adjustBalance: AdjustBalanceUseCase,
     private readonly deleteTransaction: DeleteTransactionUseCase,
-  ) {}
-
-  async listBudgets(userId: string) {
-    const rows = await this.repo.listBudgets(userId);
-    return Promise.all(rows.map((row) => this.mapBudgetWithSpent(userId, row)));
-  }
-
-  async listBudgetsPage(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listBudgetsPage(userId, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.periodStart.toISOString(),
-    );
-    const items = await Promise.all(
-      page.items.map((row) => this.mapBudgetWithSpent(userId, row)),
-    );
-    return { ...page, items };
-  }
-
-  async getBudget(userId: string, id: string) {
-    const row = await this.repo.findBudget(userId, id);
-    if (!row) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    return this.mapBudgetWithSpent(userId, row);
-  }
-
-  /** Budgets with the same shape as `getBudget`, in batch and without throwing. */
-  async lookupBudgets(userId: string, ids: readonly string[]) {
-    const rows = await this.repo.findBudgetsByIds(userId, ids);
-    const mapped = await Promise.all(
-      rows.map((row) => this.mapBudgetWithSpent(userId, row)),
-    );
-    return new Map(mapped.map((row) => [row.id, row]));
-  }
-
-  /**
-   * The spent figure comes from the movements, so the budget can never show a
-   * total that disagrees with its own list. The stored counter keeps feeding
-   * only the threshold alerts.
-   */
-  private async mapBudgetWithSpent(userId: string, row: BudgetRow) {
-    return mapBudget({
-      ...row,
-      amountSpent: await this.budgetSpent(userId, row),
-    });
-  }
-
-  private budgetSpent(userId: string, row: BudgetRow) {
-    return this.repo.sumBudgetSpent({
-      userId,
-      periodStart: row.periodStart,
-      periodEnd: row.periodEnd,
-      categoryIds: budgetCategoryIds(row),
-      includeChildren: row.includeChildren,
-    });
-  }
-
-  async createBudget(userId: string, dto: CreateBudgetDto) {
-    const categoryIds = dto.categoryIds;
-    for (const categoryId of categoryIds) {
-      await this.ownership.assertExpenseCategory(userId, categoryId);
-    }
-    const periodStart = new Date(dto.periodStart);
-    const periodEnd = new Date(dto.periodEnd);
-    await this.assertCategoriesNotBudgeted(
-      userId,
-      categoryIds,
-      periodStart,
-      periodEnd,
-    );
-    const budgetId = await this.repo.createBudget(
-      userId,
-      {
-        categoryId: categoryIds[0],
-        name: dto.name ?? null,
-        includeChildren: dto.includeChildren ?? true,
-        rollover: dto.rollover ?? 'NONE',
-        recurring: dto.recurring ?? false,
-        periodType: dto.periodType,
-        periodStart,
-        periodEnd,
-        amountLimit: dto.amountLimit,
-        amountSpent: 0,
-        alertThresholdPct: dto.alertThresholdPct ?? 80,
-      },
-      categoryIds,
-    );
-    const created = await this.repo.findBudget(userId, budgetId);
-    if (!created) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    await this.applyCarriedOver(userId, created);
-    const saved = (await this.repo.findBudget(userId, budgetId)) ?? created;
-    return this.mapBudgetWithSpent(userId, saved);
-  }
-
-  async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
-    if (dto.categoryIds) {
-      for (const categoryId of dto.categoryIds) {
-        await this.ownership.assertExpenseCategory(userId, categoryId);
-      }
-      const existing = await this.repo.findBudget(userId, id);
-      if (!existing) {
-        throw new NotFoundException('Presupuesto no encontrado');
-      }
-      await this.assertCategoriesNotBudgeted(
-        userId,
-        dto.categoryIds,
-        dto.periodStart ? new Date(dto.periodStart) : existing.periodStart,
-        dto.periodEnd ? new Date(dto.periodEnd) : existing.periodEnd,
-        id,
-      );
-    }
-    const updatedId = await this.repo.updateBudget(
-      userId,
-      id,
-      {
-        ...(dto.name !== undefined ? { name: dto.name } : {}),
-        ...(dto.categoryIds ? { categoryId: dto.categoryIds[0] } : {}),
-        ...(dto.periodType ? { periodType: dto.periodType } : {}),
-        ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
-        ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
-        ...(dto.amountLimit !== undefined
-          ? { amountLimit: dto.amountLimit }
-          : {}),
-        ...(dto.alertThresholdPct !== undefined
-          ? { alertThresholdPct: dto.alertThresholdPct }
-          : {}),
-        ...(dto.includeChildren !== undefined
-          ? { includeChildren: dto.includeChildren }
-          : {}),
-        ...(dto.rollover ? { rollover: dto.rollover } : {}),
-        ...(dto.recurring !== undefined ? { recurring: dto.recurring } : {}),
-      },
-      dto.categoryIds,
-    );
-    if (!updatedId) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    const updated = await this.repo.findBudget(userId, updatedId);
-    if (!updated) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    await this.applyCarriedOver(userId, updated);
-    const saved = (await this.repo.findBudget(userId, updatedId)) ?? updated;
-    return this.mapBudgetWithSpent(userId, saved);
-  }
-
-  async getBudgetTransactions(
-    userId: string,
-    id: string,
-    query: CursorQueryDto,
   ) {
-    const budget = await this.repo.findBudget(userId, id);
-    if (!budget) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    const categoryIds = budget.categories.map((entry) => entry.categoryId);
-    if (budget.includeChildren) {
-      categoryIds.push(...(await this.repo.listChildCategoryIds(categoryIds)));
-    }
-    if (categoryIds.length === 0) {
-      return { items: [], nextCursor: null, hasMore: false };
-    }
-    return this.ledger.listTransactions(userId, {
-      cursor: query.cursor,
-      limit: query.limit,
-      categoryIds,
-      type: 'DEBIT',
-      status: 'CONFIRMED',
-      dateFrom: budget.periodStart.toISOString(),
-      dateTo: endOfUtcDay(budget.periodEnd).toISOString(),
+    this.budgets = new PlanningBudgets(repo, ownership, ledger);
+    this.savingsGoals = new PlanningSavingsGoals(repo, ownership);
+    this.loans = new PlanningLoans({
+      repo,
+      ownership,
+      syncInstallments,
+      adjustBalance,
+      deleteTransaction,
     });
+    this.receivables = new PlanningReceivables(repo);
   }
 
-  /**
-   * Creates the next period of every recurring budget whose period ended. The
-   * overlapping check makes the job idempotent. The scheduler calls it daily.
-   */
-  async createRecurringBudgets(now: Date) {
-    const budgets = await this.repo.listRecurringBudgets();
-    let created = 0;
-    for (const budget of budgets) {
-      if (budget.periodEnd.getTime() >= now.getTime()) {
-        continue;
-      }
-      const categoryIds = budget.categories.map((entry) => entry.categoryId);
-      if (categoryIds.length === 0) {
-        continue;
-      }
-      const next = nextBudgetPeriod({
-        periodType: budget.periodType,
-        periodStart: budget.periodStart,
-        periodEnd: budget.periodEnd,
-      });
-      const overlapping = await this.repo.findOverlappingBudgetForCategories(
-        budget.userId,
-        categoryIds,
-        next.periodStart,
-        next.periodEnd,
-      );
-      if (overlapping) {
-        continue;
-      }
-      const newBudgetId = await this.repo.createBudget(
-        budget.userId,
-        {
-          categoryId: categoryIds[0] ?? null,
-          name: budget.name,
-          includeChildren: budget.includeChildren,
-          rollover: budget.rollover,
-          recurring: budget.recurring,
-          periodType: budget.periodType,
-          periodStart: next.periodStart,
-          periodEnd: next.periodEnd,
-          amountLimit: Number(budget.amountLimit),
-          amountSpent: 0,
-          alertThresholdPct: Number(budget.alertThresholdPct),
-        },
-        categoryIds,
-      );
-      const newBudget = await this.repo.findBudget(budget.userId, newBudgetId);
-      if (newBudget) {
-        await this.applyCarriedOver(budget.userId, newBudget);
-      }
-      created += 1;
-    }
-    return { created };
+  listBudgets(userId: string) {
+    return this.budgets.listBudgets(userId);
   }
 
-  private async applyCarriedOver(
-    userId: string,
-    budget: {
-      id: string;
-      rollover: string;
-      periodStart: Date;
-      categories: Array<{ categoryId: string }>;
-    },
-  ): Promise<void> {
-    const categoryIds = budget.categories.map((entry) => entry.categoryId);
-    let carriedOver = 0;
-    if (categoryIds.length > 0 && budget.rollover !== BUDGET_ROLLOVER.NONE) {
-      const previous = await this.repo.findPreviousBudgetForCategories(
-        userId,
-        categoryIds,
-        budget.periodStart,
-        budget.id,
-      );
-      if (previous && previous.categories.length === categoryIds.length) {
-        carriedOver = carriedOverFrom({
-          rollover: budget.rollover as BudgetRollover,
-          previousLimit: Number(previous.amountLimit),
-          previousCarriedOver: Number(previous.carriedOver),
-          previousSpent: Number(previous.amountSpent),
-        });
-      }
-    }
-    await this.repo.updateBudget(userId, budget.id, { carriedOver });
+  listBudgetsPage(userId: string, query: CursorQueryDto) {
+    return this.budgets.listBudgetsPage(userId, query);
   }
 
-  private async assertCategoriesNotBudgeted(
-    userId: string,
-    categoryIds: string[],
-    periodStart: Date,
-    periodEnd: Date,
-    excludeBudgetId?: string,
-  ): Promise<void> {
-    const conflict = await this.repo.findOverlappingBudgetForCategories(
-      userId,
-      categoryIds,
-      periodStart,
-      periodEnd,
-      excludeBudgetId,
-    );
-    if (!conflict) {
-      return;
-    }
-    const conflicting = conflict.categories.find((entry) =>
-      categoryIds.includes(entry.categoryId),
-    );
-    throw new ConflictException({
-      code: 'CATEGORY_ALREADY_BUDGETED',
-      message: `${conflicting?.category.name ?? 'Una categoría'} ya está en el presupuesto ${conflict.name ?? 'de este periodo'}.`,
-    });
+  getBudget(userId: string, id: string) {
+    return this.budgets.getBudget(userId, id);
   }
 
-  async deleteBudget(userId: string, id: string) {
-    const result = await this.repo.deleteBudget(userId, id);
-    if (result.count === 0) {
-      throw new NotFoundException('Presupuesto no encontrado');
-    }
-    return { success: true };
+  lookupBudgets(userId: string, ids: readonly string[]) {
+    return this.budgets.lookupBudgets(userId, ids);
   }
 
-  async restoreBudget(userId: string, id: string, now: Date) {
-    const restored = await this.repo.restoreBudget(userId, id, now);
-    assertRestored(restored, 'Budget not found');
-    return { success: true };
+  createBudget(userId: string, dto: CreateBudgetDto) {
+    return this.budgets.createBudget(userId, dto);
   }
 
-  async listSavingsGoals(userId: string) {
-    const rows = await this.repo.listSavingsGoals(userId);
-    return rows.map(mapSavingsGoal);
+  updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
+    return this.budgets.updateBudget(userId, id, dto);
   }
 
-  async listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listSavingsGoalsPage(userId, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.createdAt.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapSavingsGoal) };
+  getBudgetTransactions(userId: string, id: string, query: CursorQueryDto) {
+    return this.budgets.getBudgetTransactions(userId, id, query);
   }
 
-  async getSavingsGoal(userId: string, id: string) {
-    const row = await this.repo.findSavingsGoal(userId, id);
-    if (!row) {
-      throw new NotFoundException('Meta de ahorro no encontrada');
-    }
-    return mapSavingsGoal(row);
+  createRecurringBudgets(now: Date) {
+    return this.budgets.createRecurringBudgets(now);
   }
 
-  async lookupSavingsGoals(userId: string, ids: readonly string[]) {
-    const rows = await this.repo.findSavingsGoalsByIds(userId, ids);
-    return new Map(rows.map((row) => [row.id, mapSavingsGoal(row)]));
+  deleteBudget(userId: string, id: string) {
+    return this.budgets.deleteBudget(userId, id);
   }
 
-  async createSavingsGoal(
-    userId: string,
-    dto: CreateSavingsGoalDto,
-    now: Date,
-  ) {
-    const currency = dto.currency ?? 'DOP';
-    await this.assertGoalAccount(userId, dto.accountId, currency);
-    const created = await this.repo.createSavingsGoal(
-      userId,
-      {
-        name: dto.name.trim(),
-        description: dto.description,
-        targetAmount: dto.targetAmount,
-        currency,
-        targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
-        accountId: dto.accountId,
-        mode: dto.mode ?? 'EARMARK',
-        spendReducesProgress: dto.spendReducesProgress ?? true,
-      },
-      dto.currentAmount ?? 0,
-      now,
-    );
-    return mapSavingsGoal(created);
+  restoreBudget(userId: string, id: string, now: Date) {
+    return this.budgets.restoreBudget(userId, id, now);
   }
 
-  async updateSavingsGoal(
+  listSavingsGoals(userId: string) {
+    return this.savingsGoals.listSavingsGoals(userId);
+  }
+
+  listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
+    return this.savingsGoals.listSavingsGoalsPage(userId, query);
+  }
+
+  getSavingsGoal(userId: string, id: string) {
+    return this.savingsGoals.getSavingsGoal(userId, id);
+  }
+
+  lookupSavingsGoals(userId: string, ids: readonly string[]) {
+    return this.savingsGoals.lookupSavingsGoals(userId, ids);
+  }
+
+  createSavingsGoal(userId: string, dto: CreateSavingsGoalDto, now: Date) {
+    return this.savingsGoals.createSavingsGoal(userId, dto, now);
+  }
+
+  // eslint-disable-next-line max-params
+  updateSavingsGoal(
     userId: string,
     id: string,
     dto: UpdateSavingsGoalDto,
     now: Date,
   ) {
-    const existing = await this.repo.findSavingsGoal(userId, id);
-    if (!existing) {
-      throw new NotFoundException('Meta de ahorro no encontrada');
-    }
-    const nextCurrency = dto.currency ?? existing.currency;
-    const nextAccountId = dto.accountId ?? existing.accountId;
-    if (nextAccountId) {
-      await this.assertGoalAccount(userId, nextAccountId, nextCurrency);
-    }
-    await this.repo.updateSavingsGoal(
-      userId,
-      id,
-      {
-        ...(dto.name ? { name: dto.name.trim() } : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description }
-          : {}),
-        ...(dto.targetAmount !== undefined
-          ? { targetAmount: dto.targetAmount }
-          : {}),
-        ...(dto.currency ? { currency: dto.currency } : {}),
-        ...(dto.targetDate !== undefined
-          ? { targetDate: dto.targetDate ? new Date(dto.targetDate) : null }
-          : {}),
-        ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
-        ...(dto.mode ? { mode: dto.mode } : {}),
-        ...(dto.spendReducesProgress !== undefined
-          ? { spendReducesProgress: dto.spendReducesProgress }
-          : {}),
-      },
-      now,
-    );
-    const saved = await this.repo.findSavingsGoal(userId, id);
-    if (!saved) {
-      throw new NotFoundException('Meta de ahorro no encontrada');
-    }
-    return mapSavingsGoal(saved);
+    return this.savingsGoals.updateSavingsGoal(userId, id, dto, now);
   }
 
-  async deleteSavingsGoal(userId: string, id: string) {
-    const result = await this.repo.deleteSavingsGoal(userId, id);
-    if (result.count === 0) {
-      throw new NotFoundException('Meta de ahorro no encontrada');
-    }
-    return { success: true };
+  deleteSavingsGoal(userId: string, id: string) {
+    return this.savingsGoals.deleteSavingsGoal(userId, id);
   }
 
-  async restoreSavingsGoal(userId: string, id: string, now: Date) {
-    const restored = await this.repo.restoreSavingsGoal(userId, id, now);
-    assertRestored(restored, 'Savings goal not found');
-    return { success: true };
+  restoreSavingsGoal(userId: string, id: string, now: Date) {
+    return this.savingsGoals.restoreSavingsGoal(userId, id, now);
   }
 
-  async listSavingsGoalContributions(
+  listSavingsGoalContributions(
     userId: string,
     id: string,
     query: CursorQueryDto,
   ) {
-    await this.assertSavingsGoalOwned(userId, id);
-    const rows = await this.repo.listSavingsGoalContributions(id, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.contributedAt.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapSavingsGoalContribution) };
+    return this.savingsGoals.listSavingsGoalContributions(userId, id, query);
   }
 
-  /**
-   * Credits the disbursed principal to the chosen account as an adjustment, so
-   * the account grows without counting as monthly income.
-   */
-  private async disburseLoan(input: {
-    userId: string;
-    accountId: string;
-    currency: string;
-    amount: number;
-    label: string;
-    transactionDate: Date;
-  }): Promise<string> {
-    const account = await this.assertDisbursementAccount(
-      input.userId,
-      input.accountId,
-      input.currency,
-    );
-    const adjusted = await this.adjustBalance.execute(input.userId, {
-      accountId: account.id,
-      balance: roundMoney(Number(account.balance) + input.amount),
-      description: `Desembolso de préstamo · ${input.label}`,
-      transactionDate: input.transactionDate,
-    });
-    if (!adjusted.transaction) {
-      throw new BadRequestException('No se pudo registrar el desembolso');
-    }
-    return adjusted.transaction.id;
+  listLoans(userId: string) {
+    return this.loans.listLoans(userId);
   }
 
-  private async assertDisbursementAccount(
-    userId: string,
-    accountId: string,
-    currency: string,
-  ) {
-    const account = await this.ownership.assertAccountOwned(userId, accountId);
-    if (!account.isActive) {
-      throw new BadRequestException('La cuenta del desembolso está archivada');
-    }
-    if (account.currency !== currency) {
-      throw new BadRequestException(
-        'La cuenta del desembolso debe estar en la moneda del préstamo',
-      );
-    }
-    return account;
+  listLoansPage(userId: string, query: CursorQueryDto) {
+    return this.loans.listLoansPage(userId, query);
   }
 
-  private async assertGoalAccount(
-    userId: string,
-    accountId: string,
-    currency: string,
-  ): Promise<void> {
-    const account = await this.ownership.assertAccountOwned(userId, accountId);
-    if (account.currency !== currency) {
-      throw new BadRequestException(
-        'La cuenta de la meta debe estar en la moneda de la meta',
-      );
-    }
+  getLoan(userId: string, id: string) {
+    return this.loans.getLoan(userId, id);
   }
 
-  private async assertSavingsGoalOwned(
-    userId: string,
-    id: string,
-  ): Promise<void> {
-    const goal = await this.repo.findSavingsGoal(userId, id);
-    if (!goal) {
-      throw new NotFoundException('Meta de ahorro no encontrada');
-    }
+  lookupLoans(userId: string, ids: readonly string[]) {
+    return this.loans.lookupLoans(userId, ids);
   }
 
-  async listLoans(userId: string) {
-    const rows = await this.repo.listLoans(userId);
-    return rows.map(mapLoan);
+  listLoanInstallments(userId: string, id: string) {
+    return this.loans.listLoanInstallments(userId, id);
   }
 
-  async listLoansPage(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listLoansPage(userId, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.nextDueDate.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapLoan) };
+  listLoanInstallmentsPage(userId: string, id: string, query: CursorQueryDto) {
+    return this.loans.listLoanInstallmentsPage(userId, id, query);
   }
 
-  async getLoan(userId: string, id: string) {
-    const row = await this.repo.findLoan(userId, id);
-    if (!row) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    return mapLoan(row);
+  createLoan(userId: string, dto: CreateLoanDto, now: Date) {
+    return this.loans.createLoan(userId, dto, now);
   }
 
-  async lookupLoans(userId: string, ids: readonly string[]) {
-    const rows = await this.repo.findLoansByIds(userId, ids);
-    return new Map(rows.map((row) => [row.id, mapLoan(row)]));
+  // eslint-disable-next-line max-params
+  updateLoan(userId: string, id: string, dto: UpdateLoanDto, now: Date) {
+    return this.loans.updateLoan(userId, id, dto, now);
   }
 
-  async listLoanInstallments(userId: string, id: string) {
-    const loan = await this.repo.findLoan(userId, id);
-    if (!loan) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    const rows = await this.repo.listInstallments(id);
-    return rows.map(mapLoanInstallment);
+  deactivateLoan(userId: string, id: string) {
+    return this.loans.deactivateLoan(userId, id);
   }
 
-  async listLoanInstallmentsPage(
-    userId: string,
-    id: string,
-    query: CursorQueryDto,
-  ) {
-    const loan = await this.repo.findLoan(userId, id);
-    if (!loan) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    const rows = await this.repo.listInstallmentsPage(id, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.dueDate.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapLoanInstallment) };
+  deleteLoan(userId: string, id: string) {
+    return this.loans.deleteLoan(userId, id);
   }
 
-  async createLoan(userId: string, dto: CreateLoanDto, now: Date) {
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionAcceptsBankProducts(
-        userId,
-        dto.institutionId,
-      );
-    }
-    if (dto.accountId) {
-      await this.ownership.assertLoanAccountAlignment({
-        userId,
-        accountId: dto.accountId,
-        institutionId: dto.institutionId,
-      });
-    }
-    const currency = dto.currency ?? 'DOP';
-    const loanName = dto.name?.trim() || null;
-    const disbursementAccountId = dto.disbursementAccountId ?? null;
-    const disbursementTransactionId = disbursementAccountId
-      ? await this.disburseLoan({
-          userId,
-          accountId: disbursementAccountId,
-          currency,
-          amount: dto.originalAmount,
-          label: loanName ?? dto.lenderName,
-          transactionDate: dto.disbursementDate
-            ? new Date(dto.disbursementDate)
-            : now,
-        })
-      : null;
-
-    let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
-    try {
-      created = await this.repo.createLoan(userId, {
-        name: loanName,
-        lenderName: dto.lenderName,
-        institutionId: dto.institutionId,
-        accountId: dto.accountId,
-        disbursementAccountId: disbursementAccountId ?? undefined,
-        disbursementTransactionId: disbursementTransactionId ?? undefined,
-        originalAmount: dto.originalAmount,
-        currentBalance: dto.currentBalance,
-        currency,
-        installmentAmount: dto.installmentAmount,
-        installmentFreq: dto.installmentFreq,
-        totalInstallments: dto.totalInstallments,
-        paidInstallments: dto.paidInstallments ?? 0,
-        nextDueDate: new Date(dto.nextDueDate),
-        ...(dto.interestRate !== undefined
-          ? { interestRate: dto.interestRate }
-          : {}),
-        ...(dto.rateType ? { rateType: dto.rateType } : {}),
-        ...(dto.insuranceAmount !== undefined
-          ? { insuranceAmount: dto.insuranceAmount }
-          : {}),
-        ...(dto.prepaymentPenaltyPct !== undefined
-          ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
-          : {}),
-        ...(dto.disbursementDate
-          ? { disbursementDate: new Date(dto.disbursementDate) }
-          : {}),
-        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-      });
-    } catch (error) {
-      if (disbursementTransactionId) {
-        await this.deleteTransaction.execute(userId, disbursementTransactionId);
-      }
-      throw error;
-    }
-    await this.syncInstallments.execute(created, now);
-    return mapLoan(created);
+  restoreLoan(userId: string, id: string, now: Date) {
+    return this.loans.restoreLoan(userId, id, now);
   }
 
-  async updateLoan(userId: string, id: string, dto: UpdateLoanDto, now: Date) {
-    const existing = await this.repo.findLoan(userId, id);
-    if (!existing) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-
-    const nextInstitutionId =
-      dto.institutionId !== undefined
-        ? dto.institutionId
-        : existing.institutionId;
-    const nextAccountId =
-      dto.accountId !== undefined ? dto.accountId : existing.accountId;
-
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionAcceptsBankProducts(
-        userId,
-        dto.institutionId,
-      );
-    }
-    if (nextAccountId) {
-      await this.ownership.assertLoanAccountAlignment({
-        userId,
-        accountId: nextAccountId,
-        institutionId: nextInstitutionId,
-      });
-    }
-
-    const nextOriginalAmount = Number(existing.originalAmount);
-    const nextCurrentBalance =
-      dto.currentBalance !== undefined
-        ? dto.currentBalance
-        : Number(existing.currentBalance);
-    if (nextCurrentBalance > nextOriginalAmount) {
-      throw new BadRequestException(
-        'currentBalance no puede superar originalAmount',
-      );
-    }
-
-    const nextTotalInstallments =
-      dto.totalInstallments !== undefined
-        ? dto.totalInstallments
-        : existing.totalInstallments;
-    const nextPaidInstallments =
-      dto.paidInstallments !== undefined
-        ? dto.paidInstallments
-        : existing.paidInstallments;
-    if (nextPaidInstallments > nextTotalInstallments) {
-      throw new BadRequestException(
-        'paidInstallments no puede superar totalInstallments',
-      );
-    }
-
-    const updated = await this.repo.updateLoan(userId, id, {
-      ...(dto.name !== undefined ? { name: dto.name?.trim() || null } : {}),
-      ...(dto.lenderName ? { lenderName: dto.lenderName } : {}),
-      ...(dto.institutionId !== undefined
-        ? { institutionId: dto.institutionId }
-        : {}),
-      ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
-      ...(dto.currentBalance !== undefined
-        ? { currentBalance: dto.currentBalance }
-        : {}),
-      ...(dto.installmentAmount !== undefined
-        ? { installmentAmount: dto.installmentAmount }
-        : {}),
-      ...(dto.installmentFreq ? { installmentFreq: dto.installmentFreq } : {}),
-      ...(dto.totalInstallments !== undefined
-        ? { totalInstallments: dto.totalInstallments }
-        : {}),
-      ...(dto.paidInstallments !== undefined
-        ? { paidInstallments: dto.paidInstallments }
-        : {}),
-      ...(dto.nextDueDate ? { nextDueDate: new Date(dto.nextDueDate) } : {}),
-      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-      ...(dto.currency ? { currency: dto.currency } : {}),
-      ...(dto.interestRate !== undefined
-        ? { interestRate: dto.interestRate }
-        : {}),
-      ...(dto.rateType ? { rateType: dto.rateType } : {}),
-      ...(dto.insuranceAmount !== undefined
-        ? { insuranceAmount: dto.insuranceAmount }
-        : {}),
-      ...(dto.prepaymentPenaltyPct !== undefined
-        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
-        : {}),
-      ...(dto.disbursementDate
-        ? { disbursementDate: new Date(dto.disbursementDate) }
-        : {}),
-      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-    });
-    if (!updated) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    await this.syncInstallments.execute(updated, now);
-    return mapLoan(updated);
+  listReceivables(userId: string) {
+    return this.receivables.listReceivables(userId);
   }
 
-  async deactivateLoan(userId: string, id: string) {
-    const updated = await this.repo.updateLoan(userId, id, { isActive: false });
-    if (!updated) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    return { success: true };
+  listReceivablesPage(userId: string, query: CursorQueryDto) {
+    return this.receivables.listReceivablesPage(userId, query);
   }
 
-  async deleteLoan(userId: string, id: string) {
-    const result = await this.repo.deleteLoan(userId, id);
-    if (result.count === 0) {
-      throw new NotFoundException('Préstamo no encontrado');
-    }
-    return { success: true };
+  getReceivable(userId: string, id: string) {
+    return this.receivables.getReceivable(userId, id);
   }
 
-  async restoreLoan(userId: string, id: string, now: Date) {
-    const restored = await this.repo.restoreLoan(userId, id, now);
-    assertRestored(restored, 'Loan not found');
-    return { success: true };
+  lookupReceivables(userId: string, ids: readonly string[]) {
+    return this.receivables.lookupReceivables(userId, ids);
   }
 
-  async listReceivables(userId: string) {
-    const rows = await this.repo.listReceivables(userId);
-    return rows.map(mapReceivable);
+  createReceivable(userId: string, dto: CreateReceivableDto) {
+    return this.receivables.createReceivable(userId, dto);
   }
 
-  async listReceivablesPage(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listReceivablesPage(userId, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.createdAt.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapReceivable) };
+  updateReceivable(userId: string, id: string, dto: UpdateReceivableDto) {
+    return this.receivables.updateReceivable(userId, id, dto);
   }
 
-  async getReceivable(userId: string, id: string) {
-    const row = await this.repo.findReceivable(userId, id);
-    if (!row) {
-      throw new NotFoundException('Cobro no encontrado');
-    }
-    return mapReceivable(row);
+  listReceivablePayments(userId: string, id: string, query: CursorQueryDto) {
+    return this.receivables.listReceivablePayments(userId, id, query);
   }
 
-  async lookupReceivables(userId: string, ids: readonly string[]) {
-    const rows = await this.repo.findReceivablesByIds(userId, ids);
-    return new Map(rows.map((row) => [row.id, mapReceivable(row)]));
+  deleteReceivable(userId: string, id: string) {
+    return this.receivables.deleteReceivable(userId, id);
   }
 
-  async createReceivable(userId: string, dto: CreateReceivableDto) {
-    const markedAsPaid = dto.status === 'PAID' && dto.paidAmount === undefined;
-    const created = await this.repo.createReceivable(
-      userId,
-      {
-        debtorName: dto.debtorName,
-        description: dto.description,
-        amount: dto.amount,
-        currency: dto.currency ?? 'DOP',
-        dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-      },
-      markedAsPaid ? dto.amount : (dto.paidAmount ?? 0),
-      dto.status,
-    );
-    return mapReceivable(created);
-  }
-
-  async updateReceivable(userId: string, id: string, dto: UpdateReceivableDto) {
-    await this.assertReceivableOwned(userId, id);
-    await this.repo.updateReceivable(
-      userId,
-      id,
-      {
-        ...(dto.debtorName ? { debtorName: dto.debtorName } : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description }
-          : {}),
-        ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
-        ...(dto.currency ? { currency: dto.currency } : {}),
-        ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
-      },
-      dto.status,
-    );
-    const saved = await this.repo.findReceivable(userId, id);
-    if (!saved) {
-      throw new NotFoundException('Cobro no encontrado');
-    }
-    return mapReceivable(saved);
-  }
-
-  async listReceivablePayments(
-    userId: string,
-    id: string,
-    query: CursorQueryDto,
-  ) {
-    await this.assertReceivableOwned(userId, id);
-    const rows = await this.repo.listReceivablePayments(id, query);
-    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
-      row.paidAt.toISOString(),
-    );
-    return { ...page, items: page.items.map(mapReceivablePayment) };
-  }
-
-  private async assertReceivableOwned(
-    userId: string,
-    id: string,
-  ): Promise<void> {
-    const receivable = await this.repo.findReceivable(userId, id);
-    if (!receivable) {
-      throw new NotFoundException('Cobro no encontrado');
-    }
-  }
-
-  async deleteReceivable(userId: string, id: string) {
-    const result = await this.repo.deleteReceivable(userId, id);
-    if (result.count === 0) {
-      throw new NotFoundException('Cobro no encontrado');
-    }
-    return { success: true };
-  }
-
-  async restoreReceivable(userId: string, id: string, now: Date) {
-    const restored = await this.repo.restoreReceivable(userId, id, now);
-    assertRestored(restored, 'Receivable not found');
-    return { success: true };
+  restoreReceivable(userId: string, id: string, now: Date) {
+    return this.receivables.restoreReceivable(userId, id, now);
   }
 }

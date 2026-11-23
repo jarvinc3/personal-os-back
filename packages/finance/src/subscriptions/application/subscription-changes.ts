@@ -8,9 +8,9 @@ import type { UpdateSubscriptionDto } from '../presentation/dto/update-subscript
 import { dateOnly } from './subscription-dates';
 import { SubscriptionReminderWindow } from './subscription-reminder-window';
 import {
-  applySubscriptionStatus,
   nextBillingFromSchedule,
   normalizedKeyFor,
+  subscriptionStatusFields,
   type SubscriptionSchedule,
   type SubscriptionStatus,
   type UpdateSubscriptionChanges,
@@ -110,9 +110,7 @@ export class SubscriptionChanges {
   }
 
   forStatus(status: SubscriptionStatus, now: Date): UpdateSubscriptionChanges {
-    const changes: UpdateSubscriptionChanges = {};
-    applySubscriptionStatus(changes, status, now);
-    return changes;
+    return subscriptionStatusFields(status, now);
   }
 
   forResume(
@@ -272,11 +270,13 @@ export class SubscriptionChanges {
     if (status === undefined) {
       return {};
     }
-    const changes: UpdateSubscriptionChanges = {};
-    applySubscriptionStatus(changes, status, schedule.now);
+    const fields = subscriptionStatusFields(status, schedule.now);
     if (status === 'ACTIVE' && existingStatus !== 'ACTIVE') {
-      changes.nextBillingDate = nextBillingFromSchedule(schedule);
+      return {
+        ...fields,
+        nextBillingDate: nextBillingFromSchedule(schedule),
+      };
     }
-    return changes;
+    return fields;
   }
 }
