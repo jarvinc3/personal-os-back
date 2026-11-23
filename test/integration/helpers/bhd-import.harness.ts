@@ -70,7 +70,6 @@ export type BhdUser = {
 };
 
 export type BhdImportHarness = {
-  consumer: FinanceSignalConsumer;
   service: EmailSampleImportService;
   createUser: (suffix: string) => Promise<BhdUser>;
   createMessage: (user: BhdUser, email: BhdEmailFixture) => Promise<string>;
@@ -97,7 +96,7 @@ const CLASSIFICATION_LIMITS: Record<string, unknown> = {
 type RateRequest = { from: string; to: string };
 
 /** Identidad para la moneda propia y tasa fija para el dólar de la muestra. */
-export function syntheticExchangeRates() {
+function syntheticExchangeRates() {
   return {
     getHistoricalRate: ({ from, to }: RateRequest) =>
       Promise.resolve(syntheticRate(from, to)),
@@ -327,7 +326,6 @@ export function createBhdImportHarness(
   }
 
   return {
-    consumer,
     service,
     createUser,
     createMessage,

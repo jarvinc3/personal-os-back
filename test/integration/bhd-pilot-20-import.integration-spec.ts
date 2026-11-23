@@ -55,6 +55,9 @@ type ExpectedImport = readonly [
   reason?: string,
 ];
 
+/** Reverso del piloto: sin comercio, se vincula al importar su compra. */
+const REFUND_MESSAGE_PREFIX = 'f7f20f1c';
+
 /**
  * Resultado de importación fijado para la muestra saneada del piloto. El
  * fixture repite el mismo número de confirmación en sus tres transferencias
@@ -66,7 +69,7 @@ const EXPECTED_IMPORT: readonly ExpectedImport[] = [
   ['5314c7e3', 'REJECTED', 'NO_TRANSACTION_CANDIDATE'],
   ['862ea155', 'APPLIED'],
   ['603b46fe', 'APPLIED'],
-  ['f7f20f1c', 'REVIEW_REQUIRED', 'REVERSAL_ORIGINAL_NOT_FOUND'],
+  [REFUND_MESSAGE_PREFIX, 'REVIEW_REQUIRED', 'REVERSAL_ORIGINAL_NOT_FOUND'],
   ['5d906c05', 'APPLIED'],
   ['62cef65f', 'APPLIED'],
   ['2bc6e0c8', 'REJECTED', 'INFERENCE_PROVIDER_FAILURE'],
@@ -138,17 +141,25 @@ function expectedImport(email: PilotEmail) {
 
 function expectedReplayImport(email: PilotEmail) {
   const expected = expectedImport(email);
-  // El reverso f7f20f1c entra en revisión y lo aplica el reintento cuando se
-  // importa su compra en la misma corrida; la segunda vez ya está aplicado.
+  // El reverso entra en revisión y lo aplica el reintento cuando se importa su
+  // compra en la misma corrida; la segunda vez ya está aplicado.
   const appliedInFirstRun =
-    expected.outcome === 'APPLIED' || email.messageId.startsWith('f7f20f1c');
+    expected.outcome === 'APPLIED' ||
+    email.messageId.startsWith(REFUND_MESSAGE_PREFIX);
   return appliedInFirstRun ? { outcome: 'ALREADY_APPLIED' } : expected;
 }
+
+type ExecutionView = {
+  email: string;
+  outcome: string | undefined;
+  reason: string | undefined;
+  hasTransaction: boolean;
+};
 
 function describeExecution(
   email: PilotEmail,
   item: SampleImportManifest['items'][number],
-) {
+): ExecutionView {
   return {
     email: email.messageId,
     outcome: item.execution?.outcome,
@@ -157,11 +168,15 @@ function describeExecution(
   };
 }
 
-function expectedExecution(
-  email: PilotEmail,
-  outcome: string,
-  reason?: string,
-) {
+function expectedExecution({
+  email,
+  outcome,
+  reason,
+}: {
+  email: PilotEmail;
+  outcome: string;
+  reason?: string;
+}): ExecutionView {
   return {
     email: email.messageId,
     outcome,
@@ -179,7 +194,7 @@ function expectOutcomes(manifest: SampleImportManifest) {
   ).toEqual(
     fixture.emails.map((email) => {
       const expected = expectedImport(email);
-      return expectedExecution(email, expected.outcome, expected.reason);
+      return expectedExecution({ email, ...expected });
     }),
   );
 }
@@ -235,9 +250,17 @@ function appliedEmails(): PilotEmail[] {
   );
 }
 
+function expectedSignalCount(): number {
+  return fixture.emails.filter(
+    (email) =>
+      email.expected.fixedFormat &&
+      email.expected.semanticType === 'FIN_TRANSACTION',
+  ).length;
+}
+
 function refundEmail(): PilotEmail {
   const email = fixture.emails.find((candidate) =>
-    candidate.messageId.startsWith('f7f20f1c'),
+    candidate.messageId.startsWith(REFUND_MESSAGE_PREFIX),
   );
   if (!email) {
     throw new Error('La muestra del piloto no trae su reverso');
@@ -265,111 +288,137 @@ function cardBalance() {
   });
 }
 
+function ledgerRows() {
+  return prisma.finTransaction.findMany({
+    where: { userId: user.userId },
+    orderBy: { transactionDate: 'asc' },
+  });
+}
+
+type LedgerRow = Awaited<ReturnType<typeof ledgerRows>>[number];
+
+function expectPurchasesMatchTheSample(purchases: readonly LedgerRow[]) {
+  expect(purchases).toHaveLength(purchaseEmails().length);
+  expect(purchases.every((row) => row.type === 'DEBIT')).toBe(true);
+  expect(purchases.every((row) => row.cardId === user.cardId)).toBe(true);
+  const usdPurchases = purchases.filter((row) => row.currency === 'USD');
+  expect(usdPurchases).toHaveLength(2);
+  for (const row of usdPurchases) {
+    expect(row.ledgerCurrency).toBe('DOP');
+    expect(row.exchangeRate.toString()).toBe(String(SYNTHETIC_USD_RATE));
+    expect(Number(row.ledgerAmount).toFixed(2)).toBe(
+      (Number(row.amount) * SYNTHETIC_USD_RATE).toFixed(2),
+    );
+  }
+}
+
+async function expectRefundLinkedToItsPurchase(
+  purchases: readonly LedgerRow[],
+) {
+  const refundedPurchase = purchases.find((row) => row.status === 'REVERSED');
+  expect(refundedPurchase?.amount.toString()).toBe(
+    refundEmail().expected.amount?.toFixed(2),
+  );
+  expect(refundedPurchase?.currency).toBe('DOP');
+  const refundMessageId = messageIds[fixture.emails.indexOf(refundEmail())];
+  if (!refundMessageId) {
+    throw new Error('La muestra no creó el correo del reverso');
+  }
+  const refundImport = await prisma.finSignalImport.findFirstOrThrow({
+    where: { userId: user.userId, sourceEmailMessageId: refundMessageId },
+    select: { transactionId: true },
+  });
+  expect(refundImport.transactionId).toBe(refundedPurchase?.id);
+}
+
+function expectTransferLegsPaired(rows: readonly LedgerRow[]) {
+  const transferLegs = rows.filter((row) => row.legRole !== null);
+  expect(transferLegs).toHaveLength(3);
+  const groups = new Map<string, typeof transferLegs>();
+  for (const leg of transferLegs) {
+    if (!leg.transferGroupId) {
+      throw new Error('La pata de transferencia no tiene grupo');
+    }
+    groups.set(leg.transferGroupId, [
+      ...(groups.get(leg.transferGroupId) ?? []),
+      leg,
+    ]);
+  }
+  const pairedGroups = [...groups.values()].filter(
+    (group) => group.length === 2,
+  );
+  expect(pairedGroups).toHaveLength(1);
+  expect(pairedGroups[0].map((leg) => leg.legRole).sort()).toEqual([
+    'DESTINATION',
+    'SOURCE',
+  ]);
+  expect(pairedGroups[0].every((leg) => leg.status === 'PENDING')).toBe(true);
+  expect(
+    [...groups.values()].filter((group) => group.length === 1),
+  ).toHaveLength(1);
+}
+
+async function expectLedgerMatchesTheSample() {
+  const rows = await ledgerRows();
+  expect(rows).toHaveLength(appliedEmails().length);
+  const purchases = rows.filter((row) => row.legRole === null);
+  expectPurchasesMatchTheSample(purchases);
+  await expectRefundLinkedToItsPurchase(purchases);
+  expectTransferLegsPaired(rows);
+}
+
+async function expectSignalsMatchTheSample() {
+  const signals = await prisma.aiSignal.findMany({
+    where: { userId: user.userId },
+    select: { sourceId: true },
+  });
+  expect(signals).toHaveLength(expectedSignalCount());
+  expect(new Set(signals.map((signal) => signal.sourceId)).size).toBe(
+    expectedSignalCount(),
+  );
+}
+
+async function expectCardDebtMatchesTheSample() {
+  expect((await cardBalance()).balance.toString()).toBe(
+    `-${expectedCardDebt().toFixed(2)}`,
+  );
+}
+
+function expectReplayOutcomes(second: SampleImportManifest) {
+  expect(
+    second.items.map((item, index) =>
+      describeExecution(fixture.emails[index], item),
+    ),
+  ).toEqual(
+    fixture.emails.map((email) => {
+      const expected = expectedReplayImport(email);
+      return expectedExecution({ email, ...expected });
+    }),
+  );
+}
+
+async function expectLedgerUnchangedAfterReplay() {
+  await expect(
+    prisma.finTransaction.count({ where: { userId: user.userId } }),
+  ).resolves.toBe(appliedEmails().length);
+  await expect(
+    prisma.finSignalImport.count({ where: { userId: user.userId } }),
+  ).resolves.toBe(expectedSignalCount());
+  await expectSignalsMatchTheSample();
+  await expectCardDebtMatchesTheSample();
+}
+
 describe('Piloto BHD v6: importación de la muestra de 20 correos', () => {
   it('importa la muestra y repetirla no duplica movimientos ni señales', async () => {
     const first = await runSample();
-
     expectOutcomes(first);
     expectClassificationMatchesFixture(first);
-
-    const rows = await prisma.finTransaction.findMany({
-      where: { userId: user.userId },
-      orderBy: { transactionDate: 'asc' },
-    });
-    expect(rows).toHaveLength(appliedEmails().length);
-    const purchaseRows = rows.filter((row) => row.legRole === null);
-    expect(purchaseRows).toHaveLength(purchaseEmails().length);
-    expect(purchaseRows.every((row) => row.type === 'DEBIT')).toBe(true);
-    expect(purchaseRows.every((row) => row.cardId === user.cardId)).toBe(true);
-    const usdPurchases = purchaseRows.filter((row) => row.currency === 'USD');
-    expect(usdPurchases).toHaveLength(2);
-    for (const row of usdPurchases) {
-      expect(row.ledgerCurrency).toBe('DOP');
-      expect(row.exchangeRate.toString()).toBe(String(SYNTHETIC_USD_RATE));
-      expect(Number(row.ledgerAmount).toFixed(2)).toBe(
-        (Number(row.amount) * SYNTHETIC_USD_RATE).toFixed(2),
-      );
-    }
-
-    const refundedPurchase = purchaseRows.find(
-      (row) => row.status === 'REVERSED',
-    );
-    expect(refundedPurchase?.amount.toString()).toBe(
-      refundEmail().expected.amount?.toFixed(2),
-    );
-    expect(refundedPurchase?.currency).toBe('DOP');
-    const refundMessageId =
-      messageIds[fixture.emails.indexOf(refundEmail())] ?? '';
-    const refundImport = await prisma.finSignalImport.findFirstOrThrow({
-      where: {
-        userId: user.userId,
-        sourceEmailMessageId: refundMessageId,
-      },
-      select: { transactionId: true },
-    });
-    expect(refundImport.transactionId).toBe(refundedPurchase?.id);
-
-    const transferLegs = rows.filter((row) => row.legRole !== null);
-    expect(transferLegs).toHaveLength(3);
-    const groups = new Map<string, typeof transferLegs>();
-    for (const leg of transferLegs) {
-      if (!leg.transferGroupId) {
-        throw new Error('La pata de transferencia no tiene grupo');
-      }
-      groups.set(leg.transferGroupId, [
-        ...(groups.get(leg.transferGroupId) ?? []),
-        leg,
-      ]);
-    }
-    const pairedGroups = [...groups.values()].filter(
-      (group) => group.length === 2,
-    );
-    expect(pairedGroups).toHaveLength(1);
-    expect(pairedGroups[0].map((leg) => leg.legRole).sort()).toEqual([
-      'DESTINATION',
-      'SOURCE',
-    ]);
-    expect(pairedGroups[0].every((leg) => leg.status === 'PENDING')).toBe(true);
-    expect(
-      [...groups.values()].filter((group) => group.length === 1),
-    ).toHaveLength(1);
-
-    expect((await cardBalance()).balance.toString()).toBe(
-      `-${expectedCardDebt().toFixed(2)}`,
-    );
-    const signals = await prisma.aiSignal.findMany({
-      where: { userId: user.userId },
-      select: { sourceId: true },
-    });
-    const expectedSignals = fixture.emails.filter(
-      (email) =>
-        email.expected.fixedFormat &&
-        email.expected.semanticType === 'FIN_TRANSACTION',
-    ).length;
-    expect(signals).toHaveLength(expectedSignals);
-    expect(new Set(signals.map((signal) => signal.sourceId)).size).toBe(
-      expectedSignals,
-    );
+    await expectLedgerMatchesTheSample();
+    await expectSignalsMatchTheSample();
+    await expectCardDebtMatchesTheSample();
 
     const second = await runSample();
-    expect(
-      second.items.map((item, index) =>
-        describeExecution(fixture.emails[index], item),
-      ),
-    ).toEqual(
-      fixture.emails.map((email) => {
-        const expected = expectedReplayImport(email);
-        return expectedExecution(email, expected.outcome, expected.reason);
-      }),
-    );
-    await expect(
-      prisma.finTransaction.count({ where: { userId: user.userId } }),
-    ).resolves.toBe(appliedEmails().length);
-    await expect(
-      prisma.finSignalImport.count({ where: { userId: user.userId } }),
-    ).resolves.toBe(expectedSignals);
-    expect((await cardBalance()).balance.toString()).toBe(
-      `-${expectedCardDebt().toFixed(2)}`,
-    );
+    expectReplayOutcomes(second);
+    await expectLedgerUnchangedAfterReplay();
   });
 });
