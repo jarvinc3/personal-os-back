@@ -5,14 +5,14 @@ import {
   type CursorQueryDto,
 } from '@personal-os/core';
 import { assertRestored } from '../../shared/application/assert-restored';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
 import type { UpdateReceivableDto } from '../presentation/dto/update-receivable.dto';
 import { mapReceivable, mapReceivablePayment } from './planning-mappers';
 
 /** Money a user is owed, with its payments and status. */
 export class PlanningReceivables {
-  constructor(private readonly repo: PlanningRepository) {}
+  constructor(private readonly repo: PlanningReceivableRepository) {}
 
   async listReceivables(userId: string) {
     const rows = await this.repo.listReceivables(userId);
@@ -42,27 +42,27 @@ export class PlanningReceivables {
 
   async createReceivable(userId: string, dto: CreateReceivableDto) {
     const markedAsPaid = dto.status === 'PAID' && dto.paidAmount === undefined;
-    const created = await this.repo.createReceivable(
+    const created = await this.repo.createReceivable({
       userId,
-      {
+      data: {
         debtorName: dto.debtorName,
         description: dto.description,
         amount: dto.amount,
         currency: dto.currency ?? 'DOP',
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       },
-      markedAsPaid ? dto.amount : (dto.paidAmount ?? 0),
-      dto.status,
-    );
+      openingAmount: markedAsPaid ? dto.amount : (dto.paidAmount ?? 0),
+      requestedStatus: dto.status,
+    });
     return mapReceivable(created);
   }
 
   async updateReceivable(userId: string, id: string, dto: UpdateReceivableDto) {
     await this.assertReceivableOwned(userId, id);
-    await this.repo.updateReceivable(
+    await this.repo.updateReceivable({
       userId,
       id,
-      {
+      data: {
         ...(dto.debtorName ? { debtorName: dto.debtorName } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }
@@ -71,8 +71,8 @@ export class PlanningReceivables {
         ...(dto.currency ? { currency: dto.currency } : {}),
         ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
       },
-      dto.status,
-    );
+      requestedStatus: dto.status,
+    });
     const saved = await this.repo.findReceivable(userId, id);
     if (!saved) {
       throw new NotFoundException('Cobro no encontrado');

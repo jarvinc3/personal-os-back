@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import { PayNextLoanInstallmentUseCase } from './pay-next-loan-installment.use-case';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
@@ -56,7 +56,7 @@ function setup(options: { found?: unknown; nextInstallment?: unknown } = {}) {
   };
 
   const useCase = new PayNextLoanInstallmentUseCase(
-    repo as unknown as PlanningRepository,
+    repo as unknown as PlanningLoanRepository,
     syncInstallments as unknown as SyncLoanInstallmentsUseCase,
     createTransaction as unknown as CreateTransactionUseCase,
   );

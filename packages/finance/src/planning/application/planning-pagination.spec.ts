@@ -1,14 +1,32 @@
 import { PlanningService } from './planning.service';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningBudgetRepository } from '../infrastructure/planning-budget.repository';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import type { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import type { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
 import type { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 
-function createService(repo: PlanningRepository): PlanningService {
+type PlanningRepositories = {
+  budgets?: PlanningBudgetRepository;
+  savingsGoals?: PlanningSavingsGoalRepository;
+  loans?: PlanningLoanRepository;
+  receivables?: PlanningReceivableRepository;
+};
+
+function createService({
+  budgets = {} as PlanningBudgetRepository,
+  savingsGoals = {} as PlanningSavingsGoalRepository,
+  loans = {} as PlanningLoanRepository,
+  receivables = {} as PlanningReceivableRepository,
+}: PlanningRepositories = {}): PlanningService {
   return new PlanningService(
-    repo,
+    budgets,
+    savingsGoals,
+    loans,
+    receivables,
     {} as unknown as FinanceOwnershipService,
     {} as unknown as SyncLoanInstallmentsUseCase,
     {} as unknown as LedgerQueryService,
@@ -56,13 +74,14 @@ describe('PlanningService pagination', () => {
     const rows = Array.from({ length: 21 }, (_, index) =>
       savingsGoalRow(index + 1),
     );
-    const repo = {
+    const savingsGoals = {
       listSavingsGoalsPage: jest.fn().mockResolvedValue(rows),
-    } as unknown as PlanningRepository;
+    } as unknown as PlanningSavingsGoalRepository;
 
-    const page = await createService(repo).listSavingsGoalsPage('user-1', {
-      limit: 20,
-    });
+    const page = await createService({ savingsGoals }).listSavingsGoalsPage(
+      'user-1',
+      { limit: 20 },
+    );
 
     expect(page.items).toHaveLength(20);
     expect(page.hasMore).toBe(true);
@@ -70,11 +89,11 @@ describe('PlanningService pagination', () => {
   });
 
   it('pages loans oldest due date first and ends the list', async () => {
-    const repo = {
+    const loans = {
       listLoansPage: jest.fn().mockResolvedValue([loanRow(1), loanRow(2)]),
-    } as unknown as PlanningRepository;
+    } as unknown as PlanningLoanRepository;
 
-    const page = await createService(repo).listLoansPage('user-1', {
+    const page = await createService({ loans }).listLoansPage('user-1', {
       limit: 20,
     });
 
@@ -84,7 +103,7 @@ describe('PlanningService pagination', () => {
   });
 
   it('pages receivables and exposes a cursor keyed by createdAt', async () => {
-    const repo = {
+    const receivables = {
       listReceivablesPage: jest
         .fn()
         .mockResolvedValue([
@@ -92,11 +111,12 @@ describe('PlanningService pagination', () => {
           receivableRow(2),
           receivableRow(3),
         ]),
-    } as unknown as PlanningRepository;
+    } as unknown as PlanningReceivableRepository;
 
-    const page = await createService(repo).listReceivablesPage('user-1', {
-      limit: 2,
-    });
+    const page = await createService({ receivables }).listReceivablesPage(
+      'user-1',
+      { limit: 2 },
+    );
 
     expect(page.items).toHaveLength(2);
     expect(page.hasMore).toBe(true);

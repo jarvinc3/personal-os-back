@@ -27,7 +27,9 @@ import {
   distributeLoanPayment,
   installmentDueTotal,
 } from '../domain/loan-payment';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 import { RecordReceivablePaymentUseCase } from './record-receivable-payment.use-case';
 
@@ -54,7 +56,9 @@ export class LinkTransactionUseCase {
   constructor(
     @Inject(LEDGER_QUERY_REPOSITORY)
     private readonly ledger: LedgerQueryRepositoryPort,
-    private readonly planning: PlanningRepository,
+    private readonly loans: PlanningLoanRepository,
+    private readonly receivables: PlanningReceivableRepository,
+    private readonly savingsGoals: PlanningSavingsGoalRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly recordPayment: RecordReceivablePaymentUseCase,
     private readonly allocateToGoal: AllocateToGoalUseCase,
@@ -118,7 +122,7 @@ export class LinkTransactionUseCase {
         message: TRANSACTION_LINK_INVALID_MESSAGE,
       });
     }
-    const installment = await this.planning.findInstallmentForUser(
+    const installment = await this.loans.findInstallmentForUser(
       userId,
       command.installmentId,
     );
@@ -170,13 +174,13 @@ export class LinkTransactionUseCase {
     });
     const newPaidAmount = roundMoney(Number(installment.paidAmount) + amount);
     const fullyPaid = newPaidAmount >= Number(installment.amount) - 0.005;
-    await this.planning.applyInstallmentPayment(installment.id, {
+    await this.loans.applyInstallmentPayment(installment.id, {
       paidAmount: newPaidAmount,
       status: fullyPaid ? 'PAID' : 'PARTIAL',
       paidAt: fullyPaid ? now : null,
       transactionId: movement.id,
     });
-    await this.planning.updateLoan(userId, loan.id, {
+    await this.loans.updateLoan(userId, loan.id, {
       currentBalance: roundMoney(
         Number(loan.currentBalance) - breakdown.principal,
       ),
@@ -211,7 +215,7 @@ export class LinkTransactionUseCase {
         message: TRANSACTION_LINK_INVALID_MESSAGE,
       });
     }
-    const receivable = await this.planning.findReceivable(
+    const receivable = await this.receivables.findReceivable(
       userId,
       command.receivableId,
     );
@@ -265,7 +269,10 @@ export class LinkTransactionUseCase {
         message: TRANSACTION_LINK_INVALID_MESSAGE,
       });
     }
-    const goal = await this.planning.findSavingsGoal(userId, command.goalId);
+    const goal = await this.savingsGoals.findSavingsGoal(
+      userId,
+      command.goalId,
+    );
     if (!goal) {
       throw new NotFoundException({
         code: TRANSACTION_LINK_TARGET_NOT_FOUND,

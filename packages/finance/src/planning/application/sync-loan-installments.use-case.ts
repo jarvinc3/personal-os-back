@@ -4,7 +4,7 @@ import {
   type LoanInstallmentFrequency,
   type LoanInstallmentPlan,
 } from '../domain/loan-installment-schedule';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 
 export type LoanScheduleSource = {
   id: string;
@@ -25,7 +25,7 @@ export type LoanScheduleSource = {
  */
 @Injectable()
 export class SyncLoanInstallmentsUseCase {
-  constructor(private readonly repo: PlanningRepository) {}
+  constructor(private readonly repo: PlanningLoanRepository) {}
 
   async execute(loan: LoanScheduleSource, now: Date): Promise<void> {
     // A fully paid loan still needs a schedule; anchoring past the last

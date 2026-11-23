@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import type { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
 import { RecordReceivablePaymentUseCase } from './record-receivable-payment.use-case';
 
 const utc = (year: number, month: number, day: number) =>
@@ -40,7 +40,7 @@ function setup(options: { found?: unknown } = {}) {
   };
 
   const useCase = new RecordReceivablePaymentUseCase(
-    repo as unknown as PlanningRepository,
+    repo as unknown as PlanningReceivableRepository,
     ownership as unknown as FinanceOwnershipService,
     createTransaction as unknown as CreateTransactionUseCase,
   );

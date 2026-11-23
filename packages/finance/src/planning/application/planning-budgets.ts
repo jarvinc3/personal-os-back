@@ -15,7 +15,7 @@ import {
   type BudgetRollover,
 } from '../domain/budget-rollover';
 import { nextBudgetPeriod } from '../domain/budget-period';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningBudgetRepository } from '../infrastructure/planning-budget.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { UpdateBudgetDto } from '../presentation/dto/update-budget.dto';
 import {
@@ -26,7 +26,7 @@ import { mapBudget } from './planning-mappers';
 
 /** Budget row as the repository returns it: category plus every joined category. */
 type BudgetRow = NonNullable<
-  Awaited<ReturnType<PlanningRepository['findBudget']>>
+  Awaited<ReturnType<PlanningBudgetRepository['findBudget']>>
 >;
 
 type BudgetOverlapCheck = {
@@ -40,7 +40,7 @@ type BudgetOverlapCheck = {
 /** Budgets of a user: spend, periods, recurring copies and carry-over. */
 export class PlanningBudgets {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningBudgetRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly ledger: LedgerQueryService,
   ) {}
@@ -135,12 +135,12 @@ export class PlanningBudgets {
         excludeBudgetId: id,
       });
     }
-    const updatedId = await this.repo.updateBudget(
+    const updatedId = await this.repo.updateBudget({
       userId,
       id,
-      { ...budgetContentFields(dto), ...budgetScheduleFields(dto) },
-      dto.categoryIds,
-    );
+      data: { ...budgetContentFields(dto), ...budgetScheduleFields(dto) },
+      categoryIds: dto.categoryIds,
+    });
     if (!updatedId) {
       throw new NotFoundException('Presupuesto no encontrado');
     }
@@ -200,12 +200,12 @@ export class PlanningBudgets {
         periodStart: budget.periodStart,
         periodEnd: budget.periodEnd,
       });
-      const overlapping = await this.repo.findOverlappingBudgetForCategories(
-        budget.userId,
+      const overlapping = await this.repo.findOverlappingBudgetForCategories({
+        userId: budget.userId,
         categoryIds,
-        next.periodStart,
-        next.periodEnd,
-      );
+        periodStart: next.periodStart,
+        periodEnd: next.periodEnd,
+      });
       if (overlapping) {
         continue;
       }
@@ -283,12 +283,12 @@ export class PlanningBudgets {
     const categoryIds = budget.categories.map((entry) => entry.categoryId);
     let carriedOver = 0;
     if (categoryIds.length > 0 && budget.rollover !== BUDGET_ROLLOVER.NONE) {
-      const previous = await this.repo.findPreviousBudgetForCategories(
+      const previous = await this.repo.findPreviousBudgetForCategories({
         userId,
         categoryIds,
-        budget.periodStart,
-        budget.id,
-      );
+        periodStart: budget.periodStart,
+        excludeBudgetId: budget.id,
+      });
       if (previous && previous.categories.length === categoryIds.length) {
         carriedOver = carriedOverFrom({
           rollover: budget.rollover as BudgetRollover,
@@ -298,28 +298,23 @@ export class PlanningBudgets {
         });
       }
     }
-    await this.repo.updateBudget(userId, budget.id, { carriedOver });
+    await this.repo.updateBudget({
+      userId,
+      id: budget.id,
+      data: { carriedOver },
+    });
   }
 
-  private async assertCategoriesNotBudgeted({
-    userId,
-    categoryIds,
-    periodStart,
-    periodEnd,
-    excludeBudgetId,
-  }: BudgetOverlapCheck): Promise<void> {
-    const conflict = await this.repo.findOverlappingBudgetForCategories(
-      userId,
-      categoryIds,
-      periodStart,
-      periodEnd,
-      excludeBudgetId,
-    );
+  private async assertCategoriesNotBudgeted(
+    overlap: BudgetOverlapCheck,
+  ): Promise<void> {
+    const conflict =
+      await this.repo.findOverlappingBudgetForCategories(overlap);
     if (!conflict) {
       return;
     }
     const conflicting = conflict.categories.find((entry) =>
-      categoryIds.includes(entry.categoryId),
+      overlap.categoryIds.includes(entry.categoryId),
     );
     throw new ConflictException({
       code: 'CATEGORY_ALREADY_BUDGETED',

@@ -13,7 +13,10 @@ import { LinkTransactionUseCase } from './application/link-transaction.use-case'
 import { UnlinkTransactionUseCase } from './application/unlink-transaction.use-case';
 import { RemoveSavingsGoalContributionUseCase } from './application/remove-savings-goal-contribution.use-case';
 import { SyncLoanInstallmentsUseCase } from './application/sync-loan-installments.use-case';
-import { PlanningRepository } from './infrastructure/planning.repository';
+import { PlanningBudgetRepository } from './infrastructure/planning-budget.repository';
+import { PlanningLoanRepository } from './infrastructure/planning-loan.repository';
+import { PlanningReceivableRepository } from './infrastructure/planning-receivable.repository';
+import { PlanningSavingsGoalRepository } from './infrastructure/planning-savings-goal.repository';
 import { BudgetRecurringScheduler } from './infrastructure/budget-recurring.scheduler';
 import { LoanInstallmentsBackfill } from './infrastructure/loan-installments-backfill';
 import { BudgetsController } from './presentation/budgets.controller';
@@ -38,7 +41,10 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     TransactionLinksController,
   ],
   providers: [
-    PlanningRepository,
+    PlanningBudgetRepository,
+    PlanningLoanRepository,
+    PlanningReceivableRepository,
+    PlanningSavingsGoalRepository,
     PlanningService,
     SyncLoanInstallmentsUseCase,
     PayNextLoanInstallmentUseCase,
@@ -55,7 +61,10 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
   ],
   exports: [
     PlanningService,
-    PlanningRepository,
+    PlanningBudgetRepository,
+    PlanningLoanRepository,
+    PlanningReceivableRepository,
+    PlanningSavingsGoalRepository,
     PayNextLoanInstallmentUseCase,
     ApplyLoanPrepaymentUseCase,
     AllocateToGoalUseCase,

@@ -1,6 +1,6 @@
 import type { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import { localDateIso } from '../../shared/domain/local-day';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import { ApplyLoanPrepaymentUseCase } from './apply-loan-prepayment.use-case';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
@@ -38,7 +38,7 @@ function setup() {
     execute: jest.fn().mockResolvedValue({ id: 'tx-1' }),
   };
   const useCase = new ApplyLoanPrepaymentUseCase(
-    repo as unknown as PlanningRepository,
+    repo as unknown as PlanningLoanRepository,
     syncInstallments as unknown as SyncLoanInstallmentsUseCase,
     createTransaction as unknown as CreateTransactionUseCase,
   );

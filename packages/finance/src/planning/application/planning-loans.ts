@@ -9,7 +9,7 @@ import { DeleteTransactionUseCase } from '../../ledger/application/delete-transa
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { roundMoney } from '../../shared/domain/money';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import {
@@ -20,10 +20,12 @@ import {
 import { mapLoan, mapLoanInstallment } from './planning-mappers';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
-type LoanRow = NonNullable<Awaited<ReturnType<PlanningRepository['findLoan']>>>;
+type LoanRow = NonNullable<
+  Awaited<ReturnType<PlanningLoanRepository['findLoan']>>
+>;
 
 type PlanningLoansDeps = {
-  repo: PlanningRepository;
+  repo: PlanningLoanRepository;
   ownership: FinanceOwnershipService;
   syncInstallments: SyncLoanInstallmentsUseCase;
   adjustBalance: AdjustBalanceUseCase;
@@ -32,7 +34,7 @@ type PlanningLoansDeps = {
 
 /** Loans of a user: disbursement, installments and schedule sync. */
 export class PlanningLoans {
-  private readonly repo: PlanningRepository;
+  private readonly repo: PlanningLoanRepository;
   private readonly ownership: FinanceOwnershipService;
   private readonly syncInstallments: SyncLoanInstallmentsUseCase;
   private readonly adjustBalance: AdjustBalanceUseCase;
@@ -133,7 +135,7 @@ export class PlanningLoans {
         })
       : null;
 
-    let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
+    let created: Awaited<ReturnType<PlanningLoanRepository['createLoan']>>;
     try {
       created = await this.repo.createLoan(
         userId,

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { roundMoney } from '../../shared/domain/money';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
 import type { ApplyReceivableCreditDto } from '../presentation/dto/apply-receivable-credit.dto';
 import {
   RECEIVABLE_NOT_FOUND,
@@ -15,7 +15,7 @@ import {
 /** Spends a receivable credit balance on another open receivable. */
 @Injectable()
 export class ApplyReceivableCreditUseCase {
-  constructor(private readonly repo: PlanningRepository) {}
+  constructor(private readonly repo: PlanningReceivableRepository) {}
 
   async execute(
     userId: string,

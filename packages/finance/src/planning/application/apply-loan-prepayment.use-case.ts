@@ -22,7 +22,7 @@ import {
   LOAN_PREPAYMENT_MODE,
   type LoanPrepaymentMode,
 } from '../domain/loan-payment';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
 export type LoanPrepaymentCommand = {
@@ -52,7 +52,7 @@ type LoanForPrepayment = {
 @Injectable()
 export class ApplyLoanPrepaymentUseCase {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningLoanRepository,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}

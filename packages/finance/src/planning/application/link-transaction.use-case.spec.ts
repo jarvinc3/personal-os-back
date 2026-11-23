@@ -1,7 +1,10 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger.repository.port';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import type { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import type { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 import { LinkTransactionUseCase } from './link-transaction.use-case';
 import type { RecordReceivablePaymentUseCase } from './record-receivable-payment.use-case';
@@ -59,17 +62,21 @@ function setup() {
     findTransactionById: jest.fn(),
     findPlanningLinkKind: jest.fn().mockResolvedValue(null),
   };
-  const planning = {
+  const loans = {
     findInstallmentForUser: jest.fn(),
     findInstallmentByTransactionId: jest.fn(),
+    applyInstallmentPayment: jest.fn().mockResolvedValue(undefined),
+    updateLoan: jest.fn().mockResolvedValue(undefined),
+  };
+  const receivables = {
     findReceivable: jest.fn(),
     findReceivablePaymentByTransactionId: jest.fn(),
     deleteReceivablePayment: jest.fn().mockResolvedValue(undefined),
+  };
+  const savingsGoals = {
     findSavingsGoal: jest.fn(),
     findSavingsGoalContributionByTransactionId: jest.fn(),
     removeSavingsGoalContribution: jest.fn().mockResolvedValue(undefined),
-    applyInstallmentPayment: jest.fn().mockResolvedValue(undefined),
-    updateLoan: jest.fn().mockResolvedValue(undefined),
   };
   const ownership = { assertAccountOwned: jest.fn().mockResolvedValue(null) };
   const recordPayment = {
@@ -80,18 +87,24 @@ function setup() {
   };
   const link = new LinkTransactionUseCase(
     ledger as unknown as LedgerQueryRepositoryPort,
-    planning as unknown as PlanningRepository,
+    loans as unknown as PlanningLoanRepository,
+    receivables as unknown as PlanningReceivableRepository,
+    savingsGoals as unknown as PlanningSavingsGoalRepository,
     ownership as unknown as FinanceOwnershipService,
     recordPayment as unknown as RecordReceivablePaymentUseCase,
     allocateToGoal as unknown as AllocateToGoalUseCase,
   );
   const unlink = new UnlinkTransactionUseCase(
     ledger as unknown as LedgerQueryRepositoryPort,
-    planning as unknown as PlanningRepository,
+    loans as unknown as PlanningLoanRepository,
+    receivables as unknown as PlanningReceivableRepository,
+    savingsGoals as unknown as PlanningSavingsGoalRepository,
   );
   return {
     ledger,
-    planning,
+    loans,
+    receivables,
+    savingsGoals,
     ownership,
     recordPayment,
     allocateToGoal,
@@ -102,9 +115,9 @@ function setup() {
 
 describe('LinkTransactionUseCase', () => {
   it('marks the instalment paid with the existing movement', async () => {
-    const { ledger, planning, recordPayment, link } = setup();
+    const { ledger, loans, recordPayment, link } = setup();
     ledger.findTransactionById.mockResolvedValue(movement());
-    planning.findInstallmentForUser.mockResolvedValue(installment());
+    loans.findInstallmentForUser.mockResolvedValue(installment());
 
     const linkDescriptor = await link.execute(
       'user-1',
@@ -114,13 +127,13 @@ describe('LinkTransactionUseCase', () => {
     );
 
     expect(recordPayment.execute).not.toHaveBeenCalled();
-    expect(planning.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
+    expect(loans.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
       paidAmount: 1500,
       status: 'PAID',
       paidAt: now,
       transactionId: 'tx-1',
     });
-    expect(planning.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
+    expect(loans.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
       currentBalance: 3500,
       paidInstallments: 2,
       nextDueDate: new Date(Date.UTC(2026, 5, 5)),
@@ -129,11 +142,11 @@ describe('LinkTransactionUseCase', () => {
   });
 
   it('rejects an amount above the instalment', async () => {
-    const { ledger, planning, link } = setup();
+    const { ledger, loans, link } = setup();
     ledger.findTransactionById.mockResolvedValue(
       movement({ amount: 2000, ledgerAmount: 2000 }),
     );
-    planning.findInstallmentForUser.mockResolvedValue(installment());
+    loans.findInstallmentForUser.mockResolvedValue(installment());
 
     await expect(
       link.execute(
@@ -163,9 +176,9 @@ describe('LinkTransactionUseCase', () => {
   });
 
   it('records a collection with the existing movement', async () => {
-    const { ledger, planning, recordPayment, link } = setup();
+    const { ledger, receivables, recordPayment, link } = setup();
     ledger.findTransactionById.mockResolvedValue(movement({ type: 'CREDIT' }));
-    planning.findReceivable.mockResolvedValue({
+    receivables.findReceivable.mockResolvedValue({
       id: 'rec-1',
       debtorName: 'Ana',
       amount: 5000,
@@ -194,9 +207,9 @@ describe('LinkTransactionUseCase', () => {
   });
 
   it('sets money aside when linking a goal', async () => {
-    const { ledger, planning, allocateToGoal, link } = setup();
+    const { ledger, savingsGoals, allocateToGoal, link } = setup();
     ledger.findTransactionById.mockResolvedValue(movement({ type: 'CREDIT' }));
-    planning.findSavingsGoal.mockResolvedValue({
+    savingsGoals.findSavingsGoal.mockResolvedValue({
       id: 'goal-1',
       name: 'Viaje',
       accountId: 'acc-1',
@@ -225,9 +238,9 @@ describe('LinkTransactionUseCase', () => {
 
 describe('UnlinkTransactionUseCase', () => {
   it('returns the instalment and the loan balance to their previous state', async () => {
-    const { ledger, planning, unlink } = setup();
+    const { ledger, loans, unlink } = setup();
     ledger.findPlanningLinkKind.mockResolvedValue('LOAN_INSTALLMENT');
-    planning.findInstallmentByTransactionId.mockResolvedValue(
+    loans.findInstallmentByTransactionId.mockResolvedValue(
       installment({
         paidAmount: 1500,
         paidAt: now,
@@ -246,13 +259,13 @@ describe('UnlinkTransactionUseCase', () => {
 
     await unlink.execute('user-1', 'tx-1', now);
 
-    expect(planning.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
+    expect(loans.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
       paidAmount: 0,
       status: 'PENDING',
       paidAt: null,
       transactionId: null,
     });
-    expect(planning.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
+    expect(loans.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
       currentBalance: 5000,
       paidInstallments: 1,
       nextDueDate: new Date(Date.UTC(2026, 4, 5)),

@@ -1,4 +1,4 @@
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import {
   SyncLoanInstallmentsUseCase,
   type LoanScheduleSource,
@@ -45,7 +45,7 @@ function setup(stored: readonly unknown[] = []) {
   const repo = {
     listInstallments: jest.fn().mockResolvedValue(stored),
     replaceLoanSchedule,
-  } as unknown as PlanningRepository;
+  } as unknown as PlanningLoanRepository;
   const useCase = new SyncLoanInstallmentsUseCase(repo);
   return { replaceLoanSchedule, useCase };
 }

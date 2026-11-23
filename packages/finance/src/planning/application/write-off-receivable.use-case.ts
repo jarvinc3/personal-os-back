@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { roundMoney } from '../../shared/domain/money';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
 import { RECEIVABLE_NOT_FOUND } from './record-receivable-payment.use-case';
 
 export type WriteOffReceivableCommand = {
@@ -11,7 +11,7 @@ export type WriteOffReceivableCommand = {
 /** Closes an uncollectible receivable; it never moves money. */
 @Injectable()
 export class WriteOffReceivableUseCase {
-  constructor(private readonly repo: PlanningRepository) {}
+  constructor(private readonly repo: PlanningReceivableRepository) {}
 
   async execute(
     userId: string,

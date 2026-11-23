@@ -11,7 +11,9 @@ import {
 import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
 import { shiftLoanDueDate } from '../domain/loan-installment-schedule';
 import { distributeLoanPayment } from '../domain/loan-payment';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 
 /**
  * Removes the planning link of a movement and undoes the effect it applied.
@@ -23,7 +25,9 @@ export class UnlinkTransactionUseCase {
   constructor(
     @Inject(LEDGER_QUERY_REPOSITORY)
     private readonly ledger: LedgerQueryRepositoryPort,
-    private readonly planning: PlanningRepository,
+    private readonly loans: PlanningLoanRepository,
+    private readonly receivables: PlanningReceivableRepository,
+    private readonly savingsGoals: PlanningSavingsGoalRepository,
   ) {}
 
   async execute(userId: string, transactionId: string, now: Date) {
@@ -47,7 +51,7 @@ export class UnlinkTransactionUseCase {
   }
 
   private async unlinkInstallment(userId: string, transactionId: string) {
-    const installment = await this.planning.findInstallmentByTransactionId(
+    const installment = await this.loans.findInstallmentByTransactionId(
       userId,
       transactionId,
     );
@@ -67,13 +71,13 @@ export class UnlinkTransactionUseCase {
     });
     const loan = installment.loan;
     const fullyPaid = installment.paidAt !== null;
-    await this.planning.applyInstallmentPayment(installment.id, {
+    await this.loans.applyInstallmentPayment(installment.id, {
       paidAmount: 0,
       status: 'PENDING',
       paidAt: null,
       transactionId: null,
     });
-    await this.planning.updateLoan(userId, loan.id, {
+    await this.loans.updateLoan(userId, loan.id, {
       currentBalance: roundMoney(
         Number(loan.currentBalance) + breakdown.principal,
       ),
@@ -93,7 +97,7 @@ export class UnlinkTransactionUseCase {
   }
 
   private async unlinkReceivable(userId: string, transactionId: string) {
-    const payment = await this.planning.findReceivablePaymentByTransactionId(
+    const payment = await this.receivables.findReceivablePaymentByTransactionId(
       userId,
       transactionId,
     );
@@ -103,7 +107,7 @@ export class UnlinkTransactionUseCase {
         message: TRANSACTION_LINK_TARGET_NOT_FOUND_MESSAGE,
       });
     }
-    await this.planning.deleteReceivablePayment(
+    await this.receivables.deleteReceivablePayment(
       payment.receivableId,
       payment.id,
     );
@@ -115,7 +119,7 @@ export class UnlinkTransactionUseCase {
     now: Date,
   ) {
     const contribution =
-      await this.planning.findSavingsGoalContributionByTransactionId(
+      await this.savingsGoals.findSavingsGoalContributionByTransactionId(
         userId,
         transactionId,
       );
@@ -125,7 +129,7 @@ export class UnlinkTransactionUseCase {
         message: TRANSACTION_LINK_TARGET_NOT_FOUND_MESSAGE,
       });
     }
-    await this.planning.removeSavingsGoalContribution(
+    await this.savingsGoals.removeSavingsGoalContribution(
       contribution.goalId,
       contribution.id,
       now,

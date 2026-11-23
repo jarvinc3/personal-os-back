@@ -1,7 +1,7 @@
 import type { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { localDateIso } from '../../shared/domain/local-day';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 
 function goal(overrides: Record<string, unknown> = {}) {
@@ -54,7 +54,7 @@ function setup(options: {
     }),
   };
   const useCase = new AllocateToGoalUseCase(
-    repo as unknown as PlanningRepository,
+    repo as unknown as PlanningSavingsGoalRepository,
     ownership as unknown as FinanceOwnershipService,
     createTransfer as unknown as CreateTransferUseCase,
   );

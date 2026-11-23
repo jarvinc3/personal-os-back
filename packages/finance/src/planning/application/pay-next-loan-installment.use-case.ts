@@ -18,7 +18,7 @@ import {
   distributeLoanPayment,
   installmentDueTotal,
 } from '../domain/loan-payment';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
 export type PayInstallmentCommand = {
@@ -34,7 +34,7 @@ export type PayInstallmentCommand = {
 @Injectable()
 export class PayNextLoanInstallmentUseCase {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningLoanRepository,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}

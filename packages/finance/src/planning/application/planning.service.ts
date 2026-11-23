@@ -4,7 +4,10 @@ import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.us
 import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningBudgetRepository } from '../infrastructure/planning-budget.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -27,23 +30,26 @@ export class PlanningService {
   private readonly receivables: PlanningReceivables;
 
   constructor(
-    private readonly repo: PlanningRepository,
-    private readonly ownership: FinanceOwnershipService,
-    private readonly syncInstallments: SyncLoanInstallmentsUseCase,
-    private readonly ledger: LedgerQueryService,
-    private readonly adjustBalance: AdjustBalanceUseCase,
-    private readonly deleteTransaction: DeleteTransactionUseCase,
+    budgets: PlanningBudgetRepository,
+    savingsGoals: PlanningSavingsGoalRepository,
+    loans: PlanningLoanRepository,
+    receivables: PlanningReceivableRepository,
+    ownership: FinanceOwnershipService,
+    syncInstallments: SyncLoanInstallmentsUseCase,
+    ledger: LedgerQueryService,
+    adjustBalance: AdjustBalanceUseCase,
+    deleteTransaction: DeleteTransactionUseCase,
   ) {
-    this.budgets = new PlanningBudgets(repo, ownership, ledger);
-    this.savingsGoals = new PlanningSavingsGoals(repo, ownership);
+    this.budgets = new PlanningBudgets(budgets, ownership, ledger);
+    this.savingsGoals = new PlanningSavingsGoals(savingsGoals, ownership);
     this.loans = new PlanningLoans({
-      repo,
+      repo: loans,
       ownership,
       syncInstallments,
       adjustBalance,
       deleteTransaction,
     });
-    this.receivables = new PlanningReceivables(repo);
+    this.receivables = new PlanningReceivables(receivables);
   }
 
   listBudgets(userId: string) {

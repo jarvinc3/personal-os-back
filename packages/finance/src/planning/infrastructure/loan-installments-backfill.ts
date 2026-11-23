@@ -1,6 +1,6 @@
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { SyncLoanInstallmentsUseCase } from '../application/sync-loan-installments.use-case';
-import { PlanningRepository } from './planning.repository';
+import { PlanningLoanRepository } from './planning-loan.repository';
 
 /**
  * Materializes the instalment rows of loans created before the schedule
@@ -11,7 +11,7 @@ export class LoanInstallmentsBackfill implements OnModuleInit {
   private readonly logger = new Logger(LoanInstallmentsBackfill.name);
 
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningLoanRepository,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
   ) {}
 

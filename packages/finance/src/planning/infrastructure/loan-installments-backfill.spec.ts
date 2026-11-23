@@ -1,6 +1,6 @@
 import type { SyncLoanInstallmentsUseCase } from '../application/sync-loan-installments.use-case';
 import { LoanInstallmentsBackfill } from './loan-installments-backfill';
-import type { PlanningRepository } from './planning.repository';
+import type { PlanningLoanRepository } from './planning-loan.repository';
 
 const utc = (year: number, month: number, day: number) =>
   new Date(Date.UTC(year, month - 1, day));
@@ -11,7 +11,7 @@ function setup(loans: readonly unknown[]) {
   };
   const syncInstallments = { execute: jest.fn().mockResolvedValue(undefined) };
   const backfill = new LoanInstallmentsBackfill(
-    repo as unknown as PlanningRepository,
+    repo as unknown as PlanningLoanRepository,
     syncInstallments as unknown as SyncLoanInstallmentsUseCase,
   );
   return { syncInstallments, backfill };

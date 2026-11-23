@@ -7,7 +7,7 @@ import {
 import { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { roundMoney } from '../../shared/domain/money';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
 import type { CreateReceivablePaymentDto } from '../presentation/dto/create-receivable-payment.dto';
 import { mapReceivablePayment } from './planning-mappers';
 
@@ -22,7 +22,7 @@ export const RECEIVABLE_NOT_OPEN = 'RECEIVABLE_NOT_OPEN';
 @Injectable()
 export class RecordReceivablePaymentUseCase {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningReceivableRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}

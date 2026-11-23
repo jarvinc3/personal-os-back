@@ -1,6 +1,9 @@
 import { PlanningService } from './planning.service';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
-import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { PlanningBudgetRepository } from '../infrastructure/planning-budget.repository';
+import type { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
+import type { PlanningReceivableRepository } from '../infrastructure/planning-receivable.repository';
+import type { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
@@ -19,6 +22,20 @@ describe('PlanningService budgets', () => {
     execute: jest.fn().mockResolvedValue(undefined),
   } as unknown as SyncLoanInstallmentsUseCase;
 
+  function createService(repo: PlanningBudgetRepository): PlanningService {
+    return new PlanningService(
+      repo,
+      {} as unknown as PlanningSavingsGoalRepository,
+      {} as unknown as PlanningLoanRepository,
+      {} as unknown as PlanningReceivableRepository,
+      ownership,
+      syncInstallments,
+      ledger,
+      {} as unknown as AdjustBalanceUseCase,
+      {} as unknown as DeleteTransactionUseCase,
+    );
+  }
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -36,15 +53,8 @@ describe('PlanningService budgets', () => {
     const repo = {
       findBudget,
       listChildCategoryIds,
-    } as unknown as PlanningRepository;
-    const service = new PlanningService(
-      repo,
-      ownership,
-      syncInstallments,
-      ledger,
-      {} as unknown as AdjustBalanceUseCase,
-      {} as unknown as DeleteTransactionUseCase,
-    );
+    } as unknown as PlanningBudgetRepository;
+    const service = createService(repo);
 
     await service.getBudgetTransactions('user-1', 'budget-1', {
       limit: 20,
@@ -98,15 +108,8 @@ describe('PlanningService budgets', () => {
         periodStart: new Date('2026-11-01T00:00:00.000Z'),
         categories: [{ categoryId: 'cat-1' }],
       }),
-    } as unknown as PlanningRepository;
-    const service = new PlanningService(
-      repo,
-      ownership,
-      syncInstallments,
-      ledger,
-      {} as unknown as AdjustBalanceUseCase,
-      {} as unknown as DeleteTransactionUseCase,
-    );
+    } as unknown as PlanningBudgetRepository;
+    const service = createService(repo);
 
     await expect(service.createRecurringBudgets(now)).resolves.toEqual({
       created: 1,

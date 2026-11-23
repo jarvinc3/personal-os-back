@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
+import { LEDGER_QUERY_REPOSITORY } from '../../shared/application/tokens';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 
 /** Removing a contribution also removes the movement it created. */
 @Injectable()
 export class RemoveSavingsGoalContributionUseCase {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningSavingsGoalRepository,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly movements: LedgerQueryRepositoryPort,
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
@@ -31,9 +35,9 @@ export class RemoveSavingsGoalContributionUseCase {
     if (contribution.transactionId) {
       await this.deleteTransaction.execute(userId, contribution.transactionId);
     } else if (contribution.transferGroupId) {
-      const movement = await this.repo.findTransactionByTransferGroupId(
-        userId,
+      const [movement] = await this.movements.findTransactionsByTransferGroupId(
         contribution.transferGroupId,
+        userId,
       );
       if (movement) {
         await this.deleteTransaction.execute(userId, movement.id);

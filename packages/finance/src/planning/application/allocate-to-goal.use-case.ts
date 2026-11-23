@@ -20,7 +20,7 @@ import {
   GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE,
   GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE_MESSAGE,
 } from '../../shared/domain/savings-goal';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { CreateSavingsGoalAllocationDto } from '../presentation/dto/create-savings-goal-allocation.dto';
 import { mapSavingsGoalContribution } from './planning-mappers';
 
@@ -46,7 +46,7 @@ type AllocationMovement = {
 @Injectable()
 export class AllocateToGoalUseCase {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningSavingsGoalRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly createTransfer: CreateTransferUseCase,
   ) {}
