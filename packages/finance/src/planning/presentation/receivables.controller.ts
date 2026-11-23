@@ -39,6 +39,9 @@ import { SuccessResponseDto } from '../../shared/presentation/success-response.d
 @RequiresEnabledModule('finance')
 @Controller('finance')
 export class ReceivablesController {
+  // One read service and one use case per action; a bundle would hide which
+  // action each route calls.
+  // eslint-disable-next-line max-params
   constructor(
     private readonly planning: PlanningService,
     private readonly recordPayment: RecordReceivablePaymentUseCase,
@@ -89,7 +92,12 @@ export class ReceivablesController {
     @Param('id') id: string,
     @Body() dto: CreateReceivablePaymentDto,
   ) {
-    return this.recordPayment.execute(userId, id, dto, new Date());
+    return this.recordPayment.execute({
+      userId,
+      receivableId: id,
+      dto,
+      now: new Date(),
+    });
   }
 
   @Post('receivables/:id/credit')
@@ -100,7 +108,12 @@ export class ReceivablesController {
     @Param('id') id: string,
     @Body() dto: ApplyReceivableCreditDto,
   ) {
-    return this.applyCredit.execute(userId, id, dto, new Date());
+    return this.applyCredit.execute({
+      userId,
+      sourceReceivableId: id,
+      dto,
+      now: new Date(),
+    });
   }
 
   @Post('receivables/:id/write-off')
@@ -111,7 +124,12 @@ export class ReceivablesController {
     @Param('id') id: string,
     @Body() dto: WriteOffReceivableDto,
   ) {
-    await this.writeOffReceivable.execute(userId, id, dto, new Date());
+    await this.writeOffReceivable.execute({
+      userId,
+      receivableId: id,
+      command: dto,
+      now: new Date(),
+    });
     return { success: true };
   }
 

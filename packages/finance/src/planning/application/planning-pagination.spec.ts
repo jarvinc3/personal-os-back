@@ -8,7 +8,14 @@ import type { DeleteTransactionUseCase } from '../../ledger/application/delete-t
 
 function createService(repo: PlanningRepository): PlanningService {
   return new PlanningService(
-    repo,
+    {
+      budgets: repo,
+      savingsGoals: repo,
+      loans: repo,
+      loanSchedule: repo,
+      receivables: repo,
+      users: repo,
+    } as unknown as PlanningRepository,
     {} as unknown as FinanceOwnershipService,
     {} as unknown as SyncLoanInstallmentsUseCase,
     {} as unknown as LedgerQueryService,
@@ -101,7 +108,7 @@ describe('PlanningService pagination', () => {
     expect(page.items).toHaveLength(2);
     expect(page.hasMore).toBe(true);
     const decoded = JSON.parse(
-      Buffer.from(page.nextCursor ?? '', 'base64url').toString('utf8'),
+      Buffer.from(String(page.nextCursor ?? ''), 'base64url').toString('utf8'),
     );
     expect(decoded.key).toBe('2020-01-02T00:00:00.000Z');
     expect(decoded.id).toBe('rec-2');

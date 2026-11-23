@@ -65,12 +65,12 @@ describe('AllocateToGoalUseCase', () => {
   it('sets money aside without creating a movement', async () => {
     const { repo, useCase } = setup({});
 
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100 },
-      new Date('2026-08-02T12:00:00.000Z'),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100 },
+      now: new Date('2026-08-02T12:00:00.000Z'),
+    });
 
     expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(
       'goal-1',
@@ -87,12 +87,12 @@ describe('AllocateToGoalUseCase', () => {
     const { repo, useCase, createTransfer } = setup({});
 
     // 2026-10-23 20:00 in Santo Domingo, the case the QA reported.
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100, date: '2026-10-23', fromAccountId: 'acc-2' },
-      new Date('2026-10-24T00:00:00.000Z'),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100, date: '2026-10-23', fromAccountId: 'acc-2' },
+      now: new Date('2026-10-24T00:00:00.000Z'),
+    });
 
     expect(createTransfer.execute).toHaveBeenCalledWith(
       'user-1',
@@ -114,7 +114,12 @@ describe('AllocateToGoalUseCase', () => {
     const { repo, useCase } = setup({});
     const now = new Date('2026-10-24T00:00:00.000Z');
 
-    await useCase.execute('user-1', 'goal-1', { amount: 100 }, now);
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100 },
+      now: now,
+    });
 
     const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
     expect(allocation.contributedAt).toBe(now);
@@ -124,7 +129,12 @@ describe('AllocateToGoalUseCase', () => {
     const { repo, useCase } = setup({ balance: 500, earmarked: 450 });
 
     await expect(
-      useCase.execute('user-1', 'goal-1', { amount: 100 }, new Date()),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'goal-1',
+        dto: { amount: 100 },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({ response: { code: 'EARMARK_EXCEEDS_BALANCE' } });
     expect(repo.addSavingsGoalContribution).not.toHaveBeenCalled();
   });
@@ -132,12 +142,12 @@ describe('AllocateToGoalUseCase', () => {
   it('allows a withdrawal even with no free balance', async () => {
     const { repo, useCase } = setup({ balance: 100, earmarked: 100 });
 
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
-      new Date(),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
+      now: new Date(),
+    });
 
     expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(
       'goal-1',
@@ -153,12 +163,12 @@ describe('AllocateToGoalUseCase', () => {
     const { repo, useCase } = setup({});
 
     await expect(
-      useCase.execute(
-        'user-1',
-        'goal-1',
-        { amount: 100, kind: 'WITHDRAWAL' },
-        new Date(),
-      ),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'goal-1',
+        dto: { amount: 100, kind: 'WITHDRAWAL' },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({
       response: { code: 'GOAL_WITHDRAWAL_ACCOUNT_REQUIRED' },
     });
@@ -171,12 +181,12 @@ describe('AllocateToGoalUseCase', () => {
     });
 
     await expect(
-      useCase.execute(
-        'user-1',
-        'goal-1',
-        { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
-        new Date(),
-      ),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'goal-1',
+        dto: { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({
       response: { code: 'GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE', max: 50 },
     });
@@ -186,12 +196,12 @@ describe('AllocateToGoalUseCase', () => {
   it('moves a withdrawal to another account and links only the group', async () => {
     const { repo, useCase, createTransfer } = setup({});
 
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
-      new Date('2026-08-02T12:00:00.000Z'),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
+      now: new Date('2026-08-02T12:00:00.000Z'),
+    });
 
     expect(createTransfer.execute).toHaveBeenCalledWith(
       'user-1',
@@ -220,7 +230,12 @@ describe('AllocateToGoalUseCase', () => {
     const { useCase } = setup({ found: goal({ accountId: null }) });
 
     await expect(
-      useCase.execute('user-1', 'goal-1', { amount: 100 }, new Date()),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'goal-1',
+        dto: { amount: 100 },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({ response: { code: 'GOAL_ACCOUNT_REQUIRED' } });
   });
 
@@ -228,19 +243,24 @@ describe('AllocateToGoalUseCase', () => {
     const { useCase } = setup({ found: null });
 
     await expect(
-      useCase.execute('user-1', 'missing', { amount: 100 }, new Date()),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'missing',
+        dto: { amount: 100 },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({ response: { code: 'GOAL_NOT_FOUND' } });
   });
 
   it('moves the money and links the movement when the source account differs', async () => {
     const { repo, useCase, createTransfer } = setup({});
 
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100, fromAccountId: 'acc-2' },
-      new Date('2026-08-02T12:00:00.000Z'),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100, fromAccountId: 'acc-2' },
+      now: new Date('2026-08-02T12:00:00.000Z'),
+    });
 
     expect(createTransfer.execute).toHaveBeenCalledWith(
       'user-1',
@@ -264,12 +284,12 @@ describe('AllocateToGoalUseCase', () => {
   it('keeps the transfer out when the source account is the goal account', async () => {
     const { useCase, createTransfer } = setup({});
 
-    await useCase.execute(
-      'user-1',
-      'goal-1',
-      { amount: 100, fromAccountId: 'acc-1' },
-      new Date(),
-    );
+    await useCase.execute({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: { amount: 100, fromAccountId: 'acc-1' },
+      now: new Date(),
+    });
 
     expect(createTransfer.execute).not.toHaveBeenCalled();
   });
@@ -281,12 +301,12 @@ describe('AllocateToGoalUseCase', () => {
     });
 
     await expect(
-      useCase.execute(
-        'user-1',
-        'goal-1',
-        { amount: 100, fromAccountId: 'acc-2' },
-        new Date(),
-      ),
+      useCase.execute({
+        userId: 'user-1',
+        goalId: 'goal-1',
+        dto: { amount: 100, fromAccountId: 'acc-2' },
+        now: new Date(),
+      }),
     ).rejects.toMatchObject({ response: { code: 'EARMARK_EXCEEDS_BALANCE' } });
     expect(createTransfer.execute).not.toHaveBeenCalled();
     expect(repo.addSavingsGoalContribution).not.toHaveBeenCalled();

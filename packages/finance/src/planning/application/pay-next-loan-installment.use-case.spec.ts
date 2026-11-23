@@ -69,7 +69,7 @@ describe('PayNextLoanInstallmentUseCase', () => {
     const { repo, syncInstallments, createTransaction, useCase, found } =
       setup();
 
-    await useCase.execute('user-1', 'loan-1', now);
+    await useCase.execute({ userId: 'user-1', loanId: 'loan-1', now: now });
 
     expect(syncInstallments.execute).toHaveBeenCalledWith(found, now);
     expect(createTransaction.execute).toHaveBeenCalledWith('user-1', {
@@ -99,8 +99,13 @@ describe('PayNextLoanInstallmentUseCase', () => {
       nextInstallment: installment({ principal: 900, interest: 600 }),
     });
 
-    const paymentResult = await useCase.execute('user-1', 'loan-1', now, {
-      amount: 1000,
+    const paymentResult = await useCase.execute({
+      userId: 'user-1',
+      loanId: 'loan-1',
+      now: now,
+      command: {
+        amount: 1000,
+      },
     });
 
     expect(repo.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
@@ -122,7 +127,12 @@ describe('PayNextLoanInstallmentUseCase', () => {
     const { useCase } = setup();
 
     await expect(
-      useCase.execute('user-1', 'loan-1', utc(2026, 2, 10), { amount: 2000 }),
+      useCase.execute({
+        userId: 'user-1',
+        loanId: 'loan-1',
+        now: utc(2026, 2, 10),
+        command: { amount: 2000 },
+      }),
     ).rejects.toMatchObject({
       response: { code: 'PAYMENT_EXCEEDS_INSTALLMENT' },
     });
@@ -135,7 +145,7 @@ describe('PayNextLoanInstallmentUseCase', () => {
     });
 
     await expect(
-      useCase.execute('user-1', 'loan-1', now),
+      useCase.execute({ userId: 'user-1', loanId: 'loan-1', now: now }),
     ).rejects.toMatchObject({
       response: { code: 'LOAN_ACCOUNT_REQUIRED' },
     });
@@ -149,7 +159,11 @@ describe('PayNextLoanInstallmentUseCase', () => {
     });
 
     await expect(
-      useCase.execute('user-1', 'loan-1', utc(2026, 2, 10)),
+      useCase.execute({
+        userId: 'user-1',
+        loanId: 'loan-1',
+        now: utc(2026, 2, 10),
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(createTransaction.execute).not.toHaveBeenCalled();
     expect(repo.applyInstallmentPayment).not.toHaveBeenCalled();
@@ -159,7 +173,11 @@ describe('PayNextLoanInstallmentUseCase', () => {
     const { useCase } = setup({ found: null });
 
     await expect(
-      useCase.execute('user-1', 'missing', utc(2026, 2, 10)),
+      useCase.execute({
+        userId: 'user-1',
+        loanId: 'missing',
+        now: utc(2026, 2, 10),
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

@@ -88,7 +88,12 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Body() dto: CreateSavingsGoalAllocationDto,
   ) {
-    return this.allocateToGoal.execute(userId, id, dto, new Date());
+    return this.allocateToGoal.execute({
+      userId,
+      goalId: id,
+      dto,
+      now: new Date(),
+    });
   }
 
   @Delete('savings-goals/:id/allocations/:allocationId')
@@ -99,12 +104,12 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Param('allocationId') allocationId: string,
   ) {
-    return this.removeGoalContribution.execute(
+    return this.removeGoalContribution.execute({
       userId,
-      id,
-      allocationId,
-      new Date(),
-    );
+      goalId: id,
+      contributionId: allocationId,
+      now: new Date(),
+    });
   }
 
   @Get('savings-goals/:id/contributions')
@@ -132,7 +137,12 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Body() dto: CreateSavingsGoalAllocationDto,
   ) {
-    return this.allocateToGoal.execute(userId, id, dto, new Date());
+    return this.allocateToGoal.execute({
+      userId,
+      goalId: id,
+      dto,
+      now: new Date(),
+    });
   }
 
   @Delete('savings-goals/:id/contributions/:allocationId')
@@ -146,12 +156,12 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Param('allocationId') allocationId: string,
   ) {
-    return this.removeGoalContribution.execute(
+    return this.removeGoalContribution.execute({
       userId,
-      id,
-      allocationId,
-      new Date(),
-    );
+      goalId: id,
+      contributionId: allocationId,
+      now: new Date(),
+    });
   }
 
   @Patch('savings-goals/:id')

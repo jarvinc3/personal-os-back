@@ -49,17 +49,17 @@ describe('ApplyLoanPrepaymentUseCase', () => {
   it('registers the prepayment and its expense on the local day picked', async () => {
     const { repo, useCase, createTransaction } = setup();
 
-    await useCase.execute(
-      'user-1',
-      'loan-1',
-      new Date('2026-10-24T00:00:00.000Z'),
-      {
+    await useCase.execute({
+      userId: 'user-1',
+      loanId: 'loan-1',
+      now: new Date('2026-10-24T00:00:00.000Z'),
+      command: {
         amount: 100,
         accountId: 'acc-1',
         mode: 'REDUCE_INSTALLMENT',
         date: '2026-10-23',
       },
-    );
+    });
 
     expect(createTransaction.execute).toHaveBeenCalledWith(
       'user-1',
@@ -79,10 +79,15 @@ describe('ApplyLoanPrepaymentUseCase', () => {
     const { repo, useCase } = setup();
     const now = new Date('2026-10-24T00:00:00.000Z');
 
-    await useCase.execute('user-1', 'loan-1', now, {
-      amount: 100,
-      accountId: 'acc-1',
-      mode: 'REDUCE_INSTALLMENT',
+    await useCase.execute({
+      userId: 'user-1',
+      loanId: 'loan-1',
+      now: now,
+      command: {
+        amount: 100,
+        accountId: 'acc-1',
+        mode: 'REDUCE_INSTALLMENT',
+      },
     });
 
     expect(repo.createLoanPrepayment.mock.calls[0][0].paidAt).toBe(now);

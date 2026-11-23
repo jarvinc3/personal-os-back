@@ -143,7 +143,12 @@ export class FinanceFacade {
     transactionId: string,
     command: LinkTransactionCommand,
   ) {
-    return this.linkTx.execute(userId, transactionId, command, new Date());
+    return this.linkTx.execute({
+      userId,
+      transactionId,
+      command,
+      now: new Date(),
+    });
   }
   unlinkTransaction(userId: string, transactionId: string) {
     return this.unlinkTx.execute(userId, transactionId, new Date());
@@ -185,10 +190,20 @@ export class FinanceFacade {
     loanId: string,
     command: PayInstallmentCommand = {},
   ) {
-    return this.payLoanInstallment.execute(userId, loanId, new Date(), command);
+    return this.payLoanInstallment.execute({
+      userId,
+      loanId,
+      now: new Date(),
+      command,
+    });
   }
   prepayLoan(userId: string, loanId: string, command: LoanPrepaymentCommand) {
-    return this.prepayLoanTx.execute(userId, loanId, new Date(), command);
+    return this.prepayLoanTx.execute({
+      userId,
+      loanId,
+      now: new Date(),
+      command,
+    });
   }
   getLoanSchedule(userId: string, loanId: string) {
     return this.planning.listLoanInstallments(userId, loanId);
@@ -216,14 +231,24 @@ export class FinanceFacade {
     goalId: string,
     dto: CreateSavingsGoalAllocationDto,
   ) {
-    return this.allocateToGoal.execute(userId, goalId, dto, new Date());
+    return this.allocateToGoal.execute({
+      userId,
+      goalId,
+      dto,
+      now: new Date(),
+    });
   }
   recordReceivablePayment(
     userId: string,
     receivableId: string,
     dto: CreateReceivablePaymentDto,
   ) {
-    return this.recordReceivable.execute(userId, receivableId, dto, new Date());
+    return this.recordReceivable.execute({
+      userId,
+      receivableId,
+      dto,
+      now: new Date(),
+    });
   }
   listLoans(userId: string) {
     return this.planning.listLoans(userId);

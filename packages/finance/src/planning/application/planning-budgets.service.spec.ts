@@ -1,5 +1,6 @@
 import { PlanningService } from './planning.service';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
+import { PlanningBudgetRepository } from '../infrastructure/planning-budget.repository';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
@@ -36,9 +37,9 @@ describe('PlanningService budgets', () => {
     const repo = {
       findBudget,
       listChildCategoryIds,
-    } as unknown as PlanningRepository;
+    } as unknown as PlanningBudgetRepository;
     const service = new PlanningService(
-      repo,
+      { budgets: repo } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
       ledger,
@@ -98,9 +99,9 @@ describe('PlanningService budgets', () => {
         periodStart: new Date('2026-11-01T00:00:00.000Z'),
         categories: [{ categoryId: 'cat-1' }],
       }),
-    } as unknown as PlanningRepository;
+    } as unknown as PlanningBudgetRepository;
     const service = new PlanningService(
-      repo,
+      { budgets: repo } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
       ledger,

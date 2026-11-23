@@ -57,12 +57,17 @@ export class ApplyLoanPrepaymentUseCase {
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    loanId: string,
-    now: Date,
-    command: LoanPrepaymentCommand,
-  ) {
+  async execute({
+    userId,
+    loanId,
+    now,
+    command,
+  }: {
+    userId: string;
+    loanId: string;
+    now: Date;
+    command: LoanPrepaymentCommand;
+  }) {
     const loan = await this.requireLoan(userId, loanId);
     await this.syncInstallments.execute(loan, now);
     await this.assertNoOverdue(loanId, now);
@@ -108,12 +113,17 @@ export class ApplyLoanPrepaymentUseCase {
     };
   }
 
-  async preview(
-    userId: string,
-    loanId: string,
-    amount: number,
-    mode: LoanPrepaymentMode,
-  ) {
+  async preview({
+    userId,
+    loanId,
+    amount,
+    mode,
+  }: {
+    userId: string;
+    loanId: string;
+    amount: number;
+    mode: LoanPrepaymentMode;
+  }) {
     const loan = await this.requireLoan(userId, loanId);
     const projected = this.projectLoan(loan, amount, mode);
     const schedule = buildFrenchSchedule({

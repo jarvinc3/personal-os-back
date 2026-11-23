@@ -37,6 +37,13 @@ type AllocationMovement = {
   transactionId?: string;
 };
 
+type AllocateToGoalCommand = {
+  userId: string;
+  goalId: string;
+  dto: CreateSavingsGoalAllocationDto;
+  now: Date;
+};
+
 /**
  * Sets money aside for a goal or returns it to an account. A contribution from
  * another account reaches the goal account first; a withdrawal leaves it for
@@ -51,12 +58,7 @@ export class AllocateToGoalUseCase {
     private readonly createTransfer: CreateTransferUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    goalId: string,
-    dto: CreateSavingsGoalAllocationDto,
-    now: Date,
-  ) {
+  async execute({ userId, goalId, dto, now }: AllocateToGoalCommand) {
     const goal = await this.repo.findSavingsGoal(userId, goalId);
     if (!goal) {
       throw new NotFoundException({
@@ -87,29 +89,41 @@ export class AllocateToGoalUseCase {
 
     const allocation = await this.repo.addSavingsGoalContribution(
       goalId,
-      {
-        amount: dto.amount,
-        contributedAt,
+      this.contributionFields({
+        dto,
+        accountId,
         kind,
-        ...(accountId ? { accountId } : {}),
-        ...(kind === 'WITHDRAWAL' && dto.toAccountId
-          ? { destinationAccountId: dto.toAccountId }
-          : {}),
-        ...(dto.fromTransferGroupId
-          ? { transferGroupId: dto.fromTransferGroupId }
-          : {}),
-        ...(dto.transactionId ? { transactionId: dto.transactionId } : {}),
-        ...(movement?.transferGroupId
-          ? { transferGroupId: movement.transferGroupId }
-          : {}),
-        ...(movement?.transactionId
-          ? { transactionId: movement.transactionId }
-          : {}),
-        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-      },
+        contributedAt,
+        movement,
+      }),
       now,
     );
     return mapSavingsGoalContribution(allocation);
+  }
+
+  private contributionFields(input: {
+    dto: CreateSavingsGoalAllocationDto;
+    accountId: string | null;
+    kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+    contributedAt: Date;
+    movement: AllocationMovement | null;
+  }) {
+    const { dto, accountId, kind, contributedAt, movement } = input;
+    const transferGroupId =
+      movement?.transferGroupId ?? dto.fromTransferGroupId;
+    const transactionId = movement?.transactionId ?? dto.transactionId;
+    return {
+      amount: dto.amount,
+      contributedAt,
+      kind,
+      ...(accountId ? { accountId } : {}),
+      ...(kind === 'WITHDRAWAL' && dto.toAccountId
+        ? { destinationAccountId: dto.toAccountId }
+        : {}),
+      ...(transferGroupId ? { transferGroupId } : {}),
+      ...(transactionId ? { transactionId } : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+    };
   }
 
   /**

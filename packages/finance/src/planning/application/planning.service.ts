@@ -26,6 +26,9 @@ export class PlanningService {
   private readonly loans: PlanningLoans;
   private readonly receivables: PlanningReceivables;
 
+  // Built once by Nest and handed to four sub-services; splitting it would
+  // only move the same dependencies to a wrapper.
+  // eslint-disable-next-line max-params
   constructor(
     private readonly repo: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
@@ -34,16 +37,17 @@ export class PlanningService {
     private readonly adjustBalance: AdjustBalanceUseCase,
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {
-    this.budgets = new PlanningBudgets(repo, ownership, ledger);
-    this.savingsGoals = new PlanningSavingsGoals(repo, ownership);
+    this.budgets = new PlanningBudgets(repo.budgets, ownership, ledger);
+    this.savingsGoals = new PlanningSavingsGoals(repo.savingsGoals, ownership);
     this.loans = new PlanningLoans({
-      repo,
+      repo: repo.loans,
+      schedule: repo.loanSchedule,
       ownership,
       syncInstallments,
       adjustBalance,
       deleteTransaction,
     });
-    this.receivables = new PlanningReceivables(repo);
+    this.receivables = new PlanningReceivables(repo.receivables);
   }
 
   listBudgets(userId: string) {

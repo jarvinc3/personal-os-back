@@ -100,7 +100,12 @@ export class LoansController {
     @Param('id') id: string,
     @Body() dto: PayLoanInstallmentDto,
   ) {
-    return this.payNextInstallment.execute(userId, id, new Date(), dto);
+    return this.payNextInstallment.execute({
+      userId,
+      loanId: id,
+      now: new Date(),
+      command: dto,
+    });
   }
 
   @Post('loans/:id/prepayments')
@@ -113,7 +118,12 @@ export class LoansController {
     @Param('id') id: string,
     @Body() dto: LoanPrepaymentDto,
   ) {
-    return this.applyPrepayment.execute(userId, id, new Date(), dto);
+    return this.applyPrepayment.execute({
+      userId,
+      loanId: id,
+      now: new Date(),
+      command: dto,
+    });
   }
 
   @Get('loans/:id/prepayments/preview')
@@ -124,7 +134,12 @@ export class LoansController {
     @Param('id') id: string,
     @Query() query: LoanPrepaymentPreviewDto,
   ) {
-    return this.applyPrepayment.preview(userId, id, query.amount, query.mode);
+    return this.applyPrepayment.preview({
+      userId,
+      loanId: id,
+      amount: query.amount,
+      mode: query.mode,
+    });
   }
 
   @Patch('loans/:id')

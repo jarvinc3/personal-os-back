@@ -9,7 +9,8 @@ import { DeleteTransactionUseCase } from '../../ledger/application/delete-transa
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { roundMoney } from '../../shared/domain/money';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningLoanScheduleRepository } from '../infrastructure/planning-loan-schedule.repository';
+import { PlanningLoanRepository } from '../infrastructure/planning-loan.repository';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import {
@@ -20,10 +21,13 @@ import {
 import { mapLoan, mapLoanInstallment } from './planning-mappers';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
-type LoanRow = NonNullable<Awaited<ReturnType<PlanningRepository['findLoan']>>>;
+type LoanRow = NonNullable<
+  Awaited<ReturnType<PlanningLoanRepository['findLoan']>>
+>;
 
 type PlanningLoansDeps = {
-  repo: PlanningRepository;
+  repo: PlanningLoanRepository;
+  schedule: PlanningLoanScheduleRepository;
   ownership: FinanceOwnershipService;
   syncInstallments: SyncLoanInstallmentsUseCase;
   adjustBalance: AdjustBalanceUseCase;
@@ -32,7 +36,8 @@ type PlanningLoansDeps = {
 
 /** Loans of a user: disbursement, installments and schedule sync. */
 export class PlanningLoans {
-  private readonly repo: PlanningRepository;
+  private readonly repo: PlanningLoanRepository;
+  private readonly schedule: PlanningLoanScheduleRepository;
   private readonly ownership: FinanceOwnershipService;
   private readonly syncInstallments: SyncLoanInstallmentsUseCase;
   private readonly adjustBalance: AdjustBalanceUseCase;
@@ -40,12 +45,14 @@ export class PlanningLoans {
 
   constructor({
     repo,
+    schedule,
     ownership,
     syncInstallments,
     adjustBalance,
     deleteTransaction,
   }: PlanningLoansDeps) {
     this.repo = repo;
+    this.schedule = schedule;
     this.ownership = ownership;
     this.syncInstallments = syncInstallments;
     this.adjustBalance = adjustBalance;
@@ -83,7 +90,7 @@ export class PlanningLoans {
     if (!loan) {
       throw new NotFoundException('Préstamo no encontrado');
     }
-    const rows = await this.repo.listInstallments(id);
+    const rows = await this.schedule.listInstallments(id);
     return rows.map(mapLoanInstallment);
   }
 
@@ -96,7 +103,7 @@ export class PlanningLoans {
     if (!loan) {
       throw new NotFoundException('Préstamo no encontrado');
     }
-    const rows = await this.repo.listInstallmentsPage(id, query);
+    const rows = await this.schedule.listInstallmentsPage(id, query);
     const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
       row.dueDate.toISOString(),
     );
@@ -133,7 +140,7 @@ export class PlanningLoans {
         })
       : null;
 
-    let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
+    let created: Awaited<ReturnType<PlanningLoanRepository['createLoan']>>;
     try {
       created = await this.repo.createLoan(
         userId,

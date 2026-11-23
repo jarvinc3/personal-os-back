@@ -47,6 +47,18 @@ export function resolveReceivablePayment(input: {
   const amount = roundMoney(input.amount);
   const paidAmount = roundMoney(input.paidAmount);
 
+  assertValidReceivableAmounts({ amount, paidAmount });
+  const status = input.status ?? statusFromPaidAmount({ amount, paidAmount });
+  assertStatusMatchesAmount({ status, amount, paidAmount });
+
+  return { paidAmount, status };
+}
+
+function assertValidReceivableAmounts(input: {
+  amount: number;
+  paidAmount: number;
+}): void {
+  const { amount, paidAmount } = input;
   if (!Number.isFinite(amount) || amount < 0) {
     throw new BadRequestException('el monto debe ser >= 0');
   }
@@ -56,18 +68,27 @@ export function resolveReceivablePayment(input: {
   if (paidAmount > amount) {
     throw new BadRequestException('paidAmount no puede superar el monto');
   }
+}
 
-  let status = input.status;
-  if (!status) {
-    if (paidAmount === 0) {
-      status = 'PENDING';
-    } else if (paidAmount === amount) {
-      status = 'PAID';
-    } else {
-      status = 'PARTIAL';
-    }
+function statusFromPaidAmount(input: {
+  amount: number;
+  paidAmount: number;
+}): ReceivableStatus {
+  if (input.paidAmount === 0) {
+    return 'PENDING';
   }
+  if (input.paidAmount === input.amount) {
+    return 'PAID';
+  }
+  return 'PARTIAL';
+}
 
+function assertStatusMatchesAmount(input: {
+  status: ReceivableStatus;
+  amount: number;
+  paidAmount: number;
+}): void {
+  const { status, amount, paidAmount } = input;
   if (status === 'PAID' && paidAmount !== amount) {
     throw new BadRequestException(
       'PAID receivables require paidAmount equal to amount',
@@ -86,6 +107,4 @@ export function resolveReceivablePayment(input: {
   if (status === 'CANCELLED' && paidAmount > amount) {
     throw new BadRequestException('paidAmount no puede superar el monto');
   }
-
-  return { paidAmount, status };
 }

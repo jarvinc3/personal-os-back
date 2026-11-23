@@ -8,17 +8,24 @@ export type WriteOffReceivableCommand = {
   reason?: string;
 };
 
+type WriteOffReceivableRequest = {
+  userId: string;
+  receivableId: string;
+  command: WriteOffReceivableCommand;
+  now: Date;
+};
+
 /** Closes an uncollectible receivable; it never moves money. */
 @Injectable()
 export class WriteOffReceivableUseCase {
   constructor(private readonly repo: PlanningRepository) {}
 
-  async execute(
-    userId: string,
-    receivableId: string,
-    command: WriteOffReceivableCommand,
-    now: Date,
-  ): Promise<void> {
+  async execute({
+    userId,
+    receivableId,
+    command,
+    now,
+  }: WriteOffReceivableRequest): Promise<void> {
     const receivable = await this.repo.findReceivable(userId, receivableId);
     if (!receivable) {
       throw new NotFoundException({
