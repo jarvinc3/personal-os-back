@@ -18,13 +18,18 @@ export const SUBSCRIPTION_STATUSES = ['ACTIVE', 'PAUSED', 'CANCELLED'] as const;
 
 /** Accepts `?categoryIds=a,b` or a repeated parameter. */
 function toIdList(value: unknown): string[] | undefined {
-  const ids = Array.isArray(value)
-    ? value.map((entry) => String(entry).trim())
-    : typeof value === 'string'
-      ? value.split(',').map((entry) => entry.trim())
-      : [];
-  const cleaned = ids.filter((id) => id.length > 0);
+  const cleaned = idList(value).filter((id) => id.length > 0);
   return cleaned.length > 0 ? cleaned : undefined;
+}
+
+function idList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry).trim());
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map((entry) => entry.trim());
+  }
+  return [];
 }
 
 export class ListSubscriptionsQueryDto extends CursorQueryDto {
