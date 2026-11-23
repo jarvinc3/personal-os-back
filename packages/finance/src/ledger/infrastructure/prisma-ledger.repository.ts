@@ -210,13 +210,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       transferGroupId?: string;
     },
   ) {
-    return this.write.createTransaction(
+    return this.write.createTransaction({
       userId,
       command,
       amounts,
       source,
       extras,
-    );
+    });
   }
 
   createBalanceAdjustment(
