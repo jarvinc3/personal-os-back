@@ -1,8 +1,8 @@
 name: CI
 
-# El CI corre en la PC de casa (runners self-hosted de Windows) mientras
-# GitHub Actions está bloqueado por facturación. El runner es dedicado:
-# conserva node_modules entre corridas y usa el store de pnpm de la máquina.
+# El CI corre en los runners de GitHub (ubuntu-latest): el repo es público y
+# esos runners no consumen minutos. Los PRs de fork necesitan aprobación del
+# owner antes de correr (ajuste de Actions del repo).
 on:
   push:
     branches: [main, master, develop]
@@ -16,7 +16,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Un push nuevo a un PR cancela su corrida anterior; los push a develop y
+  # master siempre terminan.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NODE_ENV: test
@@ -34,17 +36,11 @@ env:
   GROQ_API_KEY: ''
   OPENCODE_API_KEY: ''
   OPENROUTER_API_KEY: ''
-  # Evita CRLF y rutas largas en el checkout de Windows sin tocar la config global de git
-  GIT_CONFIG_COUNT: '2'
-  GIT_CONFIG_KEY_0: core.autocrlf
-  GIT_CONFIG_VALUE_0: 'false'
-  GIT_CONFIG_KEY_1: core.longpaths
-  GIT_CONFIG_VALUE_1: 'true'
 
 jobs:
   changes:
     if: github.event_name == 'pull_request'
-    runs-on: [self-hosted, personal-os]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       code: ${{ steps.filter.outputs.code }}
@@ -67,20 +63,10 @@ jobs:
             core.setOutput('code', String(code));
 
   checks:
-    runs-on: [self-hosted, personal-os]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        shell: pwsh
     steps:
-      # Conserva node_modules entre corridas para evitar los hardlinks lentos de
-      # Windows; el resto del workspace se limpia.
       - uses: actions/checkout@v4
-        with:
-          clean: false
-
-      - name: Limpiar el workspace salvo node_modules
-        run: git clean -fdx -e node_modules
 
       - uses: pnpm/action-setup@v4
         with:
@@ -89,9 +75,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --store-dir "$env:LOCALAPPDATA\pnpm\store"
+        run: pnpm install --frozen-lockfile
 
       - name: Audit production dependencies (blocks on high)
         run: pnpm audit --prod --audit-level=high
@@ -123,22 +110,28 @@ jobs:
   backend:
     needs: changes
     if: always() && (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
-    runs-on: [self-hosted, personal-os]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        shell: pwsh
     env:
-      PG_CONTAINER: pos-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      PGPASSWORD: test
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -h localhost"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     steps:
-      # El runner es dedicado: conserva node_modules entre corridas para evitar
-      # ~7 minutos de hardlinks en Windows; el resto se limpia.
       - uses: actions/checkout@v4
-        with:
-          clean: false
-
-      - name: Limpiar el workspace salvo node_modules
-        run: git clean -fdx -e node_modules
 
       - uses: pnpm/action-setup@v4
         with:
@@ -147,9 +140,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --store-dir "$env:LOCALAPPDATA\pnpm\store"
+        run: pnpm install --frozen-lockfile
 
       - name: Prisma generate
         run: pnpm db:generate
@@ -157,27 +151,10 @@ jobs:
       - name: Build workspace packages
         run: pnpm build:packages
 
-      - name: Start CI Postgres (puerto dinámico)
-        run: |
-          docker rm -f $env:PG_CONTAINER 2>$null
-          docker run -d --name $env:PG_CONTAINER -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres -p '127.0.0.1::5432' postgres:16-alpine
-          if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar Postgres (Docker Desktop encendido?)' }
-          $port = (docker port $env:PG_CONTAINER 5432 | Select-Object -First 1).Split(':')[-1].Trim()
-          if (-not $port) { throw 'No se obtuvo el puerto de Postgres' }
-          Add-Content -Path $env:GITHUB_ENV -Value "CI_PG_PORT=$port"
-          Add-Content -Path $env:GITHUB_ENV -Value "DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
-          Add-Content -Path $env:GITHUB_ENV -Value "TEST_DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
-          for ($i = 0; $i -lt 30; $i++) {
-            docker exec $env:PG_CONTAINER pg_isready -U postgres -h localhost 2>$null
-            if ($LASTEXITCODE -eq 0) { break }
-            Start-Sleep -Seconds 2
-          }
-          if ($LASTEXITCODE -ne 0) { throw 'Postgres no quedo listo' }
-
       - name: Stub Supabase roles for CI Postgres
         run: |
-          $sql = @"
-          DO `$`$
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
           BEGIN
             IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
               CREATE ROLE authenticated NOLOGIN;
@@ -189,17 +166,15 @@ jobs:
               CREATE ROLE service_role NOLOGIN BYPASSRLS;
             END IF;
           END
-          `$`$;
+          $$;
           CREATE SCHEMA IF NOT EXISTS auth;
           CREATE OR REPLACE FUNCTION auth.uid()
-          RETURNS uuid LANGUAGE sql STABLE AS `$`$
+          RETURNS uuid LANGUAGE sql STABLE AS $$
             SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-          `$`$;
+          $$;
           GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
           GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
-          "@
-          $sql | docker exec -i $env:PG_CONTAINER psql -U postgres -d postgres -v ON_ERROR_STOP=1
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub de roles' }
+          SQL
 
       - name: Prisma migrate deploy
         run: pnpm db:migrate:deploy
@@ -212,7 +187,3 @@ jobs:
 
       - name: PostgreSQL integration and crash recovery
         run: pnpm test:integration
-
-      - name: Stop CI Postgres
-        if: always()
-        run: docker rm -f $env:PG_CONTAINER 2>$null; exit 0
