@@ -45,7 +45,12 @@ export class ReconciliationsService {
     const target = await this.resolveTarget(userId, dto);
     const asOfDate = dto.asOfDate ?? todayIsoDate();
     const { from, to } = monthBounds(asOfDate.slice(0, 7));
-    const outgoingTotal = await this.repo.sumOutgoing(userId, target, from, to);
+    const outgoingTotal = await this.repo.sumOutgoing({
+      userId,
+      target,
+      from,
+      to,
+    });
     const appBalance = roundMoney(target.currentBalance);
     const realBalance = roundMoney(dto.realBalance);
     const difference = roundMoney(realBalance - appBalance);
