@@ -1,5 +1,5 @@
-import { FinanceEvents } from '../../contracts';
 import type { UsersService } from '@personal-os/users';
+import type { WeeklySummaryNotifier } from '../application/weekly-summary-notifier';
 import type { WeeklySummaryService } from '../application/weekly-summary.service';
 import { WeeklySummaryScheduler } from './weekly-summary.scheduler';
 
@@ -8,24 +8,20 @@ type ModuleConfig = { userId: string; timezone: string; config: unknown };
 function createScheduler(moduleConfigs: ModuleConfig[]) {
   const build = jest.fn().mockResolvedValue({ weekStart: '2026-10-12' });
   const listEnabledModuleConfigs = jest.fn().mockResolvedValue(moduleConfigs);
-  const enqueue = jest.fn().mockResolvedValue(undefined);
-  const hasEvent = jest.fn().mockResolvedValue(false);
-  const wake = jest.fn().mockResolvedValue(undefined);
+  const hasBeenSent = jest.fn().mockResolvedValue(false);
+  const notify = jest.fn().mockResolvedValue(undefined);
 
   const scheduler = new WeeklySummaryScheduler(
     { listEnabledModuleConfigs } as unknown as UsersService,
     { build } as unknown as WeeklySummaryService,
-    { enqueue },
-    { hasEvent },
-    { wake },
+    { hasBeenSent, notify } as unknown as WeeklySummaryNotifier,
   );
 
   return {
     scheduler,
     build,
-    enqueue,
-    hasEvent,
-    wake,
+    notify,
+    hasBeenSent,
     listEnabledModuleConfigs,
   };
 }
@@ -34,7 +30,7 @@ const MONDAY_8AM_UTC = new Date('2026-10-19T08:00:00.000Z');
 
 describe('WeeklySummaryScheduler', () => {
   it('sends the previous completed week on the chosen day at 08:00', async () => {
-    const { scheduler, build, enqueue, wake, listEnabledModuleConfigs } =
+    const { scheduler, build, notify, listEnabledModuleConfigs } =
       createScheduler([
         {
           userId: 'user-1',
@@ -47,17 +43,11 @@ describe('WeeklySummaryScheduler', () => {
 
     expect(listEnabledModuleConfigs).toHaveBeenCalledWith('finance');
     expect(build).toHaveBeenCalledWith('user-1', '2026-10-12');
-    expect(enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        eventId: 'finance-weekly-summary:user-1:2026-10-12',
-        eventName: FinanceEvents.WEEKLY_SUMMARY,
-        payload: {
-          weekStart: '2026-10-12',
-          summary: { weekStart: '2026-10-12' },
-        },
-      }),
-    );
-    expect(wake).toHaveBeenCalled();
+    expect(notify).toHaveBeenCalledWith({
+      userId: 'user-1',
+      weekStart: '2026-10-12',
+      summary: { weekStart: '2026-10-12' },
+    });
   });
 
   it('uses the user timezone to decide the hour', async () => {
@@ -127,18 +117,19 @@ describe('WeeklySummaryScheduler', () => {
   });
 
   it('does not send twice for the same week', async () => {
-    const { scheduler, build, enqueue, hasEvent } = createScheduler([
+    const { scheduler, build, notify, hasBeenSent } = createScheduler([
       {
         userId: 'user-1',
         timezone: 'UTC',
         config: { reports: { weeklySummaryDay: 1 } },
       },
     ]);
-    hasEvent.mockResolvedValue(true);
+    hasBeenSent.mockResolvedValue(true);
 
     await scheduler.handleCron(MONDAY_8AM_UTC);
 
+    expect(hasBeenSent).toHaveBeenCalledWith('user-1', '2026-10-12');
     expect(build).not.toHaveBeenCalled();
-    expect(enqueue).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 });

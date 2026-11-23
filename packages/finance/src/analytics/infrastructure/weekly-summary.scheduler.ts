@@ -1,15 +1,4 @@
-import type {
-  DomainEventRelay,
-  DomainEventOutboxReader,
-  DomainEventPublisher,
-} from '@personal-os/contracts';
-import {
-  DOMAIN_EVENT_RELAY,
-  DOMAIN_EVENT_OUTBOX_READER,
-  DOMAIN_EVENT_PUBLISHER,
-} from '@personal-os/contracts';
-import { FinanceEvents } from '../../contracts';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { mergeWithDefaults, UsersService } from '@personal-os/users';
 import type { ModuleConfigRow } from '@personal-os/users';
@@ -17,6 +6,7 @@ import {
   FINANCE_NOTIFICATION_KEYS,
   FINANCE_SETTINGS_DEFAULTS,
 } from '../../settings/finance-settings';
+import { WeeklySummaryNotifier } from '../application/weekly-summary-notifier';
 import {
   WeeklySummaryService,
   previousWeekStartIso,
@@ -25,7 +15,6 @@ import {
 const SEND_HOUR = 8;
 const FINANCE_MODULE_SLUG = 'finance';
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-const CONSUMER_AGGREGATE = 'User';
 
 function localDayAndHour(
   timezone: string | null,
@@ -57,12 +46,7 @@ export class WeeklySummaryScheduler {
   constructor(
     private readonly users: UsersService,
     private readonly summaries: WeeklySummaryService,
-    @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisher,
-    @Inject(DOMAIN_EVENT_OUTBOX_READER)
-    private readonly outbox: DomainEventOutboxReader,
-    @Inject(DOMAIN_EVENT_RELAY)
-    private readonly relay: DomainEventRelay,
+    private readonly notifier: WeeklySummaryNotifier,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -113,21 +97,12 @@ export class WeeklySummaryScheduler {
 
   private async emitSummary(userId: string, dateIso: string): Promise<void> {
     const weekStart = previousWeekStartIso(dateIso);
-    const eventId = `finance-weekly-summary:${userId}:${weekStart}`;
-    if (await this.outbox.hasEvent(eventId)) {
+    if (await this.notifier.hasBeenSent(userId, weekStart)) {
       return;
     }
     try {
       const summary = await this.summaries.build(userId, weekStart);
-      await this.events.enqueue({
-        eventId,
-        eventName: FinanceEvents.WEEKLY_SUMMARY,
-        aggregateType: CONSUMER_AGGREGATE,
-        aggregateId: userId,
-        userId,
-        payload: { weekStart, summary },
-      });
-      void this.relay.wake();
+      await this.notifier.notify({ userId, weekStart, summary });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`weekly_summary_failed userId=${userId}: ${message}`);

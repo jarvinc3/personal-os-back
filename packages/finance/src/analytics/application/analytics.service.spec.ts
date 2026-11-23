@@ -216,7 +216,12 @@ describe('AnalyticsService', () => {
 
     const series = await createService({
       getSpendingOverTime,
-    }).getSpendingOverTime('user-1', '2026-08-01', '2026-08-31', 'day');
+    }).getSpendingOverTime({
+      userId: 'user-1',
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+      granularity: 'day',
+    });
 
     expect(series.points).toEqual([
       { date: '2026-08-01', expenses: '0.3', income: '0' },

@@ -63,11 +63,11 @@ export class AnalyticsController {
     @CurrentUser('sub') userId: string,
     @Query() query: SpendingOverTimeQueryDto,
   ) {
-    return this.analytics.getSpendingOverTime(
+    return this.analytics.getSpendingOverTime({
       userId,
-      query.dateFrom,
-      query.dateTo,
-      query.granularity ?? 'day',
-    );
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+      granularity: query.granularity,
+    });
   }
 }

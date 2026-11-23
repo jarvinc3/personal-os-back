@@ -1,8 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UsersService } from '@personal-os/users';
-import { CatalogService } from '../../catalog/application/catalog.service';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { PlanningService } from '../../planning/application/planning.service';
 import { isValidIsoDate } from '../../shared/domain/iso-date';
 import { decimalToString } from '../../shared/domain/mappers';
 import {
@@ -11,7 +9,7 @@ import {
   toMoney,
   type Decimal,
 } from '../../shared/domain/money';
-import { AnalyticsService } from './analytics.service';
+import { WeeklySummarySources } from './weekly-summary-sources';
 import type { WeeklySummary } from './weekly-summary.types';
 
 const AVERAGE_WEEKS = 4;
@@ -90,10 +88,7 @@ function averageOfAmounts(amounts: readonly Decimal[]): Decimal {
 @Injectable()
 export class WeeklySummaryService {
   constructor(
-    private readonly analytics: AnalyticsService,
-    private readonly planning: PlanningService,
-    private readonly catalog: CatalogService,
-
+    private readonly sources: WeeklySummarySources,
     private readonly users: UsersService,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
@@ -105,24 +100,16 @@ export class WeeklySummaryService {
     const weekEnd = addDaysIso(weekStart, 6);
     const rangeFrom = addDaysIso(weekStart, -7 * AVERAGE_WEEKS);
 
-    const [currency, overTime, spendingByCategory, budgets, loans, cards] =
-      await Promise.all([
-        this.baseCurrency.execute(userId),
-        this.analytics.getSpendingOverTime(
-          userId,
-          rangeFrom,
-          endOfDayIso(weekEnd),
-          'week',
-        ),
-        this.analytics.getSpendingByCategory(
-          userId,
-          weekStart,
-          endOfDayIso(weekEnd),
-        ),
-        this.analytics.getBudgetStatus(userId),
-        this.planning.listLoans(userId),
-        this.catalog.listCards(userId),
-      ]);
+    const [currency, sources] = await Promise.all([
+      this.baseCurrency.execute(userId),
+      this.sources.load({
+        userId,
+        weekStart,
+        weekEndBound: endOfDayIso(weekEnd),
+        rangeFrom,
+      }),
+    ]);
+    const { overTime, spendingByCategory, budgets, loans, cards } = sources;
 
     const weeklyPoints = overTime.points.map((point) => ({
       date: point.date,
