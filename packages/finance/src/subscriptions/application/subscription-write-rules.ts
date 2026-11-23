@@ -24,24 +24,17 @@ export function normalizedKeyFor(name: string): string {
   return key;
 }
 
-export function applySubscriptionStatus(
-  changes: UpdateSubscriptionChanges,
+export function subscriptionStatusFields(
   status: SubscriptionStatus,
   now: Date,
-): void {
-  changes.status = status;
+): UpdateSubscriptionChanges {
   if (status === 'CANCELLED') {
-    changes.cancelledAt = now;
-    changes.pausedAt = null;
-    return;
+    return { status, cancelledAt: now, pausedAt: null };
   }
   if (status === 'PAUSED') {
-    changes.pausedAt = now;
-    changes.cancelledAt = null;
-    return;
+    return { status, pausedAt: now, cancelledAt: null };
   }
-  changes.pausedAt = null;
-  changes.cancelledAt = null;
+  return { status, pausedAt: null, cancelledAt: null };
 }
 
 export function nextBillingFromSchedule(schedule: SubscriptionSchedule): Date {
