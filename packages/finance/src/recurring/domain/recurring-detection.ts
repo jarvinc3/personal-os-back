@@ -91,6 +91,20 @@ function confidenceFor(occurrences: number, maxDeviation: number): number {
   return Math.max(0, Math.min(100, base - penalty));
 }
 
+function fitsPeriodicity(input: {
+  charges: readonly { date: Date }[];
+  periodicity: RecurringPeriodicity;
+  maxDeviation: number;
+}): boolean {
+  if (
+    input.charges.length === CONFIRMED_ANNUAL_MIN_OCCURRENCES &&
+    input.periodicity !== 365
+  ) {
+    return false;
+  }
+  return input.maxDeviation <= PERIODICITY_TOLERANCE_DAYS[input.periodicity];
+}
+
 export function detectRecurringPattern(
   input: DetectRecurringInput,
 ): DetectedPattern | null {
@@ -132,18 +146,10 @@ export function detectRecurringPattern(
   if (!periodicity) {
     return null;
   }
-  if (
-    charges.length === CONFIRMED_ANNUAL_MIN_OCCURRENCES &&
-    periodicity !== 365
-  ) {
-    return null;
-  }
-
-  const toleranceDays = PERIODICITY_TOLERANCE_DAYS[periodicity];
   const maxDeviation = Math.max(
     ...gaps.map((gap) => Math.abs(gap - periodicity)),
   );
-  if (maxDeviation > toleranceDays) {
+  if (!fitsPeriodicity({ charges, periodicity, maxDeviation })) {
     return null;
   }
 

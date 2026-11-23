@@ -1,5 +1,8 @@
 import { Prisma } from '@personal-os/database';
+import { RecurringDetectionService } from './recurring-detection.service';
+import { RecurringQueryService } from './recurring-query.service';
 import { RecurringService } from './recurring.service';
+import { RecurringWriteService } from './recurring-write.service';
 import type { RecurringRepository } from '../infrastructure/recurring.repository';
 import type { MerchantsService } from '../../merchants/application/merchants.service';
 
@@ -65,10 +68,17 @@ function build(overrides: Partial<RepoMock> = {}) {
   const baseCurrency = { execute: jest.fn().mockResolvedValue('DOP') };
   return {
     service: new RecurringService(
-      repo as unknown as RecurringRepository,
-      merchants as unknown as MerchantsService,
-      ownership as never,
-      baseCurrency as never,
+      new RecurringQueryService(repo as unknown as RecurringRepository),
+      new RecurringWriteService(
+        repo as unknown as RecurringRepository,
+        merchants as unknown as MerchantsService,
+        ownership as never,
+        baseCurrency as never,
+      ),
+      new RecurringDetectionService(
+        repo as unknown as RecurringRepository,
+        baseCurrency as never,
+      ),
     ),
     repo,
     merchants,
@@ -251,7 +261,11 @@ describe('RecurringService.update', () => {
         ),
     });
 
-    const updated = await service.update('user-1', 'pattern-1', {});
+    const updated = await service.update({
+      userId: 'user-1',
+      id: 'pattern-1',
+      dto: {},
+    });
 
     // 0.125 a year is 0.01 a month; the half cent rounds to the even cent.
     expect(updated.monthlyEquivalent).toBe('0.01');
@@ -267,7 +281,11 @@ describe('RecurringService.update', () => {
       categoryId: null,
     });
 
-    await service.update('user-1', 'pattern-1', { merchant: 'Renta' });
+    await service.update({
+      userId: 'user-1',
+      id: 'pattern-1',
+      dto: { merchant: 'Renta' },
+    });
 
     expect(merchants.resolve).toHaveBeenCalledWith({
       userId: 'user-1',

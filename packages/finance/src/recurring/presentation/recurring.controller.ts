@@ -73,6 +73,6 @@ export class RecurringController {
     @Param('id') id: string,
     @Body() dto: UpdateRecurringDto,
   ) {
-    return this.recurring.update(userId, id, dto);
+    return this.recurring.update({ userId, id, dto });
   }
 }
