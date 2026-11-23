@@ -116,6 +116,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #536: el servicio de reclasificación de intelligence, de 971 líneas, se parte por responsabilidad: los tipos que cruzan los archivos, el registro del run de análisis, la escritura de cada bloque con su transacción y señales, y el recorrido del alcance en bloques viven en archivos propios. El servicio conserva sus cuatro métodos públicos y sus dos dependencias, y ahora traduce cada disparador a un alcance y delega el pase. Mismos correos elegibles, mismas exclusiones (HOLDOUT y ya verificados), mismos estados, filas y señales, y mismo cierre del run como fallido. Sin migración y sin cambio de contrato.
 - #534: el CI corre en los runners de GitHub (`ubuntu-latest`) en lugar de los runners self-hosted de la PC de casa, ahora que el repo es público. Mismas validaciones; Postgres de las pruebas E2E e integración pasa a un service container y un push nuevo a un PR cancela su corrida anterior sin cancelar los push a `develop`.
 
 - #524: el conjunto de `NODE_ENV` se declara una vez (`NODE_ENVIRONMENTS` en `env-helpers.ts`): el campo del schema y el tipo que usan las reglas salen de ahí. `defaultedStrictBoolean` declara el tipo que devuelve. Sin cambio de comportamiento.
