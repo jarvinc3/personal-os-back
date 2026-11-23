@@ -1,7 +1,22 @@
 import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
 import { CatalogAccountNumbersService } from './catalog-account-numbers.service';
+import { CatalogAccountLifecycle } from './catalog-account-lifecycle';
+import { CatalogAccountMutations } from './catalog-account-mutations';
+import { CatalogAccountReads } from './catalog-account-reads';
+import { CatalogAccountRules } from './catalog-account-rules';
 import { CatalogAccountsService } from './catalog-accounts.service';
+import { CatalogCardLifecycle } from './catalog-card-lifecycle';
+import { CatalogCardMutations } from './catalog-card-mutations';
+import { CatalogCardReads } from './catalog-card-reads';
+import { CatalogEmailProductLookup } from './catalog-email-product-lookup';
+import { CatalogEmailProductWriter } from './catalog-email-product-writer';
+import { CatalogEmailProposal } from './catalog-email-proposal';
+import { CatalogInstitutionBranding } from './catalog-institution-branding';
+import { CatalogInstitutionChildren } from './catalog-institution-children';
+import { CatalogInstitutionLifecycle } from './catalog-institution-lifecycle';
+import { CatalogInstitutionMutations } from './catalog-institution-mutations';
+import { CatalogInstitutionReads } from './catalog-institution-reads';
 import { CatalogCardBalancesService } from './catalog-card-balances.service';
 import { CatalogCardsService } from './catalog-cards.service';
 import { CatalogEmailProductsService } from './catalog-email-products.service';
@@ -113,27 +128,35 @@ function createService(
   const institutionsRepo = repo as unknown as CatalogInstitutionRepository;
   const views = new CatalogViews(logos, users);
   const numbers = new CatalogAccountNumbersService(configMock());
-  const accounts = new CatalogAccountsService(
-    accountsRepo,
+  const rules = new CatalogAccountRules(
     repo as unknown as CatalogCashRepository,
     ownership,
-    purge,
     ensureMock(),
-    baseCurrencyMock(),
-    numbers,
-    views,
   );
-  const cards = new CatalogCardsService(cardsRepo, ownership, purge, views);
+  const accounts = new CatalogAccountsService(
+    new CatalogAccountReads(accountsRepo, rules, views),
+    new CatalogAccountMutations(accountsRepo, rules, numbers),
+    new CatalogAccountLifecycle(accountsRepo, purge, baseCurrencyMock()),
+  );
+  const cards = new CatalogCardsService(
+    new CatalogCardReads(cardsRepo, views),
+    new CatalogCardMutations(cardsRepo, ownership),
+    new CatalogCardLifecycle(cardsRepo, purge),
+  );
   return new CatalogService(
     accounts,
     new CatalogInstitutionsService(
-      institutionsRepo,
-      accountsRepo,
-      cardsRepo,
-      ownership,
-      purge,
-      logos,
-      views,
+      new CatalogInstitutionReads(institutionsRepo, views),
+      new CatalogInstitutionMutations(
+        institutionsRepo,
+        ownership,
+        new CatalogInstitutionBranding(logos),
+      ),
+      new CatalogInstitutionLifecycle(
+        institutionsRepo,
+        ownership,
+        new CatalogInstitutionChildren(accountsRepo, cardsRepo, purge),
+      ),
     ),
     cards,
     new CatalogCardBalancesService(
@@ -141,12 +164,9 @@ function createService(
       cardsRepo,
     ),
     new CatalogEmailProductsService(
-      accountsRepo,
-      cardsRepo,
-      institutionsRepo,
-      numbers,
-      accounts,
-      cards,
+      new CatalogEmailProposal(numbers),
+      new CatalogEmailProductLookup(institutionsRepo, accountsRepo, cardsRepo),
+      new CatalogEmailProductWriter(accounts, cards),
     ),
     new CatalogCategoriesService(
       repo as unknown as CatalogCategoryRepository,

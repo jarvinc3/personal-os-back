@@ -25,6 +25,9 @@ import type { UpdateInstitutionDto } from '../presentation/dto/update-institutio
  */
 @Injectable()
 export class CatalogService {
+  // This is the module facade: each dependency is one aggregate it coordinates,
+  // not a collaborator of the same flow.
+  // eslint-disable-next-line max-params
   constructor(
     private readonly accounts: CatalogAccountsService,
     private readonly institutions: CatalogInstitutionsService,

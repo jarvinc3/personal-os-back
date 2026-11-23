@@ -25,6 +25,8 @@ import { CatalogCardRepository } from '../../packages/finance/src/catalog/infras
 import { CatalogInstitutionRepository } from '../../packages/finance/src/catalog/infrastructure/catalog-institution.repository';
 // eslint-disable-next-line no-restricted-imports -- The integration test wires the Finance adapter directly.
 import { FinanceEmailProductProposalCatalog } from '../../packages/finance/src/catalog/application/email-product-proposal-catalog';
+// eslint-disable-next-line no-restricted-imports -- The integration test wires the proposal link directly.
+import { EmailProductProposalLink } from '../../packages/finance/src/catalog/application/email-product-proposal-link';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (
@@ -168,9 +170,11 @@ describe('Email product proposals with PostgreSQL', () => {
   beforeAll(async () => {
     const adapter = new FinanceEmailProductProposalCatalog(
       {} as never,
-      new CatalogAccountRepository(prismaService, {} as never),
-      new CatalogCardRepository(prismaService, {} as never),
-      new CatalogInstitutionRepository(prismaService, {} as never),
+      new EmailProductProposalLink(
+        new CatalogAccountRepository(prismaService, {} as never),
+        new CatalogCardRepository(prismaService, {} as never),
+        new CatalogInstitutionRepository(prismaService, {} as never),
+      ),
     );
     const moduleRef = await Test.createTestingModule({
       controllers: [EmailProductProposalsController],

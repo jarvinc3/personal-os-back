@@ -1,9 +1,7 @@
 import type { EmailProductProposalProductLookup } from '@personal-os/contracts';
 import { FinanceEmailProductProposalCatalog } from './email-product-proposal-catalog';
+import { EmailProductProposalLink } from './email-product-proposal-link';
 import type { CatalogService } from './catalog.service';
-import type { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
-import type { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
-import type { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 
 type InstitutionRow = {
   id: string;
@@ -96,9 +94,7 @@ function createAdapter({
   };
   const adapter = new FinanceEmailProductProposalCatalog(
     {} as CatalogService,
-    repo as unknown as CatalogAccountRepository,
-    repo as unknown as CatalogCardRepository,
-    repo as unknown as CatalogInstitutionRepository,
+    new EmailProductProposalLink(repo as never, repo as never, repo as never),
   );
   return { adapter, repo };
 }
