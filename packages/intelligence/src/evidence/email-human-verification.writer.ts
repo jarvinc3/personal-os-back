@@ -70,8 +70,7 @@ export class EmailHumanVerificationWriter {
     dto: CreateReviewGroupVerificationDto,
   ) {
     assertHumanVerificationLabels(dto);
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.dataset.prepare(userId);
     const messages = await this.prisma.aiEmailMessage.findMany({
       where: {
         userId,
@@ -210,8 +209,7 @@ export class EmailHumanVerificationWriter {
       throw new NotFoundException('Uno o más correos no se encontraron');
     }
 
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.dataset.prepare(userId);
     const items = await this.prisma.aiDatasetItem.findMany({
       where: {
         datasetId: dataset.id,
@@ -350,8 +348,7 @@ export class EmailHumanVerificationWriter {
     messageId: string,
     dto: CreateHumanVerificationDto,
   ) {
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.dataset.prepare(userId);
     const [message, item, roleAssignment] = await Promise.all([
       this.prisma.aiEmailMessage.findFirst({
         where: { id: messageId, userId },

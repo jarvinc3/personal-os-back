@@ -3,21 +3,41 @@ import { EMAIL_SOURCE_TYPE } from './email-evidence.constants';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
 import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 
-/** El dataset de correo y sus particiones, listo para las demás lecturas. */
+type DatasetIdentity = {
+  id: string;
+  name: string;
+};
+
+type DatasetSummary = DatasetIdentity & {
+  partitions: {
+    TRAIN: number;
+    VALIDATION: number;
+    HOLDOUT: number;
+  };
+};
+
+/** El dataset de correo: preparación explícita y lectura de sus particiones. */
 export class EmailEvidenceDataset {
   constructor(private readonly prisma: PrismaService) {}
 
-  async summary(userId: string) {
+  async prepare(userId: string): Promise<DatasetIdentity> {
     const dataset = await this.ensure();
     await this.ensureItems(userId, dataset.id);
-    const counts = await this.prisma.aiDatasetItem.groupBy({
-      by: ['partition'],
-      where: { datasetId: dataset.id, userId },
-      _count: { _all: true },
-    });
+    return dataset;
+  }
+
+  async summary(userId: string): Promise<DatasetSummary> {
+    const dataset = await this.find();
+    const counts = dataset
+      ? await this.prisma.aiDatasetItem.groupBy({
+          by: ['partition'],
+          where: { datasetId: dataset.id, userId },
+          _count: { _all: true },
+        })
+      : [];
     return {
-      id: dataset.id,
-      name: dataset.name,
+      id: dataset?.id ?? '',
+      name: dataset?.name ?? EMAIL_DATASET_NAME,
       partitions: {
         TRAIN:
           counts.find((item) => item.partition === 'TRAIN')?._count._all ?? 0,
@@ -30,7 +50,14 @@ export class EmailEvidenceDataset {
     };
   }
 
-  ensure() {
+  private find(): Promise<DatasetIdentity | null> {
+    return this.prisma.aiDataset.findUnique({
+      where: { name: EMAIL_DATASET_NAME },
+      select: { id: true, name: true },
+    });
+  }
+
+  private ensure(): Promise<DatasetIdentity> {
     return this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
       create: {
@@ -38,10 +65,11 @@ export class EmailEvidenceDataset {
         purpose: EMAIL_DATASET_PURPOSE,
       },
       update: {},
+      select: { id: true, name: true },
     });
   }
 
-  async ensureItems(userId: string, datasetId: string) {
+  private async ensureItems(userId: string, datasetId: string): Promise<void> {
     const [messages, existing] = await Promise.all([
       this.prisma.aiEmailMessage.findMany({
         where: { userId },

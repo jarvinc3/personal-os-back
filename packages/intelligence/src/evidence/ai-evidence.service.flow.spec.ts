@@ -14,6 +14,9 @@ const reclassification = {
 describe('AiEvidenceService review and analysis flows', () => {
   const makePrisma = () => ({
     aiDataset: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ id: 'dataset-1', name: 'EMAIL_V1' }),
       upsert: jest
         .fn()
         .mockResolvedValue({ id: 'dataset-1', name: 'EMAIL_V1' }),
@@ -46,13 +49,8 @@ describe('AiEvidenceService review and analysis flows', () => {
     },
   });
 
-  it('counts existing partitions and adds only missing messages', async () => {
+  it('counts existing partitions without preparing the dataset', async () => {
     const prisma = makePrisma();
-    prisma.aiEmailMessage.findMany.mockResolvedValue([
-      { id: 'email-1' },
-      { id: 'email-2' },
-    ]);
-    prisma.aiDatasetItem.findMany.mockResolvedValue([{ sourceId: 'email-1' }]);
     prisma.aiDatasetItem.groupBy.mockResolvedValue([
       { partition: 'TRAIN', _count: { _all: 1 } },
       { partition: 'HOLDOUT', _count: { _all: 1 } },
@@ -64,12 +62,22 @@ describe('AiEvidenceService review and analysis flows', () => {
       name: 'EMAIL_V1',
       partitions: { TRAIN: 1, VALIDATION: 0, HOLDOUT: 1 },
     });
-    expect(prisma.aiDatasetItem.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({ sourceId: 'email-2', userId: 'user-1' }),
-      ],
-      skipDuplicates: true,
+    expect(prisma.aiDataset.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiDatasetItem.createMany).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty summary when the dataset does not exist', async () => {
+    const prisma = makePrisma();
+    prisma.aiDataset.findUnique.mockResolvedValueOnce(null);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    expect(await service.datasetSummary('user-1')).toEqual({
+      id: '',
+      name: 'EMAIL_V1',
+      partitions: { TRAIN: 0, VALIDATION: 0, HOLDOUT: 0 },
     });
+    expect(prisma.aiDataset.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiDatasetItem.groupBy).not.toHaveBeenCalled();
   });
 
   it('returns a review page with a cursor and excludes already reviewed messages', async () => {

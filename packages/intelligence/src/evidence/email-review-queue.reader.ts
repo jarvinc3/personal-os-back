@@ -71,8 +71,7 @@ export class EmailReviewQueueReader {
       userId,
     );
     const order = query.order ?? REVIEW_QUEUE_DEFAULT_ORDER;
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.prepareDataset(userId);
     const [timezone, verifications, datasetItems, resolvedMessages] =
       await Promise.all([
         this.reviewQueueTimezone(userId, query),
@@ -308,12 +307,20 @@ export class EmailReviewQueueReader {
     };
   }
 
+  /**
+   * La cola y los grupos necesitan la partición de cada correo: sin la fila,
+   * `reviewQueueItems` lo descarta y los conteos por partición no lo ven.
+   * Por eso conservan la preparación, como excepción documentada al GET puro.
+   */
+  private prepareDataset(userId: string) {
+    return this.dataset.prepare(userId);
+  }
+
   async listReviewGroups(userId: string, query: ReviewGroupsQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? REVIEW_GROUPS_DEFAULT_PAGE_SIZE;
     const order = query.order ?? REVIEW_GROUPS_DEFAULT_ORDER;
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.prepareDataset(userId);
     const [items, reviewed, messages] = await Promise.all([
       this.prisma.aiDatasetItem.findMany({
         where: { datasetId: dataset.id, userId, sourceType: EMAIL_SOURCE_TYPE },
