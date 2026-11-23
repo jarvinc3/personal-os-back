@@ -11,7 +11,6 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Pattern row as the API exposes it, with its monthly and annual equivalents. */
 export function mapPattern(row: RecurringPatternWithMerchant, now: Date) {
   const frequency = Number(row.frequency) as RecurringPeriodicity;
   return {

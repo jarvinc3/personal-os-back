@@ -12,7 +12,7 @@ import { CatalogCardReads } from './catalog-card-reads';
 import { CatalogEmailProductLookup } from './catalog-email-product-lookup';
 import { CatalogEmailProductWriter } from './catalog-email-product-writer';
 import { CatalogEmailProposal } from './catalog-email-proposal';
-import { CatalogInstitutionChildren } from './catalog-institution-children';
+import { CatalogInstitutionLedgerPurge } from './catalog-institution-ledger-purge';
 import { CatalogInstitutionLifecycle } from './catalog-institution-lifecycle';
 import { CatalogInstitutionMutations } from './catalog-institution-mutations';
 import { CatalogInstitutionReads } from './catalog-institution-reads';
@@ -74,7 +74,7 @@ function createService(repo: RepositoryMock): CatalogService {
       new CatalogInstitutionLifecycle(
         institutionsRepo,
         ownership,
-        new CatalogInstitutionChildren(accountsRepo, cardsRepo, purge),
+        new CatalogInstitutionLedgerPurge(accountsRepo, cardsRepo, purge),
       ),
     ),
     cards,

@@ -4,16 +4,16 @@ import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-ins
 import { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
 import { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
 
-/** Purges the ledger of every account and card of an institution. */
 @Injectable()
-export class CatalogInstitutionChildren {
+export class CatalogInstitutionLedgerPurge {
   constructor(
     private readonly accounts: CatalogAccountRepository,
     private readonly cards: CatalogCardRepository,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
   ) {}
 
-  async collectMovements(
+  /** Purges the ledger rows and returns them for the deletion journal. */
+  async purgeForInstitution(
     userId: string,
     institutionId: string,
   ): Promise<LedgerTransactionRow[]> {
