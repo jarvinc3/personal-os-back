@@ -81,7 +81,9 @@ export type BhdImportHarness = {
 };
 
 const CLASSIFICATION_LIMITS: Record<string, unknown> = {
-  AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: 20,
+  // La muestra del piloto son 20 correos y la prueba la repite en el mismo
+  // minuto para comprobar la idempotencia; el ritmo real (20) la cortaría.
+  AI_EMAIL_CLASSIFICATIONS_PER_MINUTE: 200,
   AI_EMAIL_INITIAL_BUDGET: 500,
   AI_EMAIL_DAILY_TOKEN_BUDGET: 320_000,
   AI_EMAIL_DAILY_COST_LIMIT_USD: 5,

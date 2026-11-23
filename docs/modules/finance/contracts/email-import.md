@@ -483,7 +483,7 @@ La matriz QA19 se versionó el 2026-11-23 con datos sintéticos: `test/integrati
 
 ## 11. Selección acotada de muestra (piloto BHD)
 
-- Estado: `IMPLEMENTADO-PROBADO` para la selección, vista previa y ejecución de la muestra. Los flujos financieros de
+- Estado: `IMPLEMENTADO-PROBADO` para la selección, vista previa y ejecución de la muestra, y repetible desde el repositorio con la prueba de integración del final de esta sección. Los flujos financieros de
   las secciones 3 a 6 tienen estado independiente en la sección 8.3.
 - Fecha: 2026-11-11.
 - Issue: [#342](https://github.com/jarvinc3/personal-os-back/issues/342).
@@ -606,6 +606,10 @@ finishedAt }`; `result` es `null` hasta que el trabajo termina.
   límite, así que la respuesta ya no depende de que la petición siga abierta. La
   ruta ya no usa el timeout de 480 segundos: el interceptor global conserva su
   valor por defecto.
+
+### 11.8 Repetición desde el repositorio
+
+La muestra de 20 correos se repite sin DEV ni Gmail: `test/integration/bhd-pilot-20-import.integration-spec.ts` importa `packages/intelligence/test/fixtures/bhd-emails/pilot-v6-20.json` por esta ruta contra PostgreSQL local, fija el resultado de cada correo, comprueba el efecto en el ledger y verifica que repetir la selección no duplica movimientos ni señales. La corrida real de DEV queda como evidencia de operación, no como única verificación.
 
 ## 12. Resolución humana de la cola de revisión
 
