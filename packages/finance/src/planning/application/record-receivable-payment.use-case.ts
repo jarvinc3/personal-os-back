@@ -15,6 +15,25 @@ export const RECEIVABLE_EXCESS_UNRESOLVED = 'RECEIVABLE_EXCESS_UNRESOLVED';
 export const RECEIVABLE_NOT_FOUND = 'RECEIVABLE_NOT_FOUND';
 export const RECEIVABLE_NOT_OPEN = 'RECEIVABLE_NOT_OPEN';
 
+type ReceivableRow = NonNullable<
+  Awaited<ReturnType<PlanningRepository['findReceivable']>>
+>;
+
+type RecordReceivablePaymentCommand = {
+  userId: string;
+  receivableId: string;
+  dto: CreateReceivablePaymentDto;
+  now: Date;
+};
+
+type ExcessApplication = {
+  userId: string;
+  receivableId: string;
+  dto: CreateReceivablePaymentDto;
+  excess: number;
+  paidAt: Date;
+};
+
 /**
  * Collecting a debt records the real amount received. What is left over the
  * outstanding amount is resolved by `excessHandling`.
@@ -27,12 +46,12 @@ export class RecordReceivablePaymentUseCase {
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    receivableId: string,
-    dto: CreateReceivablePaymentDto,
-    now: Date,
-  ) {
+  async execute({
+    userId,
+    receivableId,
+    dto,
+    now,
+  }: RecordReceivablePaymentCommand) {
     const receivable = await this.repo.findReceivable(userId, receivableId);
     if (!receivable) {
       throw new NotFoundException({
@@ -58,29 +77,15 @@ export class RecordReceivablePaymentUseCase {
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : now;
     const extraIncome = excess > 0 && dto.excessHandling === 'EXTRA_INCOME';
     const creditedAmount = extraIncome ? appliedAmount : dto.amount;
-    let appliedMovementId = dto.transactionId;
-    if (!appliedMovementId) {
-      const appliedMovement = await this.createTransaction.execute(userId, {
-        accountId: dto.accountId,
-        type: 'CREDIT',
-        amount: creditedAmount,
-        currency: receivable.currency,
-        transactionDate: paidAt.toISOString(),
-        description: `Cobro: ${receivable.debtorName}`,
-      });
-      appliedMovementId = appliedMovement.id;
-    }
+    const appliedMovementId = await this.recordReceivedMovement({
+      userId,
+      receivable,
+      dto,
+      creditedAmount,
+      paidAt,
+    });
     if (extraIncome) {
-      const categoryId = await this.repo.findExtraIncomeCategoryId();
-      await this.createTransaction.execute(userId, {
-        accountId: dto.accountId,
-        type: 'CREDIT',
-        amount: excess,
-        currency: receivable.currency,
-        transactionDate: paidAt.toISOString(),
-        description: `Ingreso extra: ${receivable.debtorName}`,
-        ...(categoryId ? { categoryId } : {}),
-      });
+      await this.recordExtraIncome({ userId, receivable, dto, excess, paidAt });
     }
 
     const payment = await this.repo.createReceivablePayment(receivableId, {
@@ -94,44 +99,114 @@ export class RecordReceivablePaymentUseCase {
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
 
-    if (excess > 0 && dto.excessHandling === 'CREDIT_BALANCE') {
+    await this.applyExcessAfterPayment({
+      userId,
+      receivableId,
+      dto,
+      excess,
+      paidAt,
+    });
+    return mapReceivablePayment(payment);
+  }
+
+  private recordReceivedMovement(input: {
+    userId: string;
+    receivable: ReceivableRow;
+    dto: CreateReceivablePaymentDto;
+    creditedAmount: number;
+    paidAt: Date;
+  }): Promise<string> {
+    const { userId, receivable, dto, creditedAmount, paidAt } = input;
+    if (dto.transactionId) {
+      return Promise.resolve(dto.transactionId);
+    }
+    return this.createTransaction
+      .execute(userId, {
+        accountId: dto.accountId,
+        type: 'CREDIT',
+        amount: creditedAmount,
+        currency: receivable.currency,
+        transactionDate: paidAt.toISOString(),
+        description: `Cobro: ${receivable.debtorName}`,
+      })
+      .then((movement) => movement.id);
+  }
+
+  private async recordExtraIncome(input: {
+    userId: string;
+    receivable: ReceivableRow;
+    dto: CreateReceivablePaymentDto;
+    excess: number;
+    paidAt: Date;
+  }): Promise<void> {
+    const { userId, receivable, dto, excess, paidAt } = input;
+    const categoryId = await this.repo.findExtraIncomeCategoryId();
+    await this.createTransaction.execute(userId, {
+      accountId: dto.accountId,
+      type: 'CREDIT',
+      amount: excess,
+      currency: receivable.currency,
+      transactionDate: paidAt.toISOString(),
+      description: `Ingreso extra: ${receivable.debtorName}`,
+      ...(categoryId ? { categoryId } : {}),
+    });
+  }
+
+  private async applyExcessAfterPayment({
+    userId,
+    receivableId,
+    dto,
+    excess,
+    paidAt,
+  }: ExcessApplication): Promise<void> {
+    if (excess <= 0) {
+      return;
+    }
+    if (dto.excessHandling === 'CREDIT_BALANCE') {
       await this.repo.addReceivableCreditBalance(receivableId, excess);
     }
-    if (
-      excess > 0 &&
-      dto.excessHandling === 'APPLY_TO_RECEIVABLE' &&
-      dto.targetReceivableId
-    ) {
-      const target = await this.repo.findReceivable(
-        userId,
-        dto.targetReceivableId,
-      );
-      if (!target) {
-        throw new NotFoundException({
-          code: RECEIVABLE_NOT_FOUND,
-          message: 'No encontramos el cobro destino.',
-        });
-      }
-      if (
-        target.status === 'PAID' ||
-        target.status === 'CANCELLED' ||
-        target.status === 'WRITTEN_OFF'
-      ) {
-        throw new ConflictException({
-          code: RECEIVABLE_NOT_OPEN,
-          message: 'El cobro destino ya está cerrado.',
-        });
-      }
-      await this.repo.createReceivablePayment(dto.targetReceivableId, {
-        amount: excess,
-        appliedAmount: excess,
-        excessAmount: 0,
-        paidAt,
-        accountId: dto.accountId,
-        transactionId: null,
+    if (dto.excessHandling === 'APPLY_TO_RECEIVABLE') {
+      await this.applyToTarget({ userId, dto, excess, paidAt });
+    }
+  }
+
+  private async applyToTarget(input: {
+    userId: string;
+    dto: CreateReceivablePaymentDto;
+    excess: number;
+    paidAt: Date;
+  }): Promise<void> {
+    const { userId, dto, excess, paidAt } = input;
+    if (!dto.targetReceivableId) {
+      return;
+    }
+    const target = await this.repo.findReceivable(
+      userId,
+      dto.targetReceivableId,
+    );
+    if (!target) {
+      throw new NotFoundException({
+        code: RECEIVABLE_NOT_FOUND,
+        message: 'No encontramos el cobro destino.',
       });
     }
-
-    return mapReceivablePayment(payment);
+    if (
+      target.status === 'PAID' ||
+      target.status === 'CANCELLED' ||
+      target.status === 'WRITTEN_OFF'
+    ) {
+      throw new ConflictException({
+        code: RECEIVABLE_NOT_OPEN,
+        message: 'El cobro destino ya está cerrado.',
+      });
+    }
+    await this.repo.createReceivablePayment(dto.targetReceivableId, {
+      amount: excess,
+      appliedAmount: excess,
+      excessAmount: 0,
+      paidAt,
+      accountId: dto.accountId,
+      transactionId: null,
+    });
   }
 }

@@ -2,6 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 
+type RemoveSavingsGoalContributionCommand = {
+  userId: string;
+  goalId: string;
+  contributionId: string;
+  now: Date;
+};
+
 /** Removing a contribution also removes the movement it created. */
 @Injectable()
 export class RemoveSavingsGoalContributionUseCase {
@@ -10,12 +17,12 @@ export class RemoveSavingsGoalContributionUseCase {
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    goalId: string,
-    contributionId: string,
-    now: Date,
-  ) {
+  async execute({
+    userId,
+    goalId,
+    contributionId,
+    now,
+  }: RemoveSavingsGoalContributionCommand) {
     const goal = await this.repo.findSavingsGoal(userId, goalId);
     if (!goal) {
       throw new NotFoundException('Meta de ahorro no encontrada');

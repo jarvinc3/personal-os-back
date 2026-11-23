@@ -7,6 +7,19 @@ import type { LedgerQueryService } from '../../ledger/application/ledger-query.s
 import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
 import type { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 
+function planningRepositoryWith(
+  methods: Record<string, unknown>,
+): PlanningRepository {
+  return {
+    budgets: methods,
+    savingsGoals: methods,
+    loans: methods,
+    loanSchedule: methods,
+    receivables: methods,
+    users: methods,
+  } as unknown as PlanningRepository;
+}
+
 describe('PlanningService archive and receivables', () => {
   const now = new Date('2026-09-15T12:00:00.000Z');
   const updateLoan = jest.fn();
@@ -20,7 +33,7 @@ describe('PlanningService archive and receivables', () => {
   const findBudget = jest.fn();
   const sumBudgetSpent = jest.fn().mockResolvedValue(0);
 
-  const repo = {
+  const repoMethods = {
     updateLoan,
     createLoan,
     listLoans,
@@ -31,7 +44,9 @@ describe('PlanningService archive and receivables', () => {
     listBudgetsPage,
     findBudget,
     sumBudgetSpent,
-  } as unknown as PlanningRepository;
+  };
+
+  const repo = planningRepositoryWith(repoMethods);
 
   const assertLoanAccountAlignment = jest.fn();
   const ownership = {
@@ -92,7 +107,7 @@ describe('PlanningService archive and receivables', () => {
   it('hard-deletes a loan', async () => {
     const deleteLoan = jest.fn().mockResolvedValue({ count: 1 });
     const local = new PlanningService(
-      { ...repo, deleteLoan } as unknown as PlanningRepository,
+      planningRepositoryWith({ ...repoMethods, deleteLoan }),
       ownership,
       syncInstallments,
       ledger,
@@ -108,7 +123,7 @@ describe('PlanningService archive and receivables', () => {
   it('returns 404 when hard-deleting a missing loan', async () => {
     const deleteLoan = jest.fn().mockResolvedValue({ count: 0 });
     const local = new PlanningService(
-      { ...repo, deleteLoan } as unknown as PlanningRepository,
+      planningRepositoryWith({ ...repoMethods, deleteLoan }),
       ownership,
       syncInstallments,
       ledger,
@@ -123,7 +138,7 @@ describe('PlanningService archive and receivables', () => {
   it('hard-deletes a receivable', async () => {
     const deleteReceivable = jest.fn().mockResolvedValue({ count: 1 });
     const local = new PlanningService(
-      { ...repo, deleteReceivable } as unknown as PlanningRepository,
+      planningRepositoryWith({ ...repoMethods, deleteReceivable }),
       ownership,
       syncInstallments,
       ledger,
@@ -139,7 +154,7 @@ describe('PlanningService archive and receivables', () => {
   it('returns 404 when hard-deleting a missing receivable', async () => {
     const deleteReceivable = jest.fn().mockResolvedValue({ count: 0 });
     const local = new PlanningService(
-      { ...repo, deleteReceivable } as unknown as PlanningRepository,
+      planningRepositoryWith({ ...repoMethods, deleteReceivable }),
       ownership,
       syncInstallments,
       ledger,
@@ -233,12 +248,10 @@ describe('PlanningService archive and receivables', () => {
       status: 'PAID',
     });
 
-    expect(updateReceivable).toHaveBeenCalledWith(
-      'user-1',
-      'rec-1',
-      {},
-      'PAID',
-    );
+    expect(updateReceivable).toHaveBeenCalledWith('user-1', 'rec-1', {
+      data: {},
+      requestedStatus: 'PAID',
+    });
     expect(saved).toMatchObject({ status: 'PAID', paidAmount: '80' });
   });
 
@@ -539,7 +552,7 @@ describe('PlanningService savings goal updates', () => {
   });
 
   const service = new PlanningService(
-    { updateSavingsGoal, findSavingsGoal } as unknown as PlanningRepository,
+    planningRepositoryWith({ updateSavingsGoal, findSavingsGoal }),
     {} as unknown as FinanceOwnershipService,
     {} as unknown as SyncLoanInstallmentsUseCase,
     {} as unknown as LedgerQueryService,
@@ -559,22 +572,18 @@ describe('PlanningService savings goal updates', () => {
       now,
     );
 
-    expect(updateSavingsGoal).toHaveBeenCalledWith(
-      'user-1',
-      'goal-1',
-      { targetDate: null },
+    expect(updateSavingsGoal).toHaveBeenCalledWith('user-1', 'goal-1', {
+      data: { targetDate: null },
       now,
-    );
+    });
   });
 
   it('leaves the target date untouched when the field is not sent', async () => {
     await service.updateSavingsGoal('user-1', 'goal-1', { name: 'Fondo' }, now);
 
-    expect(updateSavingsGoal).toHaveBeenCalledWith(
-      'user-1',
-      'goal-1',
-      { name: 'Fondo' },
+    expect(updateSavingsGoal).toHaveBeenCalledWith('user-1', 'goal-1', {
+      data: { name: 'Fondo' },
       now,
-    );
+    });
   });
 });

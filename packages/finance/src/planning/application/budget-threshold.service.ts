@@ -29,12 +29,12 @@ export class BudgetThresholdService implements BudgetThresholdPort {
         continue;
       }
 
-      const alert = await this.recordAlert(
-        snap.budgetId,
-        'threshold_crossed',
-        pct,
+      const alert = await this.recordAlert({
+        budgetId: snap.budgetId,
+        type: 'threshold_crossed',
+        pctUsed: pct,
         tx,
-      );
+      });
       if (!alert?.created) {
         continue;
       }
@@ -56,12 +56,13 @@ export class BudgetThresholdService implements BudgetThresholdPort {
     }
   }
 
-  private async recordAlert(
-    budgetId: string,
-    type: string,
-    pctUsed: number,
-    tx?: unknown,
-  ): Promise<{ id: string; created: boolean } | null> {
+  private async recordAlert(input: {
+    budgetId: string;
+    type: string;
+    pctUsed: number;
+    tx?: unknown;
+  }): Promise<{ id: string; created: boolean } | null> {
+    const { budgetId, type, pctUsed, tx } = input;
     const client = (tx as Prisma.TransactionClient | undefined) ?? this.prisma;
     const existing = await client.finBudgetAlert.findUnique({
       where: { budgetId_type: { budgetId, type } },

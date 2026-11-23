@@ -27,6 +27,19 @@ export type PayInstallmentCommand = {
   excessAsPrepayment?: boolean;
 };
 
+type PayInstallmentRequest = {
+  userId: string;
+  loanId: string;
+  now: Date;
+  command?: PayInstallmentCommand;
+};
+
+type LoanRow = NonNullable<Awaited<ReturnType<PlanningRepository['findLoan']>>>;
+
+type InstallmentRow = NonNullable<
+  Awaited<ReturnType<PlanningRepository['findNextUnpaidInstallment']>>
+>;
+
 /**
  * Pays the oldest unpaid instalment: records the movement, splits the payment
  * over the instalment and lowers the balance only by the paid principal.
@@ -39,12 +52,7 @@ export class PayNextLoanInstallmentUseCase {
     private readonly createTransaction: CreateTransactionUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    loanId: string,
-    now: Date,
-    command: PayInstallmentCommand = {},
-  ) {
+  async execute({ userId, loanId, now, command = {} }: PayInstallmentRequest) {
     const loan = await this.repo.findLoan(userId, loanId);
     if (!loan) {
       throw new NotFoundException({
@@ -66,14 +74,10 @@ export class PayNextLoanInstallmentUseCase {
       fees: Number(installment.fees),
       lateFee: Number(installment.lateFee),
     });
-    const requested = command.amount ?? dueTotal;
-    const excess = roundMoney(requested - dueTotal);
-    if (excess > 0 && !command.excessAsPrepayment) {
-      throw new BadRequestException({
-        code: PAYMENT_EXCEEDS_INSTALLMENT,
-        message: PAYMENT_EXCEEDS_INSTALLMENT_MESSAGE,
-      });
-    }
+    const { requested, excess } = this.resolveRequestedAmount({
+      command,
+      dueTotal,
+    });
     const paid = Math.min(requested, dueTotal);
     const breakdown = distributeLoanPayment({
       paid,
@@ -91,17 +95,14 @@ export class PayNextLoanInstallmentUseCase {
         message: LOAN_ACCOUNT_REQUIRED_MESSAGE,
       });
     }
-    const categoryId = await this.repo.findLoanPaymentCategoryId();
-    const movement = await this.createTransaction.execute(userId, {
+    const transactionId = await this.recordPaymentMovement({
+      userId,
+      loan,
+      installment,
+      requested,
       accountId,
-      type: 'DEBIT',
-      amount: requested,
-      currency: loan.currency,
-      transactionDate: now.toISOString(),
-      description: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
-      ...(categoryId ? { categoryId } : {}),
+      now,
     });
-    const transactionId = movement.id;
 
     const newPaidAmount = roundMoney(Number(installment.paidAmount) + paid);
     const fullyPaid = newPaidAmount >= Number(installment.amount) - 0.005;
@@ -113,8 +114,74 @@ export class PayNextLoanInstallmentUseCase {
     });
 
     const excessPrincipal = excess > 0 ? excess : 0;
+    const nextBalance = await this.persistPayment({
+      userId,
+      loanId,
+      loan,
+      now,
+      fullyPaid,
+      principal: breakdown.principal,
+      excessPrincipal,
+    });
+
+    return {
+      installmentNo: installment.installmentNo,
+      breakdown,
+      paidAmount: newPaidAmount,
+      status: fullyPaid ? 'PAID' : 'PARTIAL',
+      currentBalance: nextBalance,
+    };
+  }
+
+  private resolveRequestedAmount(input: {
+    command: PayInstallmentCommand;
+    dueTotal: number;
+  }): { requested: number; excess: number } {
+    const requested = input.command.amount ?? input.dueTotal;
+    const excess = roundMoney(requested - input.dueTotal);
+    if (excess > 0 && !input.command.excessAsPrepayment) {
+      throw new BadRequestException({
+        code: PAYMENT_EXCEEDS_INSTALLMENT,
+        message: PAYMENT_EXCEEDS_INSTALLMENT_MESSAGE,
+      });
+    }
+    return { requested, excess };
+  }
+
+  private async recordPaymentMovement(input: {
+    userId: string;
+    loan: LoanRow;
+    installment: InstallmentRow;
+    requested: number;
+    accountId: string;
+    now: Date;
+  }): Promise<string> {
+    const { userId, loan, installment, requested, accountId, now } = input;
+    const categoryId = await this.repo.findLoanPaymentCategoryId();
+    const movement = await this.createTransaction.execute(userId, {
+      accountId,
+      type: 'DEBIT',
+      amount: requested,
+      currency: loan.currency,
+      transactionDate: now.toISOString(),
+      description: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
+      ...(categoryId ? { categoryId } : {}),
+    });
+    return movement.id;
+  }
+
+  private async persistPayment(input: {
+    userId: string;
+    loanId: string;
+    loan: LoanRow;
+    now: Date;
+    fullyPaid: boolean;
+    principal: number;
+    excessPrincipal: number;
+  }): Promise<number> {
+    const { userId, loanId, loan, now, fullyPaid } = input;
     const nextBalance = roundMoney(
-      Number(loan.currentBalance) - breakdown.principal - excessPrincipal,
+      Number(loan.currentBalance) - input.principal - input.excessPrincipal,
     );
     await this.repo.updateLoan(userId, loanId, {
       currentBalance: nextBalance,
@@ -129,23 +196,16 @@ export class PayNextLoanInstallmentUseCase {
           }
         : {}),
     });
-    if (excessPrincipal > 0) {
+    if (input.excessPrincipal > 0) {
       await this.repo.createLoanPrepayment({
         loanId,
-        amount: excessPrincipal,
+        amount: input.excessPrincipal,
         penalty: 0,
         mode: 'REDUCE_TERM',
         paidAt: now,
         transactionId: null,
       });
     }
-
-    return {
-      installmentNo: installment.installmentNo,
-      breakdown,
-      paidAmount: newPaidAmount,
-      status: fullyPaid ? 'PAID' : 'PARTIAL',
-      currentBalance: nextBalance,
-    };
+    return nextBalance;
   }
 }

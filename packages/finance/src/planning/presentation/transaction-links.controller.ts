@@ -74,7 +74,12 @@ export class TransactionLinksController {
     @Param('id') id: string,
     @Body() dto: LinkTransactionDto,
   ) {
-    return this.linkTransaction.execute(userId, id, toCommand(dto), new Date());
+    return this.linkTransaction.execute({
+      userId,
+      transactionId: id,
+      command: toCommand(dto),
+      now: new Date(),
+    });
   }
 
   @Delete('transactions/:id/link')

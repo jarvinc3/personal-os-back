@@ -52,12 +52,12 @@ describe('RecordReceivablePaymentUseCase', () => {
     const now = utc(2026, 10, 12);
     const { repo, createTransaction, useCase } = setup();
 
-    const payment = await useCase.execute(
-      'user-1',
-      'rec-1',
-      { amount: 50, accountId: 'acc-1' },
-      now,
-    );
+    const payment = await useCase.execute({
+      userId: 'user-1',
+      receivableId: 'rec-1',
+      dto: { amount: 50, accountId: 'acc-1' },
+      now: now,
+    });
 
     expect(createTransaction.execute).toHaveBeenCalledWith('user-1', {
       accountId: 'acc-1',
@@ -87,12 +87,12 @@ describe('RecordReceivablePaymentUseCase', () => {
     const { repo, createTransaction, useCase } = setup();
 
     await expect(
-      useCase.execute(
-        'user-1',
-        'rec-1',
-        { amount: 60, accountId: 'acc-1' },
-        utc(2026, 10, 12),
-      ),
+      useCase.execute({
+        userId: 'user-1',
+        receivableId: 'rec-1',
+        dto: { amount: 60, accountId: 'acc-1' },
+        now: utc(2026, 10, 12),
+      }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
 
     expect(createTransaction.execute).not.toHaveBeenCalled();
@@ -102,16 +102,16 @@ describe('RecordReceivablePaymentUseCase', () => {
   it('keeps the excess as a credit balance when asked', async () => {
     const { repo, createTransaction, useCase } = setup();
 
-    await useCase.execute(
-      'user-1',
-      'rec-1',
-      {
+    await useCase.execute({
+      userId: 'user-1',
+      receivableId: 'rec-1',
+      dto: {
         amount: 60,
         accountId: 'acc-1',
         excessHandling: 'CREDIT_BALANCE',
       },
-      utc(2026, 10, 12),
-    );
+      now: utc(2026, 10, 12),
+    });
 
     expect(createTransaction.execute).toHaveBeenCalledWith(
       'user-1',
@@ -124,12 +124,12 @@ describe('RecordReceivablePaymentUseCase', () => {
     const { repo, useCase } = setup({ found: null });
 
     await expect(
-      useCase.execute(
-        'user-1',
-        'missing',
-        { amount: 10, accountId: 'acc-1' },
-        utc(2026, 10, 12),
-      ),
+      useCase.execute({
+        userId: 'user-1',
+        receivableId: 'missing',
+        dto: { amount: 10, accountId: 'acc-1' },
+        now: utc(2026, 10, 12),
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
 
     expect(repo.createReceivablePayment).not.toHaveBeenCalled();

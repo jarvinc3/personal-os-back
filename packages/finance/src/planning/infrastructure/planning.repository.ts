@@ -1,970 +1,203 @@
 import { Injectable } from '@nestjs/common';
-import { clampPageLimit, type CursorQueryDto } from '@personal-os/core';
-import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import type { ReceivableStatus } from '../application/resolve-receivable-payment';
-import type { LoanInstallmentPlan } from '../domain/loan-installment-schedule';
-import {
-  DELETION_ENTITY,
-  DELETION_MODEL,
-  toDeletionValues,
-} from '../../shared/domain/deletion-snapshot';
-import {
-  sumBudgetSpent,
-  type BudgetSpentScope,
-} from '../../shared/infrastructure/budget-spent.reader';
-import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
-import { applyReceivableBalance } from './receivable-balance';
-import { applySavingsGoalBalance } from './savings-goal-balance';
+import { PlanningBudgetRepository } from './planning-budget.repository';
+import { PlanningLoanScheduleRepository } from './planning-loan-schedule.repository';
+import { PlanningLoanRepository } from './planning-loan.repository';
+import { PlanningReceivableRepository } from './planning-receivable.repository';
+import { PlanningSavingsGoalRepository } from './planning-savings-goal.repository';
+import { PlanningUserTimezoneRepository } from './planning-user-timezone.repository';
 
-/** Label of the row that carries a balance recorded before history existed. */
-const OPENING_BALANCE_NOTE = 'Saldo inicial';
-
+/**
+ * Planning exposes one repository per aggregate. The aggregate services
+ * receive only their own piece; this composition covers the use cases that
+ * link a movement with a budget, a goal, an instalment or a receivable.
+ */
 @Injectable()
 export class PlanningRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly journal: DeletionJournalRepository,
-  ) {}
+  readonly budgets: PlanningBudgetRepository;
+  readonly savingsGoals: PlanningSavingsGoalRepository;
+  readonly loans: PlanningLoanRepository;
+  readonly loanSchedule: PlanningLoanScheduleRepository;
+  readonly receivables: PlanningReceivableRepository;
+  readonly users: PlanningUserTimezoneRepository;
 
-  listBudgets(userId: string) {
-    return this.prisma.finBudget.findMany({
-      where: { userId },
-      include: { category: true, categories: { include: { category: true } } },
-      orderBy: { periodStart: 'desc' },
-    });
+  constructor(prisma: PrismaService, journal: DeletionJournalRepository) {
+    this.budgets = new PlanningBudgetRepository(prisma, journal);
+    this.savingsGoals = new PlanningSavingsGoalRepository(prisma, journal);
+    this.loans = new PlanningLoanRepository(prisma, journal);
+    this.loanSchedule = new PlanningLoanScheduleRepository(prisma);
+    this.receivables = new PlanningReceivableRepository(prisma, journal);
+    this.users = new PlanningUserTimezoneRepository(prisma);
   }
 
-  /** Spent money read from the movements so it matches the budget's list. */
-  sumBudgetSpent(scope: BudgetSpentScope) {
-    return sumBudgetSpent(this.prisma, scope);
-  }
-
-  listBudgetsPage(userId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    const baseWhere: Prisma.FinBudgetWhereInput = { userId };
-    const where: Prisma.FinBudgetWhereInput = after
-      ? {
-          AND: [
-            baseWhere,
-            {
-              OR: [
-                { periodStart: { lt: after.date } },
-                { periodStart: after.date, id: { lt: after.id } },
-              ],
-            },
-          ],
-        }
-      : baseWhere;
-    return this.prisma.finBudget.findMany({
-      where,
-      include: { category: true, categories: { include: { category: true } } },
-      orderBy: [{ periodStart: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
-  }
-
-  findBudget(userId: string, id: string) {
-    return this.prisma.finBudget.findFirst({
-      where: { id, userId },
-      include: { category: true, categories: { include: { category: true } } },
-    });
-  }
-
-  findBudgetsByIds(userId: string, ids: readonly string[]) {
-    return this.prisma.finBudget.findMany({
-      where: { id: { in: [...ids] }, userId },
-      include: { category: true, categories: { include: { category: true } } },
-    });
-  }
-
-  createBudget(
-    userId: string,
-    data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,
-    categoryIds: string[],
-  ): Promise<string> {
-    return this.prisma.$transaction(async (tx) => {
-      const budget = await tx.finBudget.create({ data: { ...data, userId } });
-      await tx.finBudgetCategory.createMany({
-        data: categoryIds.map((categoryId) => ({
-          budgetId: budget.id,
-          categoryId,
-        })),
-      });
-      return budget.id;
-    });
-  }
-
-  updateBudget(
-    userId: string,
-    id: string,
-    data: Prisma.FinBudgetUncheckedUpdateManyInput,
-    categoryIds?: string[],
-  ): Promise<string | null> {
-    return this.prisma.$transaction(async (tx) => {
-      const updateResult = await tx.finBudget.updateMany({
-        where: { id, userId },
-        data,
-      });
-      if (updateResult.count === 0) {
-        return null;
-      }
-      if (categoryIds) {
-        await tx.finBudgetCategory.deleteMany({ where: { budgetId: id } });
-        await tx.finBudgetCategory.createMany({
-          data: categoryIds.map((categoryId) => ({ budgetId: id, categoryId })),
-        });
-      }
-      return id;
-    });
-  }
-
-  findOverlappingBudgetForCategories(
-    userId: string,
-    categoryIds: string[],
-    periodStart: Date,
-    periodEnd: Date,
-    excludeBudgetId?: string,
-  ) {
-    return this.prisma.finBudget.findFirst({
-      where: {
-        userId,
-        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
-        periodStart: { lte: periodEnd },
-        periodEnd: { gte: periodStart },
-        OR: [
-          { categoryId: { in: categoryIds } },
-          { categories: { some: { categoryId: { in: categoryIds } } } },
-        ],
-      },
-      include: { categories: { include: { category: true } } },
-    });
-  }
-
-  findPreviousBudgetForCategories(
-    userId: string,
-    categoryIds: string[],
-    periodStart: Date,
-    excludeBudgetId?: string,
-  ) {
-    return this.prisma.finBudget.findFirst({
-      where: {
-        userId,
-        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
-        periodEnd: { lt: periodStart },
-        categories: {
-          some: { categoryId: { in: categoryIds } },
-          every: { categoryId: { in: categoryIds } },
-        },
-      },
-      include: { categories: true },
-      orderBy: { periodEnd: 'desc' },
-    });
-  }
-
-  async listChildCategoryIds(parentIds: string[]): Promise<string[]> {
-    if (parentIds.length === 0) {
-      return [];
-    }
-    const rows = await this.prisma.finCategory.findMany({
-      where: { parentId: { in: parentIds } },
-      select: { id: true },
-    });
-    return rows.map((row) => row.id);
-  }
-
-  listRecurringBudgets() {
-    return this.prisma.finBudget.findMany({
-      where: { recurring: true },
-      include: { categories: { include: { category: true } } },
-    });
-  }
-
-  deleteBudget(userId: string, id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const budget = await tx.finBudget.findFirst({
-        where: { id, userId },
-        include: { alerts: true },
-      });
-      if (!budget) {
-        return { count: 0 };
-      }
-      const { alerts, ...budgetRow } = budget;
-      await this.journal.record(tx, {
-        userId,
-        entityType: DELETION_ENTITY.budget,
-        entityId: id,
-        snapshot: {
-          rows: [
-            {
-              model: DELETION_MODEL.budget,
-              values: toDeletionValues(budgetRow),
-            },
-            ...alerts.map((alert) => ({
-              model: DELETION_MODEL.budgetAlert,
-              values: toDeletionValues(alert),
-            })),
-          ],
-        },
-      });
-      return tx.finBudget.deleteMany({ where: { id, userId } });
-    });
-  }
-
-  restoreBudget(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.budget, id, now);
-  }
-
-  listSavingsGoals(userId: string) {
-    return this.prisma.finSavingsGoal.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finSavingsGoal.findMany({
-      where: {
-        userId,
-        ...(after
-          ? {
-              OR: [
-                { createdAt: { lt: after.date } },
-                { createdAt: after.date, id: { lt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
-  }
-
-  async findUserTimezone(userId: string): Promise<string | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { timezone: true },
-    });
-    return user?.timezone ?? null;
+  findUserTimezone(userId: string) {
+    return this.users.findUserTimezone(userId);
   }
 
   findSavingsGoal(userId: string, id: string) {
-    return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
-  }
-
-  findSavingsGoalsByIds(userId: string, ids: readonly string[]) {
-    return this.prisma.finSavingsGoal.findMany({
-      where: { id: { in: [...ids] }, userId },
-    });
-  }
-
-  async createSavingsGoal(
-    userId: string,
-    data: Omit<
-      Prisma.FinSavingsGoalUncheckedCreateInput,
-      'userId' | 'currentAmount'
-    >,
-    openingAmount: number,
-    now: Date,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const goal = await tx.finSavingsGoal.create({
-        data: { ...data, userId },
-      });
-      if (openingAmount > 0) {
-        await tx.finSavingsGoalContribution.create({
-          data: {
-            goalId: goal.id,
-            amount: openingAmount,
-            contributedAt: goal.createdAt,
-            notes: OPENING_BALANCE_NOTE,
-          },
-        });
-      }
-      await applySavingsGoalBalance(tx, goal.id, now);
-      return this.readSavingsGoal(tx, goal.id);
-    });
-  }
-
-  async updateSavingsGoal(
-    userId: string,
-    id: string,
-    data: Prisma.FinSavingsGoalUncheckedUpdateManyInput,
-    now: Date,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.finSavingsGoal.updateMany({ where: { id, userId }, data });
-      await applySavingsGoalBalance(tx, id, now);
-    });
-  }
-
-  deleteSavingsGoal(userId: string, id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const goal = await tx.finSavingsGoal.findFirst({
-        where: { id, userId },
-        include: { contributions: true },
-      });
-      if (!goal) {
-        return { count: 0 };
-      }
-      const { contributions, ...goalRow } = goal;
-      await this.journal.record(tx, {
-        userId,
-        entityType: DELETION_ENTITY.savingsGoal,
-        entityId: id,
-        snapshot: {
-          rows: [
-            {
-              model: DELETION_MODEL.savingsGoal,
-              values: toDeletionValues(goalRow),
-            },
-            ...contributions.map((contribution) => ({
-              model: DELETION_MODEL.savingsGoalContribution,
-              values: toDeletionValues(contribution),
-            })),
-          ],
-        },
-      });
-      return tx.finSavingsGoal.deleteMany({ where: { id, userId } });
-    });
-  }
-
-  restoreSavingsGoal(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.savingsGoal, id, now);
-  }
-
-  listSavingsGoalContributions(goalId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finSavingsGoalContribution.findMany({
-      where: {
-        goalId,
-        ...(after
-          ? {
-              OR: [
-                { contributedAt: { lt: after.date } },
-                { contributedAt: after.date, id: { lt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ contributedAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
+    return this.savingsGoals.findSavingsGoal(userId, id);
   }
 
   findSavingsGoalContribution(goalId: string, contributionId: string) {
-    return this.prisma.finSavingsGoalContribution.findFirst({
-      where: { id: contributionId, goalId },
-    });
-  }
-
-  findTransactionByTransferGroupId(userId: string, transferGroupId: string) {
-    return this.prisma.finTransaction.findFirst({
-      where: { userId, transferGroupId },
-      select: { id: true },
-    });
-  }
-
-  async addSavingsGoalContribution(
-    goalId: string,
-    contribution: {
-      amount: number;
-      contributedAt: Date;
-      kind: 'CONTRIBUTION' | 'WITHDRAWAL';
-      accountId?: string | null;
-      destinationAccountId?: string | null;
-      transactionId?: string | null;
-      transferGroupId?: string | null;
-      notes?: string;
-    },
-    now: Date,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.finSavingsGoalContribution.create({
-        data: { goalId, ...contribution },
-      });
-      await applySavingsGoalBalance(tx, goalId, now);
-      return created;
-    });
-  }
-
-  /** Amount already earmarked in every EARMARK goal of one account. */
-  async sumEarmarkedByAccount(
-    userId: string,
-    accountId: string,
-  ): Promise<number> {
-    const goals = await this.prisma.finSavingsGoal.findMany({
-      where: { userId, accountId, mode: 'EARMARK' },
-      select: { id: true },
-    });
-    if (goals.length === 0) {
-      return 0;
-    }
-    const rows = await this.prisma.finSavingsGoalContribution.findMany({
-      where: { goalId: { in: goals.map((goal) => goal.id) } },
-      select: { amount: true, kind: true },
-    });
-    return rows.reduce(
-      (sum, row) =>
-        sum +
-        (row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount)),
-      0,
+    return this.savingsGoals.findSavingsGoalContribution(
+      goalId,
+      contributionId,
     );
-  }
-
-  async removeSavingsGoalContribution(
-    goalId: string,
-    contributionId: string,
-    now: Date,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.finSavingsGoalContribution.deleteMany({
-        where: { id: contributionId, goalId },
-      });
-      await applySavingsGoalBalance(tx, goalId, now);
-    });
-  }
-
-  private readSavingsGoal(tx: Prisma.TransactionClient, goalId: string) {
-    return tx.finSavingsGoal.findUniqueOrThrow({ where: { id: goalId } });
-  }
-
-  listLoans(userId: string) {
-    return this.prisma.finLoan.findMany({
-      where: { userId, isActive: true },
-      orderBy: { nextDueDate: 'asc' },
-      include: {
-        account: { select: { id: true, name: true } },
-        disbursementAccount: { select: { id: true, name: true } },
-        institution: { select: { id: true, name: true } },
-      },
-    });
-  }
-
-  listLoansPage(userId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finLoan.findMany({
-      where: {
-        userId,
-        isActive: true,
-        ...(after
-          ? {
-              OR: [
-                { nextDueDate: { gt: after.date } },
-                { nextDueDate: after.date, id: { gt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ nextDueDate: 'asc' }, { id: 'asc' }],
-      include: {
-        account: { select: { id: true, name: true } },
-        disbursementAccount: { select: { id: true, name: true } },
-        institution: { select: { id: true, name: true } },
-      },
-      take: limit + 1,
-    });
-  }
-
-  findLoan(userId: string, id: string) {
-    return this.prisma.finLoan.findFirst({
-      where: { id, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        disbursementAccount: { select: { id: true, name: true } },
-        institution: { select: { id: true, name: true } },
-      },
-    });
-  }
-
-  findLoansByIds(userId: string, ids: readonly string[]) {
-    return this.prisma.finLoan.findMany({
-      where: { id: { in: [...ids] }, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        disbursementAccount: { select: { id: true, name: true } },
-        institution: { select: { id: true, name: true } },
-      },
-    });
-  }
-
-  createLoan(
-    userId: string,
-    data: Omit<Prisma.FinLoanUncheckedCreateInput, 'userId'>,
-  ) {
-    return this.prisma.finLoan.create({
-      data: { ...data, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        disbursementAccount: { select: { id: true, name: true } },
-        institution: { select: { id: true, name: true } },
-      },
-    });
-  }
-
-  deleteLoan(userId: string, id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const loan = await tx.finLoan.findFirst({
-        where: { id, userId },
-        include: { installments: true },
-      });
-      if (!loan) {
-        return { count: 0 };
-      }
-      const { installments, ...loanRow } = loan;
-      await this.journal.record(tx, {
-        userId,
-        entityType: DELETION_ENTITY.loan,
-        entityId: id,
-        snapshot: {
-          rows: [
-            { model: DELETION_MODEL.loan, values: toDeletionValues(loanRow) },
-            ...installments.map((installment) => ({
-              model: DELETION_MODEL.loanInstallment,
-              values: toDeletionValues(installment),
-            })),
-          ],
-        },
-      });
-      return tx.finLoan.deleteMany({ where: { id, userId } });
-    });
-  }
-
-  restoreLoan(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.loan, id, now);
-  }
-
-  listLoansForScheduleSync() {
-    return this.prisma.finLoan.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        nextDueDate: true,
-        paidInstallments: true,
-        installmentFreq: true,
-        totalInstallments: true,
-        installmentAmount: true,
-        originalAmount: true,
-        currentBalance: true,
-        interestRate: true,
-        insuranceAmount: true,
-      },
-    });
-  }
-
-  listInstallments(loanId: string) {
-    return this.prisma.finLoanInstallment.findMany({
-      where: { loanId },
-      orderBy: { installmentNo: 'asc' },
-    });
-  }
-
-  listInstallmentsPage(loanId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finLoanInstallment.findMany({
-      where: {
-        loanId,
-        ...(after
-          ? {
-              OR: [
-                { dueDate: { gt: after.date } },
-                { dueDate: after.date, id: { gt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ dueDate: 'asc' }, { id: 'asc' }],
-      take: limit + 1,
-    });
-  }
-
-  findNextUnpaidInstallment(loanId: string) {
-    return this.prisma.finLoanInstallment.findFirst({
-      where: { loanId, paidAt: null },
-      orderBy: { installmentNo: 'asc' },
-    });
-  }
-
-  findLoanPaymentCategoryId() {
-    return this.prisma.finCategory
-      .findFirst({
-        where: { isSystem: true, systemKind: 'LOAN_PAYMENT', type: 'EXPENSE' },
-        select: { id: true },
-      })
-      .then((category) => category?.id ?? null);
-  }
-
-  createLoanPrepayment(input: {
-    loanId: string;
-    amount: number;
-    penalty: number;
-    mode: string;
-    paidAt: Date;
-    transactionId: string | null;
-  }) {
-    return this.prisma.finLoanPrepayment.create({ data: input });
-  }
-
-  async replaceLoanSchedule(
-    loanId: string,
-    rows: readonly LoanInstallmentPlan[],
-  ): Promise<void> {
-    const highestInstallmentNo = rows.reduce(
-      (highest, row) => Math.max(highest, row.installmentNo),
-      0,
-    );
-    await this.prisma.$transaction([
-      ...rows.map((row) =>
-        this.prisma.finLoanInstallment.upsert({
-          where: {
-            loanId_installmentNo: {
-              loanId,
-              installmentNo: row.installmentNo,
-            },
-          },
-          create: {
-            loanId,
-            installmentNo: row.installmentNo,
-            dueDate: row.dueDate,
-            amount: row.amount,
-            principal: row.principal,
-            interest: row.interest,
-            insurance: row.insurance,
-            paidAt: row.paidAt,
-            status: row.status,
-            paidAmount: row.paidAmount,
-            fees: row.fees,
-            lateFee: row.lateFee,
-          },
-          update: {
-            dueDate: row.dueDate,
-            amount: row.amount,
-            principal: row.principal,
-            interest: row.interest,
-            insurance: row.insurance,
-            paidAt: row.paidAt,
-          },
-        }),
-      ),
-      this.prisma.finLoanInstallment.deleteMany({
-        where: { loanId, installmentNo: { gt: highestInstallmentNo } },
-      }),
-    ]);
-  }
-
-  async markInstallmentPaid(
-    installmentId: string,
-    paidAt: Date | null,
-    transactionId: string | null,
-  ): Promise<void> {
-    await this.prisma.finLoanInstallment.update({
-      where: { id: installmentId },
-      data: { paidAt, transactionId },
-    });
-  }
-
-  async applyInstallmentPayment(
-    installmentId: string,
-    input: {
-      paidAmount: number;
-      status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
-      paidAt: Date | null;
-      transactionId: string | null;
-    },
-  ): Promise<void> {
-    await this.prisma.finLoanInstallment.update({
-      where: { id: installmentId },
-      data: input,
-    });
-  }
-
-  findInstallmentForUser(userId: string, installmentId: string) {
-    return this.prisma.finLoanInstallment.findFirst({
-      where: { id: installmentId, loan: { userId } },
-      include: { loan: true },
-    });
-  }
-
-  findInstallmentByTransactionId(userId: string, transactionId: string) {
-    return this.prisma.finLoanInstallment.findFirst({
-      where: { transactionId, loan: { userId } },
-      include: { loan: true },
-    });
-  }
-
-  findReceivablePaymentByTransactionId(userId: string, transactionId: string) {
-    return this.prisma.finReceivablePayment.findFirst({
-      where: { transactionId, receivable: { userId } },
-    });
   }
 
   findSavingsGoalContributionByTransactionId(
     userId: string,
     transactionId: string,
   ) {
-    return this.prisma.finSavingsGoalContribution.findFirst({
-      where: { transactionId, goal: { userId } },
-    });
+    return this.savingsGoals.findSavingsGoalContributionByTransactionId(
+      userId,
+      transactionId,
+    );
   }
 
-  async deleteReceivablePayment(receivableId: string, paymentId: string) {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.finReceivablePayment.deleteMany({
-        where: { id: paymentId, receivableId },
-      });
-      await applyReceivableBalance(tx, receivableId);
-    });
+  findTransactionByTransferGroupId(userId: string, transferGroupId: string) {
+    return this.savingsGoals.findTransactionByTransferGroupId(
+      userId,
+      transferGroupId,
+    );
+  }
+
+  addSavingsGoalContribution(
+    goalId: string,
+    contribution: Parameters<
+      PlanningSavingsGoalRepository['addSavingsGoalContribution']
+    >[1],
+    now: Date,
+  ) {
+    return this.savingsGoals.addSavingsGoalContribution(
+      goalId,
+      contribution,
+      now,
+    );
+  }
+
+  removeSavingsGoalContribution(
+    goalId: string,
+    contributionId: string,
+    now: Date,
+  ) {
+    return this.savingsGoals.removeSavingsGoalContribution(
+      goalId,
+      contributionId,
+      now,
+    );
+  }
+
+  sumEarmarkedByAccount(userId: string, accountId: string) {
+    return this.savingsGoals.sumEarmarkedByAccount(userId, accountId);
+  }
+
+  findLoan(userId: string, id: string) {
+    return this.loans.findLoan(userId, id);
+  }
+
+  findLoanPaymentCategoryId() {
+    return this.loans.findLoanPaymentCategoryId();
+  }
+
+  listLoansForScheduleSync() {
+    return this.loans.listLoansForScheduleSync();
   }
 
   updateLoan(
     userId: string,
     id: string,
-    data: Prisma.FinLoanUncheckedUpdateManyInput,
+    data: Parameters<PlanningLoanRepository['updateLoan']>[2],
   ) {
-    return this.prisma.finLoan
-      .updateMany({ where: { id, userId }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.prisma.finLoan.findFirst({
-          where: { id, userId },
-          include: {
-            account: { select: { id: true, name: true } },
-            disbursementAccount: { select: { id: true, name: true } },
-            institution: { select: { id: true, name: true } },
-          },
-        });
-      });
+    return this.loans.updateLoan(userId, id, data);
   }
 
-  listReceivables(userId: string) {
-    return this.prisma.finReceivable.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  listInstallments(loanId: string) {
+    return this.loanSchedule.listInstallments(loanId);
   }
 
-  listReceivablesPage(userId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finReceivable.findMany({
-      where: {
-        userId,
-        ...(after
-          ? {
-              OR: [
-                { createdAt: { lt: after.date } },
-                { createdAt: after.date, id: { lt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    });
+  findNextUnpaidInstallment(loanId: string) {
+    return this.loanSchedule.findNextUnpaidInstallment(loanId);
+  }
+
+  createLoanPrepayment(
+    input: Parameters<
+      PlanningLoanScheduleRepository['createLoanPrepayment']
+    >[0],
+  ) {
+    return this.loanSchedule.createLoanPrepayment(input);
+  }
+
+  replaceLoanSchedule(
+    loanId: string,
+    rows: Parameters<PlanningLoanScheduleRepository['replaceLoanSchedule']>[1],
+  ) {
+    return this.loanSchedule.replaceLoanSchedule(loanId, rows);
+  }
+
+  applyInstallmentPayment(
+    installmentId: string,
+    input: Parameters<
+      PlanningLoanScheduleRepository['applyInstallmentPayment']
+    >[1],
+  ) {
+    return this.loanSchedule.applyInstallmentPayment(installmentId, input);
+  }
+
+  findInstallmentForUser(userId: string, installmentId: string) {
+    return this.loanSchedule.findInstallmentForUser(userId, installmentId);
+  }
+
+  findInstallmentByTransactionId(userId: string, transactionId: string) {
+    return this.loanSchedule.findInstallmentByTransactionId(
+      userId,
+      transactionId,
+    );
   }
 
   findReceivable(userId: string, id: string) {
-    return this.prisma.finReceivable.findFirst({ where: { id, userId } });
+    return this.receivables.findReceivable(userId, id);
   }
 
-  findReceivablesByIds(userId: string, ids: readonly string[]) {
-    return this.prisma.finReceivable.findMany({
-      where: { id: { in: [...ids] }, userId },
-    });
-  }
-
-  async createReceivable(
-    userId: string,
-    data: Omit<
-      Prisma.FinReceivableUncheckedCreateInput,
-      'userId' | 'paidAmount'
-    >,
-    openingAmount: number,
-    requestedStatus: ReceivableStatus | undefined,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const receivable = await tx.finReceivable.create({
-        data: { ...data, userId },
-      });
-      if (openingAmount > 0) {
-        await tx.finReceivablePayment.create({
-          data: {
-            receivableId: receivable.id,
-            amount: openingAmount,
-            appliedAmount: openingAmount,
-            paidAt: receivable.createdAt,
-            notes: OPENING_BALANCE_NOTE,
-          },
-        });
-      }
-      await applyReceivableBalance(tx, receivable.id, requestedStatus);
-      return tx.finReceivable.findUniqueOrThrow({
-        where: { id: receivable.id },
-      });
-    });
-  }
-
-  deleteReceivable(userId: string, id: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const receivable = await tx.finReceivable.findFirst({
-        where: { id, userId },
-        include: { payments: true },
-      });
-      if (!receivable) {
-        return { count: 0 };
-      }
-      const { payments, ...receivableRow } = receivable;
-      await this.journal.record(tx, {
-        userId,
-        entityType: DELETION_ENTITY.receivable,
-        entityId: id,
-        snapshot: {
-          rows: [
-            {
-              model: DELETION_MODEL.receivable,
-              values: toDeletionValues(receivableRow),
-            },
-            ...payments.map((payment) => ({
-              model: DELETION_MODEL.receivablePayment,
-              values: toDeletionValues(payment),
-            })),
-          ],
-        },
-      });
-      return tx.finReceivable.deleteMany({ where: { id, userId } });
-    });
-  }
-
-  restoreReceivable(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.receivable, id, now);
-  }
-
-  async updateReceivable(
-    userId: string,
-    id: string,
-    data: Prisma.FinReceivableUncheckedUpdateManyInput,
-    requestedStatus: ReceivableStatus | undefined,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.finReceivable.updateMany({ where: { id, userId }, data });
-      await applyReceivableBalance(tx, id, requestedStatus);
-    });
-  }
-
-  listReceivablePayments(receivableId: string, query: CursorQueryDto) {
-    const limit = clampPageLimit(query.limit);
-    const after = decodeCursorPosition(query.cursor);
-    return this.prisma.finReceivablePayment.findMany({
-      where: {
-        receivableId,
-        ...(after
-          ? {
-              OR: [
-                { paidAt: { lt: after.date } },
-                { paidAt: after.date, id: { lt: after.id } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
-      include: { account: { select: { id: true, name: true } } },
-      take: limit + 1,
-    });
-  }
-
-  findReceivablePayment(receivableId: string, paymentId: string) {
-    return this.prisma.finReceivablePayment.findFirst({
-      where: { id: paymentId, receivableId },
-    });
-  }
-
-  async createReceivablePayment(
+  createReceivablePayment(
     receivableId: string,
-    payment: {
-      amount: number;
-      appliedAmount: number;
-      excessAmount: number;
-      excessHandling?: string | null;
-      paidAt: Date;
-      accountId: string;
-      transactionId: string | null;
-      notes?: string;
-    },
+    payment: Parameters<
+      PlanningReceivableRepository['createReceivablePayment']
+    >[1],
   ) {
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.finReceivablePayment.create({
-        data: { receivableId, ...payment },
-      });
-      await applyReceivableBalance(tx, receivableId);
-      return created;
-    });
+    return this.receivables.createReceivablePayment(receivableId, payment);
+  }
+
+  findReceivablePaymentByTransactionId(userId: string, transactionId: string) {
+    return this.receivables.findReceivablePaymentByTransactionId(
+      userId,
+      transactionId,
+    );
+  }
+
+  deleteReceivablePayment(receivableId: string, paymentId: string) {
+    return this.receivables.deleteReceivablePayment(receivableId, paymentId);
   }
 
   findExtraIncomeCategoryId() {
-    return this.prisma.finCategory
-      .findFirst({
-        where: { isSystem: true, systemKind: 'EXTRA_INCOME', type: 'INCOME' },
-        select: { id: true },
-      })
-      .then((category) => category?.id ?? null);
+    return this.receivables.findExtraIncomeCategoryId();
   }
 
-  async addReceivableCreditBalance(
+  addReceivableCreditBalance(receivableId: string, amount: number) {
+    return this.receivables.addReceivableCreditBalance(receivableId, amount);
+  }
+
+  applyReceivableCredit(
+    input: Parameters<PlanningReceivableRepository['applyReceivableCredit']>[0],
+  ) {
+    return this.receivables.applyReceivableCredit(input);
+  }
+
+  writeOffReceivable(
     receivableId: string,
-    amount: number,
-  ): Promise<void> {
-    await this.prisma.finReceivable.update({
-      where: { id: receivableId },
-      data: { creditBalance: { increment: amount } },
-    });
-  }
-
-  /** Moves part of the credit balance to another open receivable. */
-  async applyReceivableCredit(input: {
-    sourceReceivableId: string;
-    targetReceivableId: string;
-    amount: number;
-    paidAt: Date;
-  }): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.finReceivable.update({
-        where: { id: input.sourceReceivableId },
-        data: { creditBalance: { decrement: input.amount } },
-      });
-      await tx.finReceivablePayment.create({
-        data: {
-          receivableId: input.targetReceivableId,
-          amount: input.amount,
-          appliedAmount: input.amount,
-          excessAmount: 0,
-          paidAt: input.paidAt,
-          transactionId: null,
-        },
-      });
-      await applyReceivableBalance(tx, input.targetReceivableId);
-    });
-  }
-
-  async writeOffReceivable(
-    receivableId: string,
-    input: { writtenOffAmount: number; writtenOffAt: Date },
-  ): Promise<void> {
-    await this.prisma.finReceivable.update({
-      where: { id: receivableId },
-      data: {
-        status: 'WRITTEN_OFF',
-        writtenOffAmount: input.writtenOffAmount,
-        writtenOffAt: input.writtenOffAt,
-      },
-    });
+    input: Parameters<PlanningReceivableRepository['writeOffReceivable']>[1],
+  ) {
+    return this.receivables.writeOffReceivable(receivableId, input);
   }
 }

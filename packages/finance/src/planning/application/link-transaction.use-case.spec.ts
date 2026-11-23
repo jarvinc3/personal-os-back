@@ -106,12 +106,16 @@ describe('LinkTransactionUseCase', () => {
     ledger.findTransactionById.mockResolvedValue(movement());
     planning.findInstallmentForUser.mockResolvedValue(installment());
 
-    const linkDescriptor = await link.execute(
-      'user-1',
-      'tx-1',
-      { kind: 'LOAN_INSTALLMENT', loanId: 'loan-1', installmentId: 'inst-2' },
-      now,
-    );
+    const linkDescriptor = await link.execute({
+      userId: 'user-1',
+      transactionId: 'tx-1',
+      command: {
+        kind: 'LOAN_INSTALLMENT',
+        loanId: 'loan-1',
+        installmentId: 'inst-2',
+      },
+      now: now,
+    });
 
     expect(recordPayment.execute).not.toHaveBeenCalled();
     expect(planning.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
@@ -136,12 +140,16 @@ describe('LinkTransactionUseCase', () => {
     planning.findInstallmentForUser.mockResolvedValue(installment());
 
     await expect(
-      link.execute(
-        'user-1',
-        'tx-1',
-        { kind: 'LOAN_INSTALLMENT', loanId: 'loan-1', installmentId: 'inst-2' },
-        now,
-      ),
+      link.execute({
+        userId: 'user-1',
+        transactionId: 'tx-1',
+        command: {
+          kind: 'LOAN_INSTALLMENT',
+          loanId: 'loan-1',
+          installmentId: 'inst-2',
+        },
+        now: now,
+      }),
     ).rejects.toMatchObject({
       response: { code: 'TRANSACTION_LINK_AMOUNT_INVALID' },
     });
@@ -153,12 +161,12 @@ describe('LinkTransactionUseCase', () => {
     ledger.findPlanningLinkKind.mockResolvedValue('SAVINGS_CONTRIBUTION');
 
     await expect(
-      link.execute(
-        'user-1',
-        'tx-1',
-        { kind: 'RECEIVABLE_PAYMENT', receivableId: 'rec-1' },
-        now,
-      ),
+      link.execute({
+        userId: 'user-1',
+        transactionId: 'tx-1',
+        command: { kind: 'RECEIVABLE_PAYMENT', receivableId: 'rec-1' },
+        now: now,
+      }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
@@ -173,24 +181,24 @@ describe('LinkTransactionUseCase', () => {
       currency: 'DOP',
     });
 
-    await link.execute(
-      'user-1',
-      'tx-1',
-      { kind: 'RECEIVABLE_PAYMENT', receivableId: 'rec-1' },
-      now,
-    );
+    await link.execute({
+      userId: 'user-1',
+      transactionId: 'tx-1',
+      command: { kind: 'RECEIVABLE_PAYMENT', receivableId: 'rec-1' },
+      now: now,
+    });
 
-    expect(recordPayment.execute).toHaveBeenCalledWith(
-      'user-1',
-      'rec-1',
-      {
+    expect(recordPayment.execute).toHaveBeenCalledWith({
+      userId: 'user-1',
+      receivableId: 'rec-1',
+      dto: {
         amount: 1500,
         accountId: 'acc-1',
         paidAt: now.toISOString(),
         transactionId: 'tx-1',
       },
       now,
-    );
+    });
   });
 
   it('sets money aside when linking a goal', async () => {
@@ -202,24 +210,24 @@ describe('LinkTransactionUseCase', () => {
       accountId: 'acc-1',
     });
 
-    await link.execute(
-      'user-1',
-      'tx-1',
-      { kind: 'SAVINGS_CONTRIBUTION', goalId: 'goal-1' },
-      now,
-    );
+    await link.execute({
+      userId: 'user-1',
+      transactionId: 'tx-1',
+      command: { kind: 'SAVINGS_CONTRIBUTION', goalId: 'goal-1' },
+      now: now,
+    });
 
-    expect(allocateToGoal.execute).toHaveBeenCalledWith(
-      'user-1',
-      'goal-1',
-      {
+    expect(allocateToGoal.execute).toHaveBeenCalledWith({
+      userId: 'user-1',
+      goalId: 'goal-1',
+      dto: {
         amount: 1500,
         kind: 'CONTRIBUTION',
         date: now.toISOString(),
         transactionId: 'tx-1',
       },
       now,
-    );
+    });
   });
 });
 

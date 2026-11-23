@@ -17,12 +17,17 @@ import {
 export class ApplyReceivableCreditUseCase {
   constructor(private readonly repo: PlanningRepository) {}
 
-  async execute(
-    userId: string,
-    sourceReceivableId: string,
-    dto: ApplyReceivableCreditDto,
-    now: Date,
-  ) {
+  async execute({
+    userId,
+    sourceReceivableId,
+    dto,
+    now,
+  }: {
+    userId: string;
+    sourceReceivableId: string;
+    dto: ApplyReceivableCreditDto;
+    now: Date;
+  }) {
     const source = await this.repo.findReceivable(userId, sourceReceivableId);
     if (!source) {
       throw new NotFoundException({

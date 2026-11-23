@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -10,8 +9,6 @@ import { FinanceOwnershipService } from '../../shared/application/finance-owners
 import { roundMoney } from '../../shared/domain/money';
 import {
   TRANSACTION_LINKED,
-  TRANSACTION_LINK_AMOUNT_INVALID,
-  TRANSACTION_LINK_AMOUNT_INVALID_MESSAGE,
   TRANSACTION_LINK_INVALID,
   TRANSACTION_LINK_INVALID_MESSAGE,
   TRANSACTION_LINK_KIND,
@@ -23,12 +20,10 @@ import {
 import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { shiftLoanDueDate } from '../domain/loan-installment-schedule';
-import {
-  distributeLoanPayment,
-  installmentDueTotal,
-} from '../domain/loan-payment';
+import { distributeLoanPayment } from '../domain/loan-payment';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
+import { resolveLinkedAmount } from './link-transaction-amount';
 import { RecordReceivablePaymentUseCase } from './record-receivable-payment.use-case';
 
 export type LinkTransactionCommand =
@@ -42,6 +37,10 @@ export type TransactionLinkDescriptor = {
   label: string;
 };
 
+type InstallmentRow = NonNullable<
+  Awaited<ReturnType<PlanningRepository['findInstallmentForUser']>>
+>;
+
 const CONFIRMED = 'CONFIRMED';
 
 /**
@@ -51,6 +50,9 @@ const CONFIRMED = 'CONFIRMED';
  */
 @Injectable()
 export class LinkTransactionUseCase {
+  // The three link targets are their own use cases; this orchestrator only
+  // routes by kind, so a wrapper would add a hop without removing a dependency.
+  // eslint-disable-next-line max-params
   constructor(
     @Inject(LEDGER_QUERY_REPOSITORY)
     private readonly ledger: LedgerQueryRepositoryPort,
@@ -60,12 +62,17 @@ export class LinkTransactionUseCase {
     private readonly allocateToGoal: AllocateToGoalUseCase,
   ) {}
 
-  async execute(
-    userId: string,
-    transactionId: string,
-    command: LinkTransactionCommand,
-    now: Date,
-  ): Promise<TransactionLinkDescriptor> {
+  async execute({
+    userId,
+    transactionId,
+    command,
+    now,
+  }: {
+    userId: string;
+    transactionId: string;
+    command: LinkTransactionCommand;
+    now: Date;
+  }): Promise<TransactionLinkDescriptor> {
     const movement = await this.ledger.findTransactionById(
       transactionId,
       userId,
@@ -98,20 +105,25 @@ export class LinkTransactionUseCase {
 
     switch (command.kind) {
       case 'LOAN_INSTALLMENT':
-        return this.linkInstallment(userId, movement, command, now);
+        return this.linkInstallment({ userId, movement, command, now });
       case 'RECEIVABLE_PAYMENT':
-        return this.linkReceivable(userId, movement, command, now);
+        return this.linkReceivable({ userId, movement, command, now });
       case 'SAVINGS_CONTRIBUTION':
-        return this.linkGoal(userId, movement, command, now);
+        return this.linkGoal({ userId, movement, command, now });
     }
   }
 
-  private async linkInstallment(
-    userId: string,
-    movement: LedgerTransactionRow,
-    command: Extract<LinkTransactionCommand, { kind: 'LOAN_INSTALLMENT' }>,
-    now: Date,
-  ): Promise<TransactionLinkDescriptor> {
+  private async linkInstallment({
+    userId,
+    movement,
+    command,
+    now,
+  }: {
+    userId: string;
+    movement: LedgerTransactionRow;
+    command: Extract<LinkTransactionCommand, { kind: 'LOAN_INSTALLMENT' }>;
+    now: Date;
+  }): Promise<TransactionLinkDescriptor> {
     if (movement.type !== 'DEBIT' || !movement.accountId) {
       throw new ConflictException({
         code: TRANSACTION_LINK_INVALID,
@@ -139,27 +151,11 @@ export class LinkTransactionUseCase {
     await this.ownership.assertAccountOwned(userId, movement.accountId);
 
     const loan = installment.loan;
-    const movementCurrency = movement.ledgerCurrency ?? movement.currency;
-    if (movementCurrency !== loan.currency) {
-      throw new ConflictException({
-        code: TRANSACTION_LINK_INVALID,
-        message: TRANSACTION_LINK_INVALID_MESSAGE,
-      });
-    }
-    const amount = roundMoney(Number(movement.ledgerAmount ?? movement.amount));
-    const dueTotal = installmentDueTotal({
-      principal: Number(installment.principal),
-      interest: Number(installment.interest),
-      insurance: Number(installment.insurance),
-      fees: Number(installment.fees),
-      lateFee: Number(installment.lateFee),
+    const amount = resolveLinkedAmount({
+      movement,
+      loanCurrency: loan.currency,
+      installment,
     });
-    if (amount > dueTotal + 0.005) {
-      throw new BadRequestException({
-        code: TRANSACTION_LINK_AMOUNT_INVALID,
-        message: TRANSACTION_LINK_AMOUNT_INVALID_MESSAGE,
-      });
-    }
     const breakdown = distributeLoanPayment({
       paid: amount,
       lateFee: Number(installment.lateFee),
@@ -176,6 +172,22 @@ export class LinkTransactionUseCase {
       paidAt: fullyPaid ? now : null,
       transactionId: movement.id,
     });
+    await this.persistLinkedLoan({ userId, loan, fullyPaid, breakdown });
+
+    return {
+      kind: TRANSACTION_LINK_KIND.LOAN_INSTALLMENT,
+      targetId: installment.id,
+      label: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
+    };
+  }
+
+  private async persistLinkedLoan(input: {
+    userId: string;
+    loan: InstallmentRow['loan'];
+    fullyPaid: boolean;
+    breakdown: { principal: number };
+  }): Promise<void> {
+    const { userId, loan, fullyPaid, breakdown } = input;
     await this.planning.updateLoan(userId, loan.id, {
       currentBalance: roundMoney(
         Number(loan.currentBalance) - breakdown.principal,
@@ -191,20 +203,19 @@ export class LinkTransactionUseCase {
           }
         : {}),
     });
-
-    return {
-      kind: TRANSACTION_LINK_KIND.LOAN_INSTALLMENT,
-      targetId: installment.id,
-      label: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
-    };
   }
 
-  private async linkReceivable(
-    userId: string,
-    movement: LedgerTransactionRow,
-    command: Extract<LinkTransactionCommand, { kind: 'RECEIVABLE_PAYMENT' }>,
-    now: Date,
-  ): Promise<TransactionLinkDescriptor> {
+  private async linkReceivable({
+    userId,
+    movement,
+    command,
+    now,
+  }: {
+    userId: string;
+    movement: LedgerTransactionRow;
+    command: Extract<LinkTransactionCommand, { kind: 'RECEIVABLE_PAYMENT' }>;
+    now: Date;
+  }): Promise<TransactionLinkDescriptor> {
     if (movement.type !== 'CREDIT' || !movement.accountId) {
       throw new ConflictException({
         code: TRANSACTION_LINK_INVALID,
@@ -235,17 +246,17 @@ export class LinkTransactionUseCase {
         message: TRANSACTION_LINK_INVALID_MESSAGE,
       });
     }
-    await this.recordPayment.execute(
+    await this.recordPayment.execute({
       userId,
-      receivable.id,
-      {
+      receivableId: receivable.id,
+      dto: {
         amount,
         accountId: movement.accountId,
         paidAt: movement.transactionDate.toISOString(),
         transactionId: movement.id,
       },
       now,
-    );
+    });
     return {
       kind: TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT,
       targetId: receivable.id,
@@ -253,12 +264,17 @@ export class LinkTransactionUseCase {
     };
   }
 
-  private async linkGoal(
-    userId: string,
-    movement: LedgerTransactionRow,
-    command: Extract<LinkTransactionCommand, { kind: 'SAVINGS_CONTRIBUTION' }>,
-    now: Date,
-  ): Promise<TransactionLinkDescriptor> {
+  private async linkGoal({
+    userId,
+    movement,
+    command,
+    now,
+  }: {
+    userId: string;
+    movement: LedgerTransactionRow;
+    command: Extract<LinkTransactionCommand, { kind: 'SAVINGS_CONTRIBUTION' }>;
+    now: Date;
+  }): Promise<TransactionLinkDescriptor> {
     if (!movement.accountId) {
       throw new ConflictException({
         code: TRANSACTION_LINK_INVALID,
@@ -278,17 +294,17 @@ export class LinkTransactionUseCase {
         message: TRANSACTION_LINK_INVALID_MESSAGE,
       });
     }
-    await this.allocateToGoal.execute(
+    await this.allocateToGoal.execute({
       userId,
-      goal.id,
-      {
+      goalId: goal.id,
+      dto: {
         amount: roundMoney(Number(movement.ledgerAmount ?? movement.amount)),
         kind: 'CONTRIBUTION',
         date: movement.transactionDate.toISOString(),
         transactionId: movement.id,
       },
       now,
-    );
+    });
     return {
       kind: TRANSACTION_LINK_KIND.SAVINGS_CONTRIBUTION,
       targetId: goal.id,

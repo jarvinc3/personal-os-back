@@ -6,7 +6,7 @@ import {
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
-import { PlanningRepository } from '../infrastructure/planning.repository';
+import { PlanningSavingsGoalRepository } from '../infrastructure/planning-savings-goal.repository';
 import type { CreateSavingsGoalDto } from '../presentation/dto/create-savings-goal.dto';
 import type { UpdateSavingsGoalDto } from '../presentation/dto/update-savings-goal.dto';
 import { mapSavingsGoal, mapSavingsGoalContribution } from './planning-mappers';
@@ -15,7 +15,7 @@ import { savingsGoalUpdateFields } from './planning-savings-goal-changes';
 /** Savings goals of a user and the contributions that feed their balance. */
 export class PlanningSavingsGoals {
   constructor(
-    private readonly repo: PlanningRepository,
+    private readonly repo: PlanningSavingsGoalRepository,
     private readonly ownership: FinanceOwnershipService,
   ) {}
 
@@ -52,9 +52,8 @@ export class PlanningSavingsGoals {
   ) {
     const currency = dto.currency ?? 'DOP';
     await this.assertGoalAccount(userId, dto.accountId, currency);
-    const created = await this.repo.createSavingsGoal(
-      userId,
-      {
+    const created = await this.repo.createSavingsGoal(userId, {
+      data: {
         name: dto.name.trim(),
         description: dto.description,
         targetAmount: dto.targetAmount,
@@ -64,9 +63,9 @@ export class PlanningSavingsGoals {
         mode: dto.mode ?? 'EARMARK',
         spendReducesProgress: dto.spendReducesProgress ?? true,
       },
-      dto.currentAmount ?? 0,
+      openingAmount: dto.currentAmount ?? 0,
       now,
-    );
+    });
     return mapSavingsGoal(created);
   }
 
@@ -88,12 +87,10 @@ export class PlanningSavingsGoals {
     if (nextAccountId) {
       await this.assertGoalAccount(userId, nextAccountId, nextCurrency);
     }
-    await this.repo.updateSavingsGoal(
-      userId,
-      id,
-      savingsGoalUpdateFields(dto),
+    await this.repo.updateSavingsGoal(userId, id, {
+      data: savingsGoalUpdateFields(dto),
       now,
-    );
+    });
     const saved = await this.repo.findSavingsGoal(userId, id);
     if (!saved) {
       throw new NotFoundException('Meta de ahorro no encontrada');
