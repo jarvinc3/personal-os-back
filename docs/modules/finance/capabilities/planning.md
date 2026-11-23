@@ -16,4 +16,4 @@
 - Links públicos de cobros (`fin_receivable_shares`): conjunto fijo elegido al crear (`receivableIds` 1-50, sin duplicados), token aleatorio base64url de 256 bits y `debtor_name`. `GET /finance/receivable-shares` lista con `itemCount`; `PATCH .../:id/revoke` marca `is_active=false` y `revoked_at`; `PATCH .../:id/regenerate` rota el token y reactiva. `GET /public/receivable-shares/:token` (sin auth, 30/min por IP, `X-Robots-Tag: noindex`) responde 404 genérico si falta, está inactivo, revocado o vencido.
 - DTO público de un link: `ownerFirstName`, `debtorName`, `updatedAt`, `totalsByCurrency` (una línea por moneda, sin convertir) e `items` con `ref` opaco, `concept`, fechas, montos, `currency`, `status`, `note` y `payments`. Nunca expone cuentas, instituciones, transacciones, ids internos ni el email del dueño. `CANCELLED` y `WRITTEN_OFF` se excluyen; `concept` usa `description` o, si falta, `Cobro del <d MMM>` con el día de creación en la zona del dueño.
 
-Evidencia: `planning/application/planning.service.ts` + `receivable-shares/` + specs.
+Evidencia: `planning/application/` + `receivable-shares/` + specs.
