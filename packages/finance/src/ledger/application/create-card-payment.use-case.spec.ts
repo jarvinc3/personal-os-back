@@ -2,7 +2,8 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateCardPaymentUseCase } from './create-card-payment.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 function leg(id: string) {
   return {
@@ -30,7 +31,11 @@ function leg(id: string) {
   };
 }
 
-function buildRepo(overrides: Partial<LedgerRepositoryPort> = {}) {
+function buildRepo(
+  overrides: Partial<
+    LedgerWriteRepositoryPort & LedgerQueryRepositoryPort
+  > = {},
+) {
   return {
     findCardForPayment: jest.fn().mockResolvedValue({
       id: 'card-1',
@@ -46,10 +51,12 @@ function buildRepo(overrides: Partial<LedgerRepositoryPort> = {}) {
       credit: leg('c1'),
     }),
     ...overrides,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
 }
 
-function buildUseCase(repo: LedgerRepositoryPort) {
+function buildUseCase(
+  repo: LedgerWriteRepositoryPort & LedgerQueryRepositoryPort,
+) {
   const resolveAmounts = {
     execute: jest.fn().mockResolvedValue({
       amount: 100,
@@ -67,6 +74,7 @@ function buildUseCase(repo: LedgerRepositoryPort) {
     wake: jest.fn(),
   } as unknown as DomainEventRelay;
   return new CreateCardPaymentUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,

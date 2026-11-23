@@ -1,15 +1,15 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
 import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_REVERSAL_REPOSITORY } from '../../shared/application/tokens';
 import { mapLedgerTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerReversalRepositoryPort } from './ports/ledger-reversal.repository.port';
 
 @Injectable()
 export class ReverseTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_REVERSAL_REPOSITORY)
+    private readonly repo: LedgerReversalRepositoryPort,
     @Inject(DOMAIN_EVENT_RELAY)
     private readonly relay: DomainEventRelay,
   ) {}

@@ -2,12 +2,8 @@ import type { DomainEventPublisher } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
 import { IMPORT_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/import-dedupe';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
-import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
-import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
-import { PrismaLedgerImportRepository } from './prisma-ledger-import.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
-import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
 function createRepository() {
   const prisma = {
@@ -27,30 +23,14 @@ function createRepository() {
   };
 
   const events = { enqueue: jest.fn() } as unknown as DomainEventPublisher;
-  const journal = {
-    record: jest.fn(),
-    restore: jest.fn(),
-  } as unknown as DeletionJournalRepository;
-
   return {
     prisma,
-    repository: new PrismaLedgerRepository(
+    repository: new PrismaLedgerReadRepository(
       prisma as unknown as PrismaService,
-      new PrismaLedgerReadRepository(prisma as unknown as PrismaService),
+    ),
+    write: new PrismaLedgerWriteRepository(
+      prisma as unknown as PrismaService,
       events,
-      new PrismaLedgerDeletionRepository(
-        prisma as unknown as PrismaService,
-        events,
-        journal,
-      ),
-      new PrismaLedgerImportRepository(
-        prisma as unknown as PrismaService,
-        events,
-      ),
-      new PrismaLedgerWriteRepository(
-        prisma as unknown as PrismaService,
-        events,
-      ),
     ),
   };
 }
@@ -67,9 +47,9 @@ describe('PrismaLedgerRepository lookups', () => {
   });
 
   it('clears the duplicate marker without deleting the row', async () => {
-    const { repository, prisma } = createRepository();
+    const { write, prisma } = createRepository();
 
-    await repository.clearPossibleDuplicate('user-1', 'tx-1');
+    await write.clearPossibleDuplicate('user-1', 'tx-1');
 
     expect(prisma.finTransaction.updateMany).toHaveBeenCalledWith({
       where: { id: 'tx-1', userId: 'user-1' },
@@ -542,28 +522,28 @@ describe('PrismaLedgerRepository lookups', () => {
   });
 
   it('finds a card for payment with its currencies', async () => {
-    const { repository, prisma } = createRepository();
+    const { write, prisma } = createRepository();
     prisma.finCard.findFirst.mockResolvedValue({
       id: 'card-1',
       type: 'CREDIT',
       balances: [{ currency: 'DOP' }, { currency: 'USD' }],
     });
 
-    await expect(
-      repository.findCardForPayment('user-1', 'card-1'),
-    ).resolves.toEqual({
-      id: 'card-1',
-      type: 'CREDIT',
-      currencies: ['DOP', 'USD'],
-    });
+    await expect(write.findCardForPayment('user-1', 'card-1')).resolves.toEqual(
+      {
+        id: 'card-1',
+        type: 'CREDIT',
+        currencies: ['DOP', 'USD'],
+      },
+    );
   });
 
   it('returns null when the payment card does not exist', async () => {
-    const { repository, prisma } = createRepository();
+    const { write, prisma } = createRepository();
     prisma.finCard.findFirst.mockResolvedValue(null);
 
     await expect(
-      repository.findCardForPayment('user-1', 'card-1'),
+      write.findCardForPayment('user-1', 'card-1'),
     ).resolves.toBeNull();
   });
 });

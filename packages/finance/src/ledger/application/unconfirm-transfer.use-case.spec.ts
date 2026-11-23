@@ -1,9 +1,8 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
 import { UnconfirmTransferUseCase } from './unconfirm-transfer.use-case';
-import type {
-  LedgerRepositoryPort,
-  LedgerTransactionRow,
-} from './ports/ledger.repository.port';
+import type { LedgerStatusRepositoryPort } from './ports/ledger-status.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
+import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 
 function leg(
   overrides: Partial<LedgerTransactionRow> = {},
@@ -40,14 +39,14 @@ describe('UnconfirmTransferUseCase', () => {
   const repo = {
     findTransactionById,
     unconfirmTransactionsByTransferGroupId,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerStatusRepositoryPort & LedgerQueryRepositoryPort;
 
   const wake = jest.fn();
   const relay = {
     wake,
   } as unknown as DomainEventRelay;
 
-  const useCase = new UnconfirmTransferUseCase(repo, relay);
+  const useCase = new UnconfirmTransferUseCase(repo, repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();

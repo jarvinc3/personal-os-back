@@ -3,10 +3,9 @@ import { BadRequestException } from '@nestjs/common';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { UpdateTransactionUseCase } from './update-transaction.use-case';
-import type {
-  LedgerRepositoryPort,
-  LedgerTransactionRow,
-} from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
+import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 
 function tx(
   overrides: Partial<LedgerTransactionRow> = {},
@@ -43,7 +42,7 @@ describe('UpdateTransactionUseCase category type', () => {
   const repo = {
     findTransactionById,
     updateTransaction,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
 
   const resolveAmounts = {
     execute: jest.fn(),
@@ -67,6 +66,7 @@ describe('UpdateTransactionUseCase category type', () => {
   };
 
   const useCase = new UpdateTransactionUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,

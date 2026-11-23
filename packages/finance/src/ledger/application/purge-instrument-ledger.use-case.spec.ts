@@ -1,6 +1,6 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 import { PurgeInstrumentLedgerUseCase } from './purge-instrument-ledger.use-case';
+import type { LedgerDeletionRepositoryPort } from './ports/ledger-deletion.repository.port';
 
 describe('PurgeInstrumentLedgerUseCase', () => {
   const purgeLedgerForAccount = jest.fn();
@@ -10,7 +10,7 @@ describe('PurgeInstrumentLedgerUseCase', () => {
   const repo = {
     purgeLedgerForAccount,
     purgeLedgerForCard,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerDeletionRepositoryPort;
 
   const relay = {
     wake,

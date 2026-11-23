@@ -8,8 +8,47 @@ import {
   PartialReversalAlreadyAppliedError,
   PartialReversalExceedsOriginalError,
 } from '../application/partial-reversal.errors';
-import { PrismaLedgerRepository } from './prisma-ledger.repository';
+import { PrismaLedgerStatusRepository } from './prisma-ledger-status.repository';
+import { PrismaLedgerReversalRepository } from './prisma-ledger-reversal.repository';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+
+/** Las piezas del ledger con la misma forma que usaba la fachada retirada. */
+function ledgerFor({
+  prisma,
+  events,
+  journal: deletionJournal = journal,
+}: {
+  prisma: never;
+  events: never;
+  journal?: never;
+}) {
+  const write = new PrismaLedgerWriteRepository(prisma, events);
+  const read = new PrismaLedgerReadRepository(prisma);
+  const deletion = new PrismaLedgerDeletionRepository(
+    prisma,
+    events,
+    deletionJournal,
+  );
+  const imports = new PrismaLedgerImportRepository(prisma, events);
+  const status = new PrismaLedgerStatusRepository(prisma, events);
+  const reversal = new PrismaLedgerReversalRepository(prisma, events);
+  return {
+    createTransaction: write.createTransaction.bind(write),
+    createTransfer: write.createTransfer.bind(write),
+    deleteTransaction: deletion.deleteTransaction.bind(deletion),
+    deleteTransactionsByTransferGroupId:
+      deletion.deleteTransactionsByTransferGroupId.bind(deletion),
+    purgeLedgerForAccount: deletion.purgeLedgerForAccount.bind(deletion),
+    purgeLedgerForCard: deletion.purgeLedgerForCard.bind(deletion),
+    restoreTransaction: deletion.restoreTransaction.bind(deletion),
+    createImportedTransaction: imports.createImportedTransaction.bind(imports),
+    findTransactions: read.findTransactions.bind(read),
+    findLatestCategoryIdByMerchant:
+      read.findLatestCategoryIdByMerchant.bind(read),
+    confirmTransaction: status.confirmTransaction.bind(status),
+    reverseTransaction: reversal.reverseTransaction.bind(reversal),
+  };
+}
 
 const journal = {
   record: jest.fn().mockResolvedValue({ id: 'journal-1' }),
@@ -130,25 +169,17 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       },
     );
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
-    const result = await repo.createTransaction(
-      'user-1',
-      {
+    const result = await repo.createTransaction({
+      userId: 'user-1',
+      command: {
         type: 'DEBIT',
         amount: 10,
         transactionDate: '2026-08-01',
         accountId: 'acc-1',
       },
-      {
+      amounts: {
         amount: 10,
         currency: 'DOP',
         ledgerAmount: 10,
@@ -156,8 +187,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         amountBaseCurrency: 10,
         exchangeRate: 1,
       },
-      'MANUAL',
-    );
+      source: 'MANUAL',
+    });
 
     expect(result?.transaction.id).toBe('tx-1');
     expect(enqueue).toHaveBeenCalled();
@@ -211,26 +242,18 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         return fn(tx);
       }),
     };
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
-    await repo.createTransaction(
-      'user-1',
-      {
+    await repo.createTransaction({
+      userId: 'user-1',
+      command: {
         type: 'CREDIT',
         amount: 10,
         transactionDate: '2026-08-01',
         accountId: 'acc-1',
         announce: false,
       },
-      {
+      amounts: {
         amount: 10,
         currency: 'DOP',
         ledgerAmount: 10,
@@ -238,8 +261,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         amountBaseCurrency: 10,
         exchangeRate: 1,
       },
-      'MANUAL',
-    );
+      source: 'MANUAL',
+    });
 
     expect(
       (enqueue.mock.calls[0]?.[0] as { payload?: unknown }).payload,
@@ -328,15 +351,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const createdTransfer = await repo.createTransfer({
       userId: 'user-1',
@@ -450,15 +465,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const result = await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -526,15 +533,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -591,15 +590,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -657,15 +648,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     await repo.reverseTransaction('user-1', 'tx-del');
 
@@ -726,15 +709,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const result = await repo.deleteTransactionsByTransferGroupId(
       'user-1',
@@ -780,15 +755,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const result = await repo.deleteTransaction('user-1', 'missing');
     expect(result).toEqual({ count: 0 });
@@ -836,15 +803,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const confirmedOutcome = await repo.confirmTransaction('user-1', 'tx-1');
 
@@ -895,15 +854,11 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, localJournal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({
+      prisma: prisma as never,
+      events: events,
+      journal: localJournal,
+    });
 
     const deletedOutcome = await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -968,21 +923,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     };
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      { enqueue: jest.fn() },
-      new PrismaLedgerDeletionRepository(
-        prisma as never,
-        { enqueue: jest.fn() },
-        journal,
-      ),
-      new PrismaLedgerImportRepository(prisma as never, {
-        enqueue: jest.fn(),
-      }),
-      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
-      undefined,
-    );
+    const repo = ledgerFor({
+      prisma: prisma as never,
+      events: { enqueue: jest.fn() },
+    });
 
     const items = await repo.findTransactions('user-1', { limit: 20 });
 
@@ -1051,15 +995,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-1');
     expect(result).toMatchObject({ count: 1 });
@@ -1110,15 +1046,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-from');
     expect(result).toMatchObject({ count: 2 });
@@ -1145,15 +1073,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      events,
-      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-      new PrismaLedgerImportRepository(prisma as never, events),
-      new PrismaLedgerWriteRepository(prisma as never, events),
-      undefined,
-    );
+    const repo = ledgerFor({ prisma, events });
 
     await expect(
       repo.purgeLedgerForCard('user-1', 'card-1'),
@@ -1169,21 +1089,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     const prisma = {
       finTransaction: { findFirst },
     };
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      { enqueue: jest.fn() },
-      new PrismaLedgerDeletionRepository(
-        prisma as never,
-        { enqueue: jest.fn() },
-        journal,
-      ),
-      new PrismaLedgerImportRepository(prisma as never, {
-        enqueue: jest.fn(),
-      }),
-      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
-      undefined,
-    );
+    const repo = ledgerFor({
+      prisma: prisma as never,
+      events: { enqueue: jest.fn() },
+    });
 
     await expect(
       repo.findLatestCategoryIdByMerchant('user-1', '  Cafe  '),
@@ -1203,21 +1112,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
   it('findLatestCategoryIdByMerchant returns null for blank merchant', async () => {
     const findFirst = jest.fn();
     const prisma = { finTransaction: { findFirst } };
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      new PrismaLedgerReadRepository(prisma as never),
-      { enqueue: jest.fn() },
-      new PrismaLedgerDeletionRepository(
-        prisma as never,
-        { enqueue: jest.fn() },
-        journal,
-      ),
-      new PrismaLedgerImportRepository(prisma as never, {
-        enqueue: jest.fn(),
-      }),
-      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
-      undefined,
-    );
+    const repo = ledgerFor({
+      prisma: prisma as never,
+      events: { enqueue: jest.fn() },
+    });
     await expect(
       repo.findLatestCategoryIdByMerchant('user-1', '   '),
     ).resolves.toBeNull();

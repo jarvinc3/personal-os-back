@@ -1,14 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { assertRestored } from '../../shared/application/assert-restored';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import { LEDGER_DELETION_REPOSITORY } from '../../shared/application/tokens';
+import type { LedgerDeletionRepositoryPort } from './ports/ledger-deletion.repository.port';
 
 /** Undoes a transaction delete from its journal snapshot. */
 @Injectable()
 export class RestoreTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_DELETION_REPOSITORY)
+    private readonly repo: LedgerDeletionRepositoryPort,
   ) {}
 
   async execute(userId: string, id: string, now: Date) {
