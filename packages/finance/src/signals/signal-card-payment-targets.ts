@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
 import { accountMatchesHint } from '../ledger/application/resolve-ledger-target-from-hints';
 
@@ -24,6 +25,7 @@ export const CARD_PAYMENT_REVIEW_REASON = {
 } as const;
 
 /** Decide la tarjeta de crédito y la cuenta de origen de un pago de tarjeta. */
+@Injectable()
 export class CardPaymentTargets {
   constructor(private readonly prisma: PrismaService) {}
 

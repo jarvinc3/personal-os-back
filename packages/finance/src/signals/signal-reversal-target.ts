@@ -1,5 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
-import type { LedgerQueryService } from '../ledger/application/ledger-query.service';
+import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
 import {
   classifyReversalCandidates,
@@ -29,6 +30,7 @@ function toReversalOriginal(row: LedgerTransactionRow): ReversalOriginal {
 }
 
 /** Busca el gasto original de un reverso por referencia, correo, comercio o tarjeta. */
+@Injectable()
 export class ReversalTargetResolver {
   constructor(
     private readonly prisma: PrismaService,

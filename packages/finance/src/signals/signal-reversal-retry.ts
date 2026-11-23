@@ -1,34 +1,30 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
-import type { PrismaService } from '@personal-os/database';
-import type { SignalImportApplier } from './signal-import-applier';
+import { PrismaService } from '@personal-os/database';
 import {
   FINANCE_TRANSACTION_SIGNAL,
   parseSignalPayload,
-  type SignalCandidate,
 } from './signal-import-payload';
 import {
   lockSignalImports,
   SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
   SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
 } from './signal-import-lock';
-import type {
-  PendingReversalRow,
+import {
   SignalImportStore,
+  type PendingReversalRow,
 } from './signal-import-store';
-import type { SignalReversalPlanner } from './signal-reversal-planner';
+import { SignalReversalRetryApply } from './signal-reversal-retry-apply';
 
 /** Reintenta los reversos en revisión cuando un import nuevo trae su original. */
+@Injectable()
 export class PendingReversalRetry {
   private readonly logger = new Logger(PendingReversalRetry.name);
 
   constructor(
-    private readonly deps: {
-      prisma: PrismaService;
-      store: SignalImportStore;
-      planner: SignalReversalPlanner;
-      applier: SignalImportApplier;
-    },
+    private readonly store: SignalImportStore,
+    private readonly prisma: PrismaService,
+    private readonly applyRetry: SignalReversalRetryApply,
   ) {}
 
   async run({
@@ -38,7 +34,7 @@ export class PendingReversalRetry {
     userId: string;
     lockHeld: boolean;
   }): Promise<void> {
-    const pending = await this.deps.store.findPendingReversalRows(userId);
+    const pending = await this.store.findPendingReversalRows(userId);
     for (const row of pending) {
       try {
         await this.applyPending({ userId, row, lockHeld });
@@ -74,46 +70,19 @@ export class PendingReversalRetry {
     }
     const signal = this.pendingSignal(userId, row);
     if (lockHeld) {
-      await this.applyRetry({ userId, signal, candidate });
+      await this.applyRetry.apply({ userId, signal, candidate });
       return;
     }
-    await this.deps.prisma.$transaction(
+    await this.prisma.$transaction(
       async (tx) => {
         await lockSignalImports({ tx, userId });
-        await this.applyRetry({ userId, signal, candidate });
+        await this.applyRetry.apply({ userId, signal, candidate });
       },
       {
         timeout: SIGNAL_IMPORT_TRANSACTION_TIMEOUT_MS,
         maxWait: SIGNAL_IMPORT_TRANSACTION_MAX_WAIT_MS,
       },
     );
-  }
-
-  private async applyRetry({
-    userId,
-    signal,
-    candidate,
-  }: {
-    userId: string;
-    signal: RoutedSignal;
-    candidate: SignalCandidate;
-  }): Promise<void> {
-    const current = await this.deps.store.findStatus({
-      userId,
-      signalId: signal.signalId,
-    });
-    if (current !== 'REVIEW_REQUIRED') {
-      return;
-    }
-    const plan = await this.deps.planner.build({ signal, candidate });
-    if (plan.kind !== 'IMPORT') {
-      await this.deps.applier.apply(signal, plan);
-      return;
-    }
-    // Un reverso parcial es el único plan que escribe un movimiento aquí: lleva
-    // su original enlazado y no es transferencia, así que no quedan reintento
-    // ni emparejamiento pendientes.
-    await this.deps.applier.applyImport(signal, plan.draft);
   }
 
   private pendingSignal(

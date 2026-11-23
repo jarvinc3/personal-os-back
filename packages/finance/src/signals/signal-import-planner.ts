@@ -1,21 +1,16 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
-import type { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import {
-  isCardPaymentMovementClass,
   isTransferMovementClass,
   type MovementClass,
 } from '../ledger/domain/movement-class';
 import type { FinTransactionStatusValue } from '../shared/domain/transaction-status';
-import type { CardPaymentPlanner } from './signal-card-payment-planner';
-import {
-  failedPlan,
-  importedPlan,
-  returnPlan,
-  reviewPlan,
-  storedImportResult,
-  type ImportPlan,
-  type ImportResolutionOverride,
+import type {
+  ImportPlan,
+  ImportResolutionOverride,
 } from './signal-import-plan';
+import { failedPlan, returnPlan, reviewPlan } from './signal-import-plan';
+import { SignalImportPlanGuard } from './signal-import-plan-guard';
 import {
   FINANCE_TRANSACTION_SIGNAL,
   firstValidationReviewReason,
@@ -27,13 +22,8 @@ import {
   type SignalCandidate,
   type SignalPayload,
 } from './signal-import-payload';
-import {
-  isRetryableTargetReview,
-  type SignalImportStore,
-} from './signal-import-store';
-import type { SignalImportTargets } from './signal-import-targets';
-import type { SignalMovementPlanner } from './signal-movement-planner';
-import type { SignalReversalPlanner } from './signal-reversal-planner';
+import { SignalImportTargets } from './signal-import-targets';
+import { SignalPlanDispatch } from './signal-plan-dispatch';
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 
@@ -43,7 +33,7 @@ type ImportRequest = {
 };
 
 /** Lo que el plan de movimiento necesita, ya validado y clasificado. */
-type PreparedMovement = {
+export type PreparedMovement = {
   kind: 'movement';
   payload: SignalPayload;
   candidate: SignalCandidate;
@@ -58,16 +48,12 @@ type PreparedMovement = {
 type PreparedImport = PreparedMovement | { kind: 'plan'; plan: ImportPlan };
 
 /** Decide qué pasará con la señal antes de escribir nada en el ledger. */
+@Injectable()
 export class SignalImportPlanner {
   constructor(
-    private readonly deps: {
-      store: SignalImportStore;
-      ledger: LedgerQueryService;
-      targets: SignalImportTargets;
-      movementPlanner: SignalMovementPlanner;
-      reversalPlanner: SignalReversalPlanner;
-      cardPaymentPlanner: CardPaymentPlanner;
-    },
+    private readonly guard: SignalImportPlanGuard,
+    private readonly targets: SignalImportTargets,
+    private readonly dispatch: SignalPlanDispatch,
   ) {}
 
   async build({ signal, override }: ImportRequest): Promise<ImportPlan> {
@@ -79,7 +65,7 @@ export class SignalImportPlanner {
       });
     }
 
-    const blockedPlan = await this.blockedPlan({ signal, override });
+    const blockedPlan = await this.guard.blockedPlan({ signal, override });
     if (blockedPlan) {
       return blockedPlan;
     }
@@ -88,69 +74,15 @@ export class SignalImportPlanner {
     if (prepared.kind === 'plan') {
       return prepared.plan;
     }
-    const accounts = await this.deps.targets.findActiveAccounts(signal.userId);
-    const cards = await this.deps.targets.findActiveCards(signal.userId);
-    if (prepared.status === 'REVERSED') {
-      return this.deps.reversalPlanner.build({
-        signal,
-        candidate: prepared.candidate,
-        originalTransactionId: override?.originalTransactionId,
-      });
-    }
-    if (isCardPaymentMovementClass(prepared.movementClass)) {
-      return this.deps.cardPaymentPlanner.build({
-        signal,
-        payload: prepared.payload,
-        candidate: prepared.candidate,
-        accounts,
-        status: prepared.status,
-        cardId: override?.destination?.cardId,
-        sourceAccountId: override?.destination?.accountId,
-      });
-    }
-    return this.deps.movementPlanner.plan({
+    const accounts = await this.targets.findActiveAccounts(signal.userId);
+    const cards = await this.targets.findActiveCards(signal.userId);
+    return this.dispatch.decide({
+      prepared,
       signal,
-      payload: prepared.payload,
-      candidate: prepared.candidate,
-      movementClass: prepared.movementClass,
-      type: prepared.type,
-      status: prepared.status,
-      amount: prepared.amount,
-      currency: prepared.currency,
-      transactionDate: prepared.transactionDate,
       accounts,
       cards,
       override,
     });
-  }
-
-  /**
-   * Una señal ya resuelta no se vuelve a escribir: devuelve el estado guardado.
-   * La referencia del import manda sobre cualquier cálculo nuevo.
-   */
-  private async blockedPlan({
-    signal,
-    override,
-  }: ImportRequest): Promise<ImportPlan | null> {
-    const prior = await this.deps.store.findPriorImport({
-      userId: signal.userId,
-      signalId: signal.signalId,
-    });
-    if (!override && prior && !isRetryableTargetReview(prior)) {
-      return returnPlan(
-        storedImportResult({
-          status: prior.status,
-          reason: prior.reviewReason,
-          transactionId: prior.transactionId ?? prior.duplicateOfTransactionId,
-        }),
-      );
-    }
-    const existingTransaction =
-      await this.deps.ledger.findTransactionByImportReference(
-        signal.signalId,
-        signal.userId,
-      );
-    return existingTransaction ? importedPlan(existingTransaction.id) : null;
   }
 
   private prepare({ signal, override }: ImportRequest): PreparedImport {

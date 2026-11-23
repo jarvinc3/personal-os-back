@@ -1,5 +1,5 @@
 import type { RoutedSignal } from '@personal-os/contracts';
-import { FinanceSignalConsumer } from './finance-signal-consumer';
+import { createFinanceSignalConsumer } from './signal-consumer.test-setup';
 
 const purchaseSignal: RoutedSignal = {
   signalId: 'email-message-1',
@@ -170,15 +170,15 @@ function setup({
       cardTransactionId: 'transaction-payment-2',
     }),
   };
-  const consumer = new FinanceSignalConsumer(
-    prisma as never,
-    importTransaction as never,
-    ledger as never,
-    { execute: jest.fn() } as never,
-    cardPaymentImport as never,
-    { suggest: jest.fn().mockResolvedValue(null) } as never,
-    { execute: jest.fn().mockResolvedValue('DOP') } as never,
-  );
+  const consumer = createFinanceSignalConsumer({
+    prisma: prisma,
+    importTransaction: importTransaction,
+    ledger: ledger,
+    reverseTransaction: { execute: jest.fn() },
+    cardPaymentImport: cardPaymentImport,
+    merchants: { suggest: jest.fn().mockResolvedValue(null) },
+    baseCurrency: { execute: jest.fn().mockResolvedValue('DOP') },
+  });
   return { consumer, prisma, importTransaction, ledger, cardPaymentImport };
 }
 

@@ -1,5 +1,6 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
-import type { LedgerQueryService } from '../ledger/application/ledger-query.service';
+import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import {
   REVERSAL_CARD_ACCOUNT_WINDOW_DAYS,
   REVERSAL_REVIEW_REASON,
@@ -16,9 +17,10 @@ import {
   type ImportReviewEvidence,
 } from './signal-import-plan';
 import type { SignalCandidate } from './signal-import-payload';
-import type { ReversalTargetResolver } from './signal-reversal-target';
+import { ReversalTargetResolver } from './signal-reversal-target';
 
 /** Plan de un aviso de reverso: original encontrado, repetido, parcial o en revisión. */
+@Injectable()
 export class SignalReversalPlanner {
   constructor(
     private readonly ledger: LedgerQueryService,
