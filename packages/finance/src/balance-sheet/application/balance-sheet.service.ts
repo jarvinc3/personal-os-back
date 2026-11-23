@@ -13,14 +13,14 @@ import {
   type BalanceSheetLine,
 } from '../domain/balance-sheet-breakdown';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
-import { addAccountLines } from './balance-sheet-account-lines';
-import { BalanceSheetBuckets } from './balance-sheet-buckets';
-import { addCardLines } from './balance-sheet-card-lines';
+import { buildAccountLines } from './balance-sheet-account-lines';
+import { BalanceSheetTotals } from './balance-sheet-buckets';
+import { buildCardLines } from './balance-sheet-card-lines';
 import { BalanceSheetCash } from './balance-sheet-cash';
 import { loadBalanceSheetContext } from './balance-sheet-context';
 import { buildBalanceSheetIndexes } from './balance-sheet-indexes';
-import { addLoanLines } from './balance-sheet-loan-lines';
-import { addReceivableLines } from './balance-sheet-receivable-lines';
+import { buildLoanLines } from './balance-sheet-loan-lines';
+import { buildReceivableLines } from './balance-sheet-receivable-lines';
 import { BalanceSheetRates } from './balance-sheet-rates';
 import type {
   BalanceSheetLineDraft,
@@ -75,36 +75,36 @@ export class BalanceSheetService {
       reconciliations: context.reconciliations,
       drifts: context.drifts,
     });
-    const buckets = new BalanceSheetBuckets(
-      context.positions.institutions.map((institution) => institution.id),
-    );
     const rates = new BalanceSheetRates(this.resolveAmounts);
     const lineInput = {
       baseCurrency: context.baseCurrency,
       asOf: context.asOf,
       rates,
       indexes,
-      buckets,
     };
     const lines = [
-      ...(await addAccountLines({
+      ...(await buildAccountLines({
         ...lineInput,
         accounts: context.positions.accounts,
       })),
-      ...(await addCardLines({
+      ...(await buildCardLines({
         ...lineInput,
         cardBalances: context.positions.cardBalances,
       })),
-      ...(await addLoanLines({
+      ...(await buildLoanLines({
         ...lineInput,
         loans: context.positions.loans,
       })),
-      ...(await addReceivableLines({
+      ...(await buildReceivableLines({
         ...lineInput,
         receivables: context.receivables,
         timezone: context.timezone,
       })),
     ];
+    const totals = new BalanceSheetTotals(
+      lines,
+      context.positions.institutions.map((institution) => institution.id),
+    );
     const linesWithEntities = await this.withEntities(userId, lines);
     const breakdown = groupBalanceSheetLines(
       linesWithEntities,
@@ -116,7 +116,7 @@ export class BalanceSheetService {
       asOf: context.asOf.toISOString(),
       rateDate: context.rateDate,
       baseCurrency: context.baseCurrency,
-      global: buckets.globalSlice(currencySlices(breakdown.byCurrency)),
+      global: totals.globalSlice(currencySlices(breakdown.byCurrency)),
       institutions: context.positions.institutions.map((institution) => {
         const institutionBreakdown = groupBalanceSheetLines(
           linesByInstitution.get(institution.id) ?? [],
@@ -124,7 +124,7 @@ export class BalanceSheetService {
         );
         return {
           institutionId: institution.id,
-          ...buckets.institutionSlice(
+          ...totals.institutionSlice(
             institution.id,
             currencySlices(institutionBreakdown.byCurrency),
           ),

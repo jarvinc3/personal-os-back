@@ -32,7 +32,7 @@ function receivableOutstanding(row: ReceivableRow): Prisma.Decimal {
 }
 
 /** Pending receivables; an overdue one is marked doubtful and does not sum. */
-export async function addReceivableLines(
+export async function buildReceivableLines(
   input: BalanceSheetLineInput & {
     receivables: readonly ReceivableRow[];
     timezone: string | null;
@@ -57,12 +57,6 @@ export async function addReceivableLines(
       baseCurrency: input.baseCurrency,
       asOf: input.asOf,
     });
-    if (converted === null && !doubtful) {
-      input.buckets.addIssue({ code: 'MISSING_RATE', currency }, null);
-    }
-    if (converted !== null && !doubtful) {
-      input.buckets.addReceivables(converted);
-    }
     lines.push({
       id: receivable.id,
       kind: BALANCE_SHEET_LINE_KIND.RECEIVABLE,

@@ -1,10 +1,14 @@
 import type { Prisma } from '@personal-os/database';
-import type { BalanceSheetCurrencySlice } from '../domain/balance-sheet-breakdown';
+import {
+  BALANCE_SHEET_LINE_KIND,
+  type BalanceSheetCurrencySlice,
+} from '../domain/balance-sheet-breakdown';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundDecimal } from '../../shared/domain/money';
+import { roundDecimal, toMoney } from '../../shared/domain/money';
 import type {
   BalanceSheetBucket,
   BalanceSheetIssue,
+  BalanceSheetLineDraft,
   BalanceSheetSlice,
 } from './balance-sheet-types';
 
@@ -57,69 +61,24 @@ export function serializeSlice(
   };
 }
 
-/** Global and per-institution totals built while the lines are produced. */
-export class BalanceSheetBuckets {
+/**
+ * Global and per-institution totals built from the finished lines, in the order
+ * they are returned. The accumulator never leaves this class.
+ */
+export class BalanceSheetTotals {
   private readonly globalTotals: BalanceSheetBucket = emptyBucket();
   private readonly institutionTotals = new Map<string, BalanceSheetBucket>();
 
-  constructor(institutionIds: readonly string[]) {
+  constructor(
+    lines: readonly BalanceSheetLineDraft[],
+    institutionIds: readonly string[],
+  ) {
     for (const institutionId of institutionIds) {
       this.institutionTotals.set(institutionId, emptyBucket());
     }
-  }
-
-  addIssue(issue: BalanceSheetIssue, institutionId: string | null): void {
-    this.globalTotals.issues.push(issue);
-    const bucket = this.institutionBucket(institutionId);
-    if (bucket) {
-      bucket.issues.push(issue);
+    for (const line of lines) {
+      this.addLine(line);
     }
-  }
-
-  addAccount(input: {
-    institutionId: string | null;
-    amount: Prisma.Decimal;
-    isCash: boolean;
-  }): void {
-    this.globalTotals.accounts = this.globalTotals.accounts.plus(input.amount);
-    if (input.isCash) {
-      this.globalTotals.cash = this.globalTotals.cash.plus(input.amount);
-    }
-    const bucket = this.institutionBucket(input.institutionId);
-    if (bucket) {
-      bucket.accounts = bucket.accounts.plus(input.amount);
-      if (input.isCash) {
-        bucket.cash = bucket.cash.plus(input.amount);
-      }
-    }
-  }
-
-  addCreditCards(input: {
-    institutionId: string | null;
-    amount: Prisma.Decimal;
-  }): void {
-    this.globalTotals.creditCards = this.globalTotals.creditCards.plus(
-      input.amount,
-    );
-    const bucket = this.institutionBucket(input.institutionId);
-    if (bucket) {
-      bucket.creditCards = bucket.creditCards.plus(input.amount);
-    }
-  }
-
-  addLoans(input: {
-    institutionId: string | null;
-    amount: Prisma.Decimal;
-  }): void {
-    this.globalTotals.loans = this.globalTotals.loans.plus(input.amount);
-    const bucket = this.institutionBucket(input.institutionId);
-    if (bucket) {
-      bucket.loans = bucket.loans.plus(input.amount);
-    }
-  }
-
-  addReceivables(amount: Prisma.Decimal): void {
-    this.globalTotals.receivables = this.globalTotals.receivables.plus(amount);
   }
 
   globalSlice(byCurrency: BalanceSheetCurrencySlice[]): BalanceSheetSlice {
@@ -136,6 +95,118 @@ export class BalanceSheetBuckets {
     );
   }
 
+  private addLine(line: BalanceSheetLineDraft): void {
+    switch (line.kind) {
+      case BALANCE_SHEET_LINE_KIND.ACCOUNT:
+      case BALANCE_SHEET_LINE_KIND.CASH:
+        this.addAccount(line);
+        return;
+      case BALANCE_SHEET_LINE_KIND.CREDIT_CARD:
+        this.addCreditCard(line);
+        return;
+      case BALANCE_SHEET_LINE_KIND.LOAN:
+        this.addLoan(line);
+        return;
+      case BALANCE_SHEET_LINE_KIND.RECEIVABLE:
+        this.addReceivable(line);
+        return;
+      default: {
+        const unhandled: never = line.kind;
+        throw new Error(
+          `Unhandled balance sheet line kind: ${String(unhandled)}`,
+        );
+      }
+    }
+  }
+
+  private addAccount(line: BalanceSheetLineDraft): void {
+    if (line.balanceBase === null) {
+      this.addIssue(
+        { code: 'MISSING_RATE', currency: line.currency },
+        line.institutionId,
+      );
+      return;
+    }
+    const amount = this.baseAmount(line);
+    const isCash = line.kind === BALANCE_SHEET_LINE_KIND.CASH;
+    this.globalTotals.accounts = this.globalTotals.accounts.plus(amount);
+    if (isCash) {
+      this.globalTotals.cash = this.globalTotals.cash.plus(amount);
+    }
+    const bucket = this.institutionBucket(line.institutionId);
+    if (!bucket) {
+      return;
+    }
+    bucket.accounts = bucket.accounts.plus(amount);
+    if (isCash) {
+      bucket.cash = bucket.cash.plus(amount);
+    }
+  }
+
+  private addCreditCard(line: BalanceSheetLineDraft): void {
+    if (line.creditLimit === null) {
+      this.addIssue(
+        {
+          code: 'MISSING_CREDIT_LIMIT',
+          cardId: line.id,
+          currency: line.currency,
+        },
+        line.institutionId,
+      );
+      return;
+    }
+    const amount = this.baseAmount(line);
+    this.globalTotals.creditCards = this.globalTotals.creditCards.plus(amount);
+    const bucket = this.institutionBucket(line.institutionId);
+    if (bucket) {
+      bucket.creditCards = bucket.creditCards.plus(amount);
+    }
+  }
+
+  private addLoan(line: BalanceSheetLineDraft): void {
+    const amount = this.baseAmount(line);
+    this.globalTotals.loans = this.globalTotals.loans.plus(amount);
+    const bucket = this.institutionBucket(line.institutionId);
+    if (bucket) {
+      bucket.loans = bucket.loans.plus(amount);
+    }
+  }
+
+  private addReceivable(line: BalanceSheetLineDraft): void {
+    if (line.doubtful) {
+      return;
+    }
+    if (line.balanceBase === null) {
+      this.addIssue({ code: 'MISSING_RATE', currency: line.currency }, null);
+      return;
+    }
+    this.globalTotals.receivables = this.globalTotals.receivables.plus(
+      this.baseAmount(line),
+    );
+  }
+
+  private addIssue(
+    issue: BalanceSheetIssue,
+    institutionId: string | null,
+  ): void {
+    this.globalTotals.issues.push(issue);
+    const bucket = this.institutionBucket(institutionId);
+    if (bucket) {
+      bucket.issues.push(issue);
+    }
+  }
+
+  private baseAmount(line: BalanceSheetLineDraft): Prisma.Decimal {
+    if (line.balanceBase === null) {
+      throw new Error(`Balance sheet line ${line.id} has no base amount`);
+    }
+    return toMoney(line.balanceBase);
+  }
+
+  /**
+   * An account or card can belong to an institution that is not in the active
+   * list. The global slice still counts it, so its absence here is not an error.
+   */
   private institutionBucket(
     institutionId: string | null,
   ): BalanceSheetBucket | undefined {

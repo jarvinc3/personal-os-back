@@ -15,7 +15,7 @@ import type { BalanceSheetLineInput } from './balance-sheet-line-input';
 import type { BalanceSheetLineDraft } from './balance-sheet-types';
 
 /** Accounts and cash, including their informational cash subset. */
-export async function addAccountLines(
+export async function buildAccountLines(
   input: BalanceSheetLineInput & {
     accounts: readonly BalanceSheetAccount[];
   },
@@ -55,19 +55,6 @@ export async function addAccountLines(
       availableCredit: null,
       dueDate: null,
       doubtful: false,
-    });
-
-    if (converted === null) {
-      input.buckets.addIssue(
-        { code: 'MISSING_RATE', currency },
-        account.institutionId,
-      );
-      continue;
-    }
-    input.buckets.addAccount({
-      institutionId: account.institutionId,
-      amount: converted,
-      isCash,
     });
   }
   return lines;
