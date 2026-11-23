@@ -17,10 +17,7 @@ import {
   reconciliationState,
 } from './balance-sheet-indexes';
 import type { BalanceSheetLineInput } from './balance-sheet-line-input';
-import type {
-  BalanceSheetIssue,
-  BalanceSheetLineDraft,
-} from './balance-sheet-types';
+import type { BalanceSheetLineDraft } from './balance-sheet-types';
 
 function isMissingCreditLimit(value: MoneyLike): boolean {
   return value === null;
@@ -36,7 +33,7 @@ function creditCardDebt(
 }
 
 /** Credit cards by currency; without a limit the line is a zero placeholder. */
-export async function addCardLines(
+export async function buildCardLines(
   input: BalanceSheetLineInput & {
     cardBalances: readonly BalanceSheetCardBalance[];
   },
@@ -67,12 +64,6 @@ export async function addCardLines(
     };
 
     if (isMissingCreditLimit(row.creditLimit)) {
-      const issue: BalanceSheetIssue = {
-        code: 'MISSING_CREDIT_LIMIT',
-        cardId: row.card.id,
-        currency,
-      };
-      input.buckets.addIssue(issue, row.card.institutionId);
       lines.push({
         ...baseLine,
         balance: '0',
@@ -92,10 +83,6 @@ export async function addCardLines(
       ...baseLine,
       balance: decimalToString(debtNative),
       balanceBase: decimalToString(amount),
-    });
-    input.buckets.addCreditCards({
-      institutionId: row.card.institutionId,
-      amount,
     });
   }
   return lines;
