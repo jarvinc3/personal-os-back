@@ -22,6 +22,7 @@ import {
 import { SignalImportPlanner } from './signal-import-planner';
 import { parseSignalPayload } from './signal-import-payload';
 import { SignalImportPreviewReader } from './signal-import-preview';
+import { SignalImportReviewReasons } from './signal-import-review-reasons';
 import { SignalImportStore } from './signal-import-store';
 import { SignalImportTargets } from './signal-import-targets';
 import {
@@ -98,9 +99,11 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       cardPayments: this.cardPaymentPlanner,
     });
     this.previewReader = new SignalImportPreviewReader(
-      this.targets,
-      this.cardPaymentTargets,
-      this.reversalPlanner,
+      new SignalImportReviewReasons(
+        this.targets,
+        this.cardPaymentTargets,
+        this.reversalPlanner,
+      ),
     );
     this.reversalRetry = new PendingReversalRetry({
       prisma,
