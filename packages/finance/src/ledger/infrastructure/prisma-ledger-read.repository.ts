@@ -1,550 +1,186 @@
 import { Injectable } from '@nestjs/common';
-import { clampPageLimit, decodeCursor } from '@personal-os/core';
-import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import { IMPORT_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/import-dedupe';
-import { normalizeCurrencyCode } from '../../shared/domain/money';
-import {
-  TRANSACTION_LINK_KIND,
-  type TransactionLinkKind,
-} from '../../shared/domain/transaction-links';
-import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
-import type {
-  FinTxStatus,
-  ListTransactionsQuery,
-} from '../application/commands/ledger.commands';
-import type {
-  BalanceAdjustmentTarget,
-  LedgerTransactionRow,
-} from '../application/ports/ledger.repository.port';
-import { logicalTransactionsWhere } from './logical-transaction-query';
-
-const transactionPartyInclude = {
-  account: {
-    select: {
-      id: true,
-      name: true,
-      institutionRef: {
-        select: {
-          logoUrl: true,
-          logoPath: true,
-          customLogoPath: true,
-        },
-      },
-    },
-  },
-  card: {
-    select: {
-      id: true,
-      name: true,
-      network: true,
-      institution: {
-        select: {
-          logoUrl: true,
-          logoPath: true,
-          customLogoPath: true,
-        },
-      },
-    },
-  },
-  merchantRef: {
-    select: { id: true, name: true, logoUrl: true },
-  },
-} satisfies Prisma.FinTransactionInclude;
-
-/** Link relations, only for the single-movement read. */
-const transactionLinkInclude = {
-  loanInstallment: {
-    select: {
-      id: true,
-      installmentNo: true,
-      loan: { select: { lenderName: true } },
-    },
-  },
-  receivablePayment: {
-    select: { id: true, receivable: { select: { debtorName: true } } },
-  },
-  savingsGoalContribution: {
-    select: { id: true, goal: { select: { name: true } } },
-  },
-} satisfies Prisma.FinTransactionInclude;
-
 import type { LedgerQueryRepositoryPort } from '../application/ports/ledger-query.repository.port';
+import { PrismaLedgerCandidateReadRepository } from './prisma-ledger-candidate-read.repository';
+import { PrismaLedgerTargetReadRepository } from './prisma-ledger-target-read.repository';
+import { PrismaLedgerTransactionReadRepository } from './prisma-ledger-transaction-read.repository';
+
+export {
+  transactionLinkInclude,
+  transactionPartyInclude,
+} from './prisma-ledger-transaction-read.repository';
+
+/**
+ * Lecturas del ledger: los movimientos, los candidatos y los destinos viven en
+ * su pieza y aquí solo se delegan, con el mismo constructor de siempre.
+ */
 @Injectable()
 export class PrismaLedgerReadRepository implements LedgerQueryRepositoryPort {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly transactions: PrismaLedgerTransactionReadRepository;
+  private readonly candidates: PrismaLedgerCandidateReadRepository;
+  private readonly targets: PrismaLedgerTargetReadRepository;
 
-  async findTransactions(userId: string, query: ListTransactionsQuery) {
-    const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const matchingGroupIds = await this.findTransferGroupIdsForInstrument(
-      userId,
-      query,
-    );
-    const baseWhere = logicalTransactionsWhere(userId, query, matchingGroupIds);
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
-    const where: Prisma.FinTransactionWhereInput =
-      cursorPoint && cursorDate
-        ? {
-            AND: [
-              baseWhere,
-              {
-                OR: [
-                  { transactionDate: { lt: cursorDate } },
-                  { transactionDate: cursorDate, id: { lt: cursorPoint.id } },
-                ],
-              },
-            ],
-          }
-        : baseWhere;
-    const items = (await this.prisma.finTransaction.findMany({
-      where,
-      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-      include: transactionPartyInclude,
-    })) as LedgerTransactionRow[];
-
-    const groupIds = [
-      ...new Set(
-        items
-          .map((item) => item.transferGroupId)
-          .filter((id): id is string => Boolean(id)),
-      ),
-    ];
-    const counterparts =
-      groupIds.length === 0
-        ? []
-        : ((await this.prisma.finTransaction.findMany({
-            where: {
-              userId,
-              transferGroupId: { in: groupIds },
-              OR: [
-                { legRole: OPERATION_LEG_ROLE.DESTINATION },
-                { type: 'CREDIT' },
-              ],
-            },
-            include: transactionPartyInclude,
-          })) as LedgerTransactionRow[]);
-    const creditByGroup = new Map(
-      counterparts.map((row) => [row.transferGroupId, row] as const),
-    );
-
-    return items.map((item) => ({
-      ...item,
-      transferCounterpart: item.transferGroupId
-        ? (creditByGroup.get(item.transferGroupId) ?? null)
-        : null,
-    }));
+  constructor(private readonly prisma: PrismaService) {
+    this.transactions = new PrismaLedgerTransactionReadRepository(prisma);
+    this.candidates = new PrismaLedgerCandidateReadRepository(prisma);
+    this.targets = new PrismaLedgerTargetReadRepository(prisma);
   }
 
-  private async findTransferGroupIdsForInstrument(
-    userId: string,
-    query: ListTransactionsQuery,
-  ): Promise<string[]> {
-    if (!query.accountId && !query.cardId) {
-      return [];
-    }
-    if (
-      query.type === 'DEBIT' ||
-      query.type === 'CREDIT' ||
-      query.type === 'ADJUSTMENT'
-    ) {
-      return [];
-    }
-    const rows = await this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        transferGroupId: { not: null },
-        ...(query.accountId ? { accountId: query.accountId } : {}),
-        ...(query.cardId ? { cardId: query.cardId } : {}),
-      },
-      select: { transferGroupId: true },
-      distinct: ['transferGroupId'],
-    });
-    return rows
-      .map((row) => row.transferGroupId)
-      .filter((id): id is string => Boolean(id));
+  findTransactions(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactions']
+    >
+  ) {
+    return this.transactions.findTransactions(...args);
   }
 
-  findTransactionById(id: string, userId: string) {
-    return this.prisma.finTransaction.findFirst({
-      where: { id, userId },
-      include: { ...transactionPartyInclude, ...transactionLinkInclude },
-    }) as Promise<LedgerTransactionRow | null>;
+  findTransactionById(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionById']
+    >
+  ) {
+    return this.transactions.findTransactionById(...args);
   }
 
-  /** One query for many movements, for the bulk entity lookup. */
-  findTransactionsByIds(userId: string, ids: readonly string[]) {
-    return this.prisma.finTransaction.findMany({
-      where: { id: { in: [...ids] }, userId },
-      include: { ...transactionPartyInclude, ...transactionLinkInclude },
-    }) as Promise<LedgerTransactionRow[]>;
+  findTransactionsByIds(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionsByIds']
+    >
+  ) {
+    return this.transactions.findTransactionsByIds(...args);
   }
 
-  async findPlanningLinkKind(
-    transactionId: string,
-    userId: string,
-  ): Promise<TransactionLinkKind | null> {
-    const [installment, payment, contribution] = await Promise.all([
-      this.prisma.finLoanInstallment.findFirst({
-        where: { transactionId, loan: { userId } },
-        select: { id: true },
-      }),
-      this.prisma.finReceivablePayment.findFirst({
-        where: { transactionId, receivable: { userId } },
-        select: { id: true },
-      }),
-      this.prisma.finSavingsGoalContribution.findFirst({
-        where: { transactionId, goal: { userId } },
-        select: { id: true },
-      }),
-    ]);
-    if (installment) {
-      return TRANSACTION_LINK_KIND.LOAN_INSTALLMENT;
-    }
-    if (payment) {
-      return TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT;
-    }
-    if (contribution) {
-      return TRANSACTION_LINK_KIND.SAVINGS_CONTRIBUTION;
-    }
-    return null;
+  findPlanningLinkKind(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findPlanningLinkKind']
+    >
+  ) {
+    return this.transactions.findPlanningLinkKind(...args);
   }
 
-  findAccountById(id: string, userId: string) {
-    return this.prisma.finAccount.findFirst({
-      where: { id, userId },
-      select: { id: true, currency: true },
-    });
+  findTransactionByImportReference(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionByImportReference']
+    >
+  ) {
+    return this.transactions.findTransactionByImportReference(...args);
   }
 
-  async findCardLedgerContext(id: string, userId: string) {
-    const card = await this.prisma.finCard.findFirst({
-      where: { id, userId },
-      select: {
-        type: true,
-        accountId: true,
-        balances: { select: { currency: true } },
-      },
-    });
-    if (!card) {
-      return null;
-    }
-    return {
-      cardType: card.type,
-      accountId: card.accountId,
-      currencies: card.balances.map((balance) => balance.currency),
-    };
-  }
-
-  async findSavingsGoalIdByAccount(
-    userId: string,
-    accountId: string,
-  ): Promise<string | null> {
-    const goal = await this.prisma.finSavingsGoal.findFirst({
-      where: { userId, accountId },
-      select: { id: true },
-    });
-    return goal?.id ?? null;
-  }
-
-  async findBalanceAdjustmentTarget(
-    userId: string,
-    input: { accountId?: string; cardId?: string; currency?: string },
-  ): Promise<BalanceAdjustmentTarget | null> {
-    const hasAccount = Boolean(input.accountId);
-    const hasCard = Boolean(input.cardId);
-    if (hasAccount === hasCard) {
-      return null;
-    }
-
-    if (input.accountId) {
-      const account = await this.prisma.finAccount.findFirst({
-        where: { id: input.accountId, userId },
-        select: { id: true, currency: true, balance: true },
-      });
-      if (!account) {
-        return null;
-      }
-      return {
-        accountId: account.id,
-        cardId: null,
-        currency: account.currency,
-        currentBalance: Number(account.balance),
-      };
-    }
-
-    if (!input.cardId || !input.currency) {
-      return null;
-    }
-
-    const card = await this.prisma.finCard.findFirst({
-      where: { id: input.cardId, userId },
-      select: { id: true, type: true, accountId: true },
-    });
-    if (!card) {
-      return null;
-    }
-    if (card.type === 'DEBIT' && !card.accountId) {
-      return null;
-    }
-    if (card.type === 'CREDIT' && card.accountId) {
-      return null;
-    }
-
-    const currency = normalizeCurrencyCode(input.currency);
-    const balanceRow = await this.prisma.finCardBalance.findFirst({
-      where: { cardId: card.id, currency },
-      select: { balance: true },
-    });
-    return {
-      accountId: null,
-      cardId: card.id,
-      currency,
-      currentBalance: balanceRow ? Number(balanceRow.balance) : 0,
-    };
-  }
-
-  findTransactionByImportReference(importReference: string, userId: string) {
-    return this.prisma.finTransaction.findFirst({
-      where: {
-        importReference,
-        userId,
-      },
-    }) as Promise<LedgerTransactionRow | null>;
-  }
-
-  findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
-    return this.prisma.finTransaction.findMany({
-      where: { transferGroupId, userId },
-      include: transactionPartyInclude,
-      orderBy: { type: 'asc' },
-    }) as Promise<LedgerTransactionRow[]>;
+  findTransactionsByTransferGroupId(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionsByTransferGroupId']
+    >
+  ) {
+    return this.transactions.findTransactionsByTransferGroupId(...args);
   }
 
   findTransactionsByTransferGroupIds(
-    userId: string,
-    transferGroupIds: string[],
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionsByTransferGroupIds']
+    >
   ) {
-    if (transferGroupIds.length === 0) {
-      return Promise.resolve([] as LedgerTransactionRow[]);
-    }
-    return this.prisma.finTransaction.findMany({
-      where: { userId, transferGroupId: { in: transferGroupIds } },
-      include: transactionPartyInclude,
-      orderBy: [{ transactionDate: 'asc' }, { id: 'asc' }],
-    }) as Promise<LedgerTransactionRow[]>;
+    return this.transactions.findTransactionsByTransferGroupIds(...args);
+  }
+
+  findTransactionByExternalReference(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionByExternalReference']
+    >
+  ) {
+    return this.transactions.findTransactionByExternalReference(...args);
+  }
+
+  findTransactionsByExternalReference(
+    ...args: Parameters<
+      PrismaLedgerTransactionReadRepository['findTransactionsByExternalReference']
+    >
+  ) {
+    return this.transactions.findTransactionsByExternalReference(...args);
   }
 
   findCandidatesForReverse(
-    userId: string,
-    params: {
-      amount: number;
-      currency: string;
-      merchant: string | null;
-      aroundDate: Date;
-      statuses?: FinTxStatus[];
-    },
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findCandidatesForReverse']
+    >
   ) {
-    const from = new Date(params.aroundDate);
-    from.setUTCDate(from.getUTCDate() - 14);
-    const to = new Date(params.aroundDate);
-    to.setUTCDate(to.getUTCDate() + 14);
-    return this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        status: { in: params.statuses ?? ['CONFIRMED'] },
-        type: 'DEBIT',
-        transferGroupId: null,
-        currency: params.currency,
-        amount: params.amount,
-        transactionDate: { gte: from, lte: to },
-        ...(params.merchant
-          ? { merchant: { contains: params.merchant, mode: 'insensitive' } }
-          : {}),
-      },
-      orderBy: { transactionDate: 'desc' },
-      take: 10,
-    }) as Promise<LedgerTransactionRow[]>;
+    return this.candidates.findCandidatesForReverse(...args);
   }
 
   findReverseCandidatesByCard(
-    userId: string,
-    params: {
-      amount: number;
-      currency: string;
-      cardId: string;
-      accountId: string | null;
-      from: Date;
-      to: Date;
-      statuses?: FinTxStatus[];
-    },
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findReverseCandidatesByCard']
+    >
   ) {
-    return this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        status: { in: params.statuses ?? ['CONFIRMED'] },
-        type: 'DEBIT',
-        transferGroupId: null,
-        currency: params.currency,
-        amount: params.amount,
-        cardId: params.cardId,
-        ...(params.accountId
-          ? { OR: [{ accountId: null }, { accountId: params.accountId }] }
-          : { accountId: null }),
-        transactionDate: { gte: params.from, lte: params.to },
-      },
-      orderBy: { transactionDate: 'desc' },
-      take: 10,
-    }) as Promise<LedgerTransactionRow[]>;
+    return this.candidates.findReverseCandidatesByCard(...args);
   }
 
-  /** The movement imported from that email; reversal rows are not originals. */
-  findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
-    return this.prisma.finSignalImport
-      .findFirst({
-        where: {
-          userId,
-          sourceEmailMessageId: messageId,
-          status: 'IMPORTED',
-          transactionId: { not: null },
-        },
-        orderBy: { createdAt: 'desc' },
-        include: { transaction: true },
-      })
-      .then(
-        (row) => row?.transaction ?? null,
-      ) as Promise<LedgerTransactionRow | null>;
+  findImportedTransactionByEmailMessageId(
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findImportedTransactionByEmailMessageId']
+    >
+  ) {
+    return this.candidates.findImportedTransactionByEmailMessageId(...args);
   }
 
-  findTransactionByExternalReference(userId: string, reference: string) {
-    return this.prisma.finTransaction.findFirst({
-      where: { userId, externalReference: reference },
-      orderBy: { transactionDate: 'desc' },
-    }) as Promise<LedgerTransactionRow | null>;
+  findLinkedRefundTotal(
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findLinkedRefundTotal']
+    >
+  ) {
+    return this.candidates.findLinkedRefundTotal(...args);
   }
 
-  /** Every movement with that reference; the reference is not unique. */
-  findTransactionsByExternalReference(userId: string, reference: string) {
-    return this.prisma.finTransaction.findMany({
-      where: { userId, externalReference: reference },
-      orderBy: { transactionDate: 'desc' },
-    }) as Promise<LedgerTransactionRow[]>;
-  }
-
-  findLinkedRefundTotal({
-    userId,
-    originalId,
-    currency,
-  }: {
-    userId: string;
-    originalId: string;
-    currency: string;
-  }) {
-    return this.prisma.finTransaction
-      .aggregate({
-        where: {
-          userId,
-          linkedTransactionId: originalId,
-          type: 'CREDIT',
-          currency,
-        },
-        _sum: { amount: true },
-      })
-      .then((refundTotals) => Number(refundTotals._sum.amount ?? 0));
-  }
-
-  /** Same target, currency and exact amount within 48 h, with no bank reference. */
   findPossibleDuplicate(
-    userId: string,
-    params: {
-      accountId?: string | null;
-      cardId?: string | null;
-      amount: number;
-      currency: string;
-      type: 'DEBIT' | 'CREDIT';
-      transactionDate: Date;
-    },
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findPossibleDuplicate']
+    >
   ) {
-    const windowMs = 48 * 60 * 60 * 1000;
-    return this.prisma.finTransaction.findFirst({
-      where: {
-        userId,
-        status: { in: ['PENDING', 'CONFIRMED'] },
-        externalReference: null,
-        currency: params.currency,
-        amount: params.amount,
-        type: params.type,
-        transactionDate: {
-          gte: new Date(params.transactionDate.getTime() - windowMs),
-          lte: new Date(params.transactionDate.getTime() + windowMs),
-        },
-        ...(params.accountId ? { accountId: params.accountId } : {}),
-        ...(params.cardId ? { cardId: params.cardId } : {}),
-      },
-      orderBy: { transactionDate: 'desc' },
-    }) as Promise<LedgerTransactionRow | null>;
+    return this.candidates.findPossibleDuplicate(...args);
   }
 
   findDedupeCandidate(
-    userId: string,
-    params: {
-      externalReference: string | null;
-      accountId?: string | null;
-      cardId?: string | null;
-      amount: number;
-      currency: string;
-      type: 'DEBIT' | 'CREDIT';
-      merchant: string | null;
-      transactionDate: Date;
-    },
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findDedupeCandidate']
+    >
   ) {
-    if (params.externalReference) {
-      return this.prisma.finTransaction.findFirst({
-        where: {
-          userId,
-          externalReference: params.externalReference,
-          status: { in: ['PENDING', 'CONFIRMED'] },
-        },
-        orderBy: { transactionDate: 'desc' },
-      }) as Promise<LedgerTransactionRow | null>;
-    }
-    const tolerance = IMPORT_DUPLICATE_DATE_TOLERANCE_MS;
-    const from = new Date(params.transactionDate.getTime() - tolerance);
-    const to = new Date(params.transactionDate.getTime() + tolerance);
-    return this.prisma.finTransaction.findFirst({
-      where: {
-        userId,
-        status: { in: ['PENDING', 'CONFIRMED'] },
-        currency: params.currency,
-        amount: params.amount,
-        type: params.type,
-        transactionDate: { gte: from, lte: to },
-        ...(params.accountId ? { accountId: params.accountId } : {}),
-        ...(params.cardId ? { cardId: params.cardId } : {}),
-        ...(params.merchant
-          ? { merchant: { equals: params.merchant, mode: 'insensitive' } }
-          : {}),
-      },
-      orderBy: { transactionDate: 'desc' },
-    }) as Promise<LedgerTransactionRow | null>;
+    return this.candidates.findDedupeCandidate(...args);
   }
 
-  async findLatestCategoryIdByMerchant(userId: string, merchant: string) {
-    const trimmed = merchant.trim();
-    if (!trimmed) {
-      return null;
-    }
-    const row = await this.prisma.finTransaction.findFirst({
-      where: {
-        userId,
-        status: 'CONFIRMED',
-        categoryId: { not: null },
-        merchant: { equals: trimmed, mode: 'insensitive' },
-      },
-      orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
-      select: { categoryId: true },
-    });
-    return row?.categoryId ?? null;
+  findLatestCategoryIdByMerchant(
+    ...args: Parameters<
+      PrismaLedgerCandidateReadRepository['findLatestCategoryIdByMerchant']
+    >
+  ) {
+    return this.candidates.findLatestCategoryIdByMerchant(...args);
+  }
+
+  findAccountById(
+    ...args: Parameters<PrismaLedgerTargetReadRepository['findAccountById']>
+  ) {
+    return this.targets.findAccountById(...args);
+  }
+
+  findCardLedgerContext(
+    ...args: Parameters<
+      PrismaLedgerTargetReadRepository['findCardLedgerContext']
+    >
+  ) {
+    return this.targets.findCardLedgerContext(...args);
+  }
+
+  findSavingsGoalIdByAccount(
+    ...args: Parameters<
+      PrismaLedgerTargetReadRepository['findSavingsGoalIdByAccount']
+    >
+  ) {
+    return this.targets.findSavingsGoalIdByAccount(...args);
+  }
+
+  findBalanceAdjustmentTarget(
+    ...args: Parameters<
+      PrismaLedgerTargetReadRepository['findBalanceAdjustmentTarget']
+    >
+  ) {
+    return this.targets.findBalanceAdjustmentTarget(...args);
   }
 }
