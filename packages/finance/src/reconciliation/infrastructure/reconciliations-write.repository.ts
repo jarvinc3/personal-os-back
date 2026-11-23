@@ -192,14 +192,14 @@ export class ReconciliationsWriteRepository {
   }
 
   restore(userId: string, id: string, now: Date) {
-    return this.journal.restore(
+    return this.journal.restore({
       userId,
-      DELETION_ENTITY.reconciliation,
-      id,
+      entityType: DELETION_ENTITY.reconciliation,
+      entityId: id,
       now,
-      (tx, snapshot) =>
+      afterReplay: (tx, snapshot) =>
         restoreLedgerRows(tx, userId, reversedMovements(snapshot)),
-    );
+    });
   }
 
   private async revertAdjustmentBalance(

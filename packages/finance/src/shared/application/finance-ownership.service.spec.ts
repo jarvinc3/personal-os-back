@@ -37,7 +37,11 @@ describe('FinanceOwnershipService', () => {
       .mockResolvedValueOnce({ parentId: 'child' });
 
     await expect(
-      service.assertParentCategory('user-1', 'parent', 'child'),
+      service.assertParentCategory({
+        userId: 'user-1',
+        parentId: 'parent',
+        childId: 'child',
+      }),
     ).rejects.toThrow(/ciclo/i);
   });
 
@@ -49,7 +53,11 @@ describe('FinanceOwnershipService', () => {
     });
 
     await expect(
-      service.assertParentCategory('user-1', 'parent', undefined, 'INCOME'),
+      service.assertParentCategory({
+        userId: 'user-1',
+        parentId: 'parent',
+        expectedType: 'INCOME',
+      }),
     ).rejects.toThrow(/mismo tipo/i);
   });
 

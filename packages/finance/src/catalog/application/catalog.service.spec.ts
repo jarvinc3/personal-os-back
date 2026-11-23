@@ -938,12 +938,12 @@ describe('CatalogService categories', () => {
 
     await service.updateCategory('user-1', 'cat-1', { parentId: 'parent-2' });
 
-    expect(assertParentCategory).toHaveBeenCalledWith(
-      'user-1',
-      'parent-2',
-      'cat-1',
-      'EXPENSE',
-    );
+    expect(assertParentCategory).toHaveBeenCalledWith({
+      userId: 'user-1',
+      parentId: 'parent-2',
+      childId: 'cat-1',
+      expectedType: 'EXPENSE',
+    });
   });
 
   it('passes type filter to the repository', async () => {

@@ -309,14 +309,14 @@ export class PrismaLedgerDeletionRepository implements LedgerDeletionRepositoryP
   }
 
   restoreTransaction(userId: string, id: string, now: Date) {
-    return this.journal.restore(
+    return this.journal.restore({
       userId,
-      DELETION_ENTITY.transaction,
-      id,
+      entityType: DELETION_ENTITY.transaction,
+      entityId: id,
       now,
-      (tx, snapshot) =>
+      afterReplay: (tx, snapshot) =>
         restoreLedgerRows(tx, userId, reversedMovements(snapshot)),
-    );
+    });
   }
 
   /**

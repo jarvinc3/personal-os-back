@@ -102,6 +102,27 @@ function successSchema({
   return response?.content?.['application/json']?.schema;
 }
 
+function schemaProperties(
+  document: OpenApiDocument,
+  name: string,
+): Record<string, { type?: string }> | undefined {
+  const schema = document.components?.schemas?.[name] as
+    { properties?: Record<string, { type?: string }> } | undefined;
+  return schema?.properties;
+}
+
+function expectDecimalText(
+  document: OpenApiDocument,
+  name: string,
+  fields: readonly string[],
+): void {
+  for (const field of fields) {
+    expect(schemaProperties(document, name)?.[field]).toMatchObject({
+      type: 'string',
+    });
+  }
+}
+
 function resolveSchema(
   document: OpenApiDocument,
   schema: Record<string, unknown> | undefined,
@@ -162,35 +183,12 @@ describe('OpenAPI response schemas of the finance catalog and analytics', () => 
   });
 
   it('declares the money of the catalog and analytics as decimal text', () => {
-    const merchant = document.components?.schemas?.MerchantResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const analytics = document.components?.schemas
-      ?.AnalyticsSummaryResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const spending = document.components?.schemas
-      ?.SpendingByCategoryResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const weekly = document.components?.schemas?.WeeklySummaryResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const bankCharges = document.components?.schemas
-      ?.BankChargesResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const quickEntry = document.components?.schemas
-      ?.QuickEntryDraftResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-
-    expect(merchant.properties?.monthSpend).toMatchObject({ type: 'string' });
-    expect(analytics.properties?.cashFlow).toMatchObject({ type: 'string' });
-    expect(spending.properties?.total).toMatchObject({ type: 'string' });
-    expect(weekly.properties?.expenses).toMatchObject({ type: 'string' });
-    expect(bankCharges.properties?.total).toMatchObject({ type: 'string' });
-    expect(quickEntry.properties?.amount).toMatchObject({ type: 'string' });
+    expectDecimalText(document, 'MerchantResponseDto', ['monthSpend']);
+    expectDecimalText(document, 'AnalyticsSummaryResponseDto', ['cashFlow']);
+    expectDecimalText(document, 'SpendingByCategoryResponseDto', ['total']);
+    expectDecimalText(document, 'WeeklySummaryResponseDto', ['expenses']);
+    expectDecimalText(document, 'BankChargesResponseDto', ['total']);
+    expectDecimalText(document, 'QuickEntryDraftResponseDto', ['amount']);
   });
 
   it('declares the cursor fields of the paginated endpoints', () => {

@@ -132,7 +132,12 @@ export class PlanningSavingsGoalRepository {
   }
 
   restoreSavingsGoal(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.savingsGoal, id, now);
+    return this.journal.restore({
+      userId,
+      entityType: DELETION_ENTITY.savingsGoal,
+      entityId: id,
+      now,
+    });
   }
 
   listSavingsGoalContributions(goalId: string, query: CursorQueryDto) {

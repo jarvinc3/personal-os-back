@@ -44,6 +44,27 @@ export type BankStatusNormalized =
 
 export const BANK_STATUS_CONFIDENCE_THRESHOLD = 0.7;
 
+const INTERNAL_STATUS_BY_BANK_STATUS: Record<
+  BankStatusNormalized,
+  FinTransactionStatusValue
+> = {
+  APPROVED: 'CONFIRMED',
+  COMPLETED: 'CONFIRMED',
+  POSTED: 'CONFIRMED',
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'PENDING',
+  AUTHORIZED: 'PENDING',
+  DECLINED: 'DECLINED',
+  REJECTED: 'DECLINED',
+  FAILED: 'DECLINED',
+  CANCELLED: 'CANCELLED',
+  VOIDED: 'CANCELLED',
+  REVERSED: 'REVERSED',
+  REFUNDED: 'REVERSED',
+  CHARGEBACK: 'REVERSED',
+  UNKNOWN: 'PENDING',
+};
+
 /** Whether the status applies ledger (balance + budget spent) when set on create. */
 export function statusAffectsLedger(
   status: FinTransactionStatusValue,
@@ -70,27 +91,8 @@ export function mapBankStatusToInternal(params: {
     return 'PENDING';
   }
 
-  switch (params.bankStatusNormalized) {
-    case 'APPROVED':
-    case 'COMPLETED':
-    case 'POSTED':
-      return 'CONFIRMED';
-    case 'PENDING':
-    case 'IN_PROGRESS':
-    case 'AUTHORIZED':
-      return 'PENDING';
-    case 'DECLINED':
-    case 'REJECTED':
-    case 'FAILED':
-      return 'DECLINED';
-    case 'CANCELLED':
-    case 'VOIDED':
-      return 'CANCELLED';
-    case 'REVERSED':
-    case 'REFUNDED':
-    case 'CHARGEBACK':
-      return 'REVERSED';
-    default:
-      return 'PENDING';
-  }
+  // A normalized status outside the contract keeps the same safe fallback.
+  return (
+    INTERNAL_STATUS_BY_BANK_STATUS[params.bankStatusNormalized] ?? 'PENDING'
+  );
 }

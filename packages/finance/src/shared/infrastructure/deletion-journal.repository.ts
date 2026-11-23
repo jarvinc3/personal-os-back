@@ -109,16 +109,17 @@ export class DeletionJournalRepository {
    * Puts back what a delete removed and closes its journal entry. The caller
    * owns the ledger side, which needs the balance helpers of that capability.
    */
-  async restore(
-    userId: string,
-    entityType: DeletionEntity,
-    entityId: string,
-    now: Date,
+  async restore(input: {
+    userId: string;
+    entityType: DeletionEntity;
+    entityId: string;
+    now: Date;
     afterReplay?: (
       tx: Prisma.TransactionClient,
       snapshot: DeletionSnapshot,
-    ) => Promise<void>,
-  ): Promise<RestoreResult> {
+    ) => Promise<void>;
+  }): Promise<RestoreResult> {
+    const { userId, entityType, entityId, now, afterReplay } = input;
     const entry = await this.findPending(userId, entityType, entityId);
     if (!entry) {
       const alreadyRestored = await this.prisma.finDeletionJournal.findFirst({

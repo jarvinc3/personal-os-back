@@ -31,12 +31,11 @@ export class CatalogCategoriesService {
     this.assertCategoryType(dto.type);
     const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
-      await this.ownership.assertParentCategory(
+      await this.ownership.assertParentCategory({
         userId,
-        dto.parentId,
-        undefined,
-        type,
-      );
+        parentId: dto.parentId,
+        expectedType: type,
+      });
     }
     return this.repo.createCategory(userId, {
       name: dto.name,
@@ -62,12 +61,12 @@ export class CatalogCategoriesService {
     }
 
     if (typeof nextParentId === 'string') {
-      await this.ownership.assertParentCategory(
+      await this.ownership.assertParentCategory({
         userId,
-        nextParentId,
-        id,
-        nextType,
-      );
+        parentId: nextParentId,
+        childId: id,
+        expectedType: nextType,
+      });
     }
 
     const cascadeType = this.resolveCascadeType({

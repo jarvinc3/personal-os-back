@@ -134,6 +134,11 @@ export class CatalogCategoryRepository {
   }
 
   restoreCategory(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.category, id, now);
+    return this.journal.restore({
+      userId,
+      entityType: DELETION_ENTITY.category,
+      entityId: id,
+      now,
+    });
   }
 }
