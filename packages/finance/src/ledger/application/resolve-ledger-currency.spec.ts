@@ -1,9 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import type {
-  CardLedgerContext,
-  LedgerRepositoryPort,
-} from './ports/ledger.repository.port';
+import type { CardLedgerContext } from './ports/ledger.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 function buildRepo(input: {
   accountCurrency?: string;
@@ -25,7 +23,7 @@ function buildRepo(input: {
     repo: {
       findAccountById,
       findCardLedgerContext,
-    } as unknown as LedgerRepositoryPort,
+    } as unknown as LedgerQueryRepositoryPort,
   };
 }
 

@@ -2,7 +2,8 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { UpdateTransferUseCase } from './update-transfer.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 function leg(overrides: Record<string, unknown> = {}) {
   return {
@@ -46,7 +47,7 @@ describe('UpdateTransferUseCase', () => {
     findTransactionsByTransferGroupId,
     updateTransfer,
     findAccountById,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
 
   const execute = jest.fn().mockResolvedValue({
     amount: 80,
@@ -80,6 +81,7 @@ describe('UpdateTransferUseCase', () => {
   } as unknown as ResolveUserBaseCurrencyUseCase;
 
   const useCase = new UpdateTransferUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,

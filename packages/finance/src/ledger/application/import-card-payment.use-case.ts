@@ -4,13 +4,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { withRateMetadata } from '../../fx/application/rate-metadata';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_WRITE_REPOSITORY } from '../../shared/application/tokens';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type { TransferStatus } from './commands/ledger.commands';
-import type {
-  ImportedCardPaymentOutcome,
-  LedgerRepositoryPort,
-} from './ports/ledger.repository.port';
+import type { ImportedCardPaymentOutcome } from './ports/ledger.repository.port';
 
 export type ImportCardPaymentInput = {
   sourceAccountId: string;
@@ -34,8 +32,8 @@ export type ImportCardPaymentInput = {
 @Injectable()
 export class ImportCardPaymentUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)

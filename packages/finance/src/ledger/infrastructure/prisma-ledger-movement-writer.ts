@@ -10,6 +10,7 @@ import type {
   CreateTransactionCommand,
   FinTxStatus,
 } from '../application/commands/ledger.commands';
+import type { CreateTransactionInput } from '../application/ports/ledger-write.repository.port';
 import type { CreateTransactionResult } from '../application/ports/ledger.repository.port';
 import {
   adjustBudgetSpent,
@@ -18,21 +19,6 @@ import {
   type LedgerTarget,
 } from './balance.helpers';
 import { enqueueTransactionEvent } from './ledger-transaction-events';
-
-export type TransactionExtras = {
-  importReference?: string;
-  aiMetadata?: unknown;
-  linkedTransactionId?: string;
-  transferGroupId?: string;
-};
-
-export type CreateTransactionInput = {
-  userId: string;
-  command: CreateTransactionCommand;
-  amounts: ResolvedAmounts;
-  source?: 'MANUAL' | 'EMAIL' | 'AI';
-  extras?: TransactionExtras;
-};
 
 type MovementWriterDeps = {
   prisma: PrismaService;
@@ -225,7 +211,7 @@ function buildTransactionData({
   amounts: ResolvedAmounts;
   source: 'MANUAL' | 'EMAIL' | 'AI';
   status: FinTxStatus;
-  extras?: TransactionExtras;
+  extras?: CreateTransactionInput['extras'];
 }): Prisma.FinTransactionUncheckedCreateInput {
   return {
     userId,

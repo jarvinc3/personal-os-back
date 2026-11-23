@@ -16,7 +16,7 @@ Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categoriz
 
 Composition root puro. Capabilities: `catalog`, `ledger`, `planning`, `analytics`, `balance-sheet`, `fx`, `shared`.
 
-Use-cases para writes con reglas distintas (ledger, importación de señales, FX amounts). Fat services para CRUD/read (catalog, planning, analytics). Ports cuando hay ≥2 adapters o contrato cross-capability (`LEDGER_REPOSITORY`, `BUDGET_THRESHOLD_PORT`, FX).
+Use-cases para writes con reglas distintas (ledger, importación de señales, FX amounts). Fat services para CRUD/read (catalog, planning, analytics). Ports cuando hay ≥2 adapters o contrato cross-capability (los del ledger por tema: `LEDGER_QUERY_REPOSITORY`, `LEDGER_WRITE_REPOSITORY`, `LEDGER_STATUS_REPOSITORY`, `LEDGER_REVERSAL_REPOSITORY`, `LEDGER_DELETION_REPOSITORY`, `LEDGER_IMPORT_REPOSITORY`; `BUDGET_THRESHOLD_PORT`, FX).
 
 Ledger mutators: una `prisma.$transaction` (fila + balances + `amountSpent` + outbox + threshold). Side effects (notif, IA, WS) **después** del commit vía outbox.
 

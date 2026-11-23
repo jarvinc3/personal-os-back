@@ -9,7 +9,7 @@ import {
   SAME_ACCOUNT,
   SAME_ACCOUNT_MESSAGE,
 } from '../../shared/domain/transfer';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 /**
  * Currency the movement hits in the ledger. An account keeps its own currency;
@@ -17,7 +17,7 @@ import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
  * otherwise converts to the single currency the card already has.
  */
 export async function resolveLedgerCurrencyForTarget(
-  repo: LedgerRepositoryPort,
+  repo: LedgerQueryRepositoryPort,
   userId: string,
   accountId: string | undefined,
   cardId: string | undefined,
@@ -67,7 +67,7 @@ function cardLedgerCurrency(
 }
 
 export async function requireOwnedAccount(
-  repo: LedgerRepositoryPort,
+  repo: LedgerQueryRepositoryPort,
   userId: string,
   accountId: string,
 ): Promise<{ id: string; currency: string }> {

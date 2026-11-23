@@ -1,14 +1,14 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
 import { DOMAIN_EVENT_RELAY } from '@personal-os/contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import { LEDGER_DELETION_REPOSITORY } from '../../shared/application/tokens';
+import type { LedgerDeletionRepositoryPort } from './ports/ledger-deletion.repository.port';
 
 @Injectable()
 export class PurgeInstrumentLedgerUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_DELETION_REPOSITORY)
+    private readonly repo: LedgerDeletionRepositoryPort,
     @Inject(DOMAIN_EVENT_RELAY)
     private readonly relay: DomainEventRelay,
   ) {}

@@ -7,7 +7,14 @@ import { FinanceMerchantsModule } from '../merchants/merchants.module';
 import { FinanceSubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
-import { LEDGER_REPOSITORY } from '../shared/application/tokens';
+import {
+  LEDGER_DELETION_REPOSITORY,
+  LEDGER_IMPORT_REPOSITORY,
+  LEDGER_REVERSAL_REPOSITORY,
+  LEDGER_STATUS_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+  LEDGER_WRITE_REPOSITORY,
+} from '../shared/application/tokens';
 import { AdjustBalanceUseCase } from './application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from './application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from './application/create-transaction.use-case';
@@ -34,7 +41,8 @@ import { PrismaLedgerDeletionRepository } from './infrastructure/prisma-ledger-d
 import { PrismaLedgerImportRepository } from './infrastructure/prisma-ledger-import.repository';
 import { PrismaLedgerWriteRepository } from './infrastructure/prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './infrastructure/prisma-ledger-read.repository';
-import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
+import { PrismaLedgerReversalRepository } from './infrastructure/prisma-ledger-reversal.repository';
+import { PrismaLedgerStatusRepository } from './infrastructure/prisma-ledger-status.repository';
 import { TransactionsController } from './presentation/transactions.controller';
 import { TransfersController } from './presentation/transfers.controller';
 import { CardPaymentsController } from './presentation/card-payments.controller';
@@ -56,12 +64,36 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     CardPaymentsController,
   ],
   providers: [
-    PrismaLedgerRepository,
     PrismaLedgerReadRepository,
     PrismaLedgerDeletionRepository,
     PrismaLedgerImportRepository,
     PrismaLedgerWriteRepository,
-    { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
+    PrismaLedgerStatusRepository,
+    PrismaLedgerReversalRepository,
+    {
+      provide: LEDGER_QUERY_REPOSITORY,
+      useExisting: PrismaLedgerReadRepository,
+    },
+    {
+      provide: LEDGER_WRITE_REPOSITORY,
+      useExisting: PrismaLedgerWriteRepository,
+    },
+    {
+      provide: LEDGER_STATUS_REPOSITORY,
+      useExisting: PrismaLedgerStatusRepository,
+    },
+    {
+      provide: LEDGER_REVERSAL_REPOSITORY,
+      useExisting: PrismaLedgerReversalRepository,
+    },
+    {
+      provide: LEDGER_DELETION_REPOSITORY,
+      useExisting: PrismaLedgerDeletionRepository,
+    },
+    {
+      provide: LEDGER_IMPORT_REPOSITORY,
+      useExisting: PrismaLedgerImportRepository,
+    },
     LedgerQueryService,
     CreateTransactionUseCase,
     AdjustBalanceUseCase,
@@ -86,7 +118,12 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     ImportFinancialTransactionUseCase,
   ],
   exports: [
-    LEDGER_REPOSITORY,
+    LEDGER_QUERY_REPOSITORY,
+    LEDGER_WRITE_REPOSITORY,
+    LEDGER_REVERSAL_REPOSITORY,
+    LEDGER_STATUS_REPOSITORY,
+    LEDGER_DELETION_REPOSITORY,
+    LEDGER_IMPORT_REPOSITORY,
     LedgerQueryService,
     CreateTransactionUseCase,
     AdjustBalanceUseCase,

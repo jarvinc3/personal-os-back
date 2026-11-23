@@ -30,8 +30,9 @@ type TxClient = Prisma.TransactionClient;
  * planning links and budget effect with it, snapshots the whole thing in the
  * deletion journal and announces the deletion, so the trash can put it back.
  */
+import type { LedgerDeletionRepositoryPort } from '../application/ports/ledger-deletion.repository.port';
 @Injectable()
-export class PrismaLedgerDeletionRepository {
+export class PrismaLedgerDeletionRepository implements LedgerDeletionRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(DOMAIN_EVENT_PUBLISHER)

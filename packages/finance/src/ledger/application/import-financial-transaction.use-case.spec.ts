@@ -112,6 +112,8 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
     };
     const useCase = new ImportFinancialTransactionUseCase(
       repo as never,
+      repo as never,
+      repo as never,
       resolveAmounts as never,
       { execute: jest.fn().mockResolvedValue('DOP') },
       { wake: jest.fn() },
@@ -170,6 +172,8 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
     };
     const useCase = new ImportFinancialTransactionUseCase(
       repo as never,
+      repo as never,
+      repo as never,
       resolveAmounts as never,
       { execute: jest.fn().mockResolvedValue('DOP') },
       { wake: jest.fn() },
@@ -221,6 +225,8 @@ describe('ImportFinancialTransactionUseCase unpaired transfers', () => {
       execute: jest.fn().mockResolvedValue(amounts),
     };
     const useCase = new ImportFinancialTransactionUseCase(
+      repo as never,
+      repo as never,
       repo as never,
       resolveAmounts as never,
       { execute: jest.fn().mockResolvedValue('DOP') },

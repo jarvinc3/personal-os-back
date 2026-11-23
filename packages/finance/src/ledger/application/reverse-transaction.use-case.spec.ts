@@ -1,7 +1,7 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
 import { NotFoundException } from '@nestjs/common';
 import { ReverseTransactionUseCase } from './reverse-transaction.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerReversalRepositoryPort } from './ports/ledger-reversal.repository.port';
 
 function ledgerRow(overrides: Record<string, unknown> = {}) {
   const now = new Date('2026-08-01T12:00:00.000Z');
@@ -37,7 +37,9 @@ function ledgerRow(overrides: Record<string, unknown> = {}) {
 describe('ReverseTransactionUseCase', () => {
   const reverseTransaction = jest.fn();
   const wake = jest.fn();
-  const repo = { reverseTransaction } as unknown as LedgerRepositoryPort;
+  const repo = {
+    reverseTransaction,
+  } as unknown as LedgerReversalRepositoryPort;
   const relay = {
     wake,
   } as unknown as DomainEventRelay;

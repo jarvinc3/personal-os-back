@@ -7,24 +7,30 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_REVERSAL_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import {
   TRANSFER_NOT_COMPLETED,
   TRANSFER_NOT_COMPLETED_MESSAGE,
 } from '../../shared/domain/transfer';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerReversalRepositoryPort } from './ports/ledger-reversal.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 @Injectable()
 export class ReverseTransferUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_REVERSAL_REPOSITORY)
+    private readonly repo: LedgerReversalRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     @Inject(DOMAIN_EVENT_RELAY)
     private readonly relay: DomainEventRelay,
   ) {}
 
   async execute(userId: string, legId: string): Promise<void> {
-    const leg = await this.repo.findTransactionById(legId, userId);
+    const leg = await this.query.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transacción no encontrada');
     }
@@ -32,7 +38,7 @@ export class ReverseTransferUseCase {
       throw new BadRequestException('No es una transferencia');
     }
 
-    const legs = await this.repo.findTransactionsByTransferGroupId(
+    const legs = await this.query.findTransactionsByTransferGroupId(
       leg.transferGroupId,
       userId,
     );

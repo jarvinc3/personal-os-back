@@ -5,7 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_QUERY_REPOSITORY } from '../../shared/application/tokens';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { roundMoney } from '../../shared/domain/money';
 import {
@@ -20,10 +20,8 @@ import {
   transactionLinkedMessage,
   type TransactionLinkKind,
 } from '../../shared/domain/transaction-links';
-import type {
-  LedgerRepositoryPort,
-  LedgerTransactionRow,
-} from '../../ledger/application/ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
+import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { shiftLoanDueDate } from '../domain/loan-installment-schedule';
 import {
   distributeLoanPayment,
@@ -54,8 +52,8 @@ const CONFIRMED = 'CONFIRMED';
 @Injectable()
 export class LinkTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly ledger: LedgerRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly ledger: LedgerQueryRepositoryPort,
     private readonly planning: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly recordPayment: RecordReceivablePaymentUseCase,
