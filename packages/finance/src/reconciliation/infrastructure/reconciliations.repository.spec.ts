@@ -122,9 +122,9 @@ describe('ReconciliationsRepository.sumOutgoing', () => {
     const prisma = { finTransaction: { aggregate } };
     const repo = new ReconciliationsRepository(prisma as never, {} as never);
 
-    const total = await repo.sumOutgoing(
-      'user-1',
-      {
+    const total = await repo.sumOutgoing({
+      userId: 'user-1',
+      target: {
         accountId: null,
         cardId: 'card-1',
         cardType: 'CREDIT',
@@ -134,9 +134,9 @@ describe('ReconciliationsRepository.sumOutgoing', () => {
         institutionName: 'Popular',
         currentBalance: 0,
       },
-      new Date('2026-10-01T00:00:00.000Z'),
-      new Date('2026-10-31T00:00:00.000Z'),
-    );
+      from: new Date('2026-10-01T00:00:00.000Z'),
+      to: new Date('2026-10-31T00:00:00.000Z'),
+    });
 
     expect(total).toBe(10000);
     expect(aggregate).toHaveBeenCalledWith(
