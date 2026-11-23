@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService, type Prisma } from '@personal-os/database';
 import {
   resolveLedgerTargetFromHints,
@@ -59,6 +60,7 @@ export type MovementDestination =
   | { kind: 'review'; plan: ImportPlan };
 
 /** Decide a qué cuenta o tarjeta del dueño pertenece un movimiento importado. */
+@Injectable()
 export class SignalImportTargets {
   constructor(private readonly prisma: PrismaService) {}
 

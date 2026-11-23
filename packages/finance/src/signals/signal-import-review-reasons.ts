@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
 import {
   isAtmMovementClass,
@@ -15,14 +16,15 @@ import {
   resolveMovementClass,
   type SignalCandidate,
 } from './signal-import-payload';
-import type { CardPaymentTargets } from './signal-card-payment-targets';
-import type { SignalImportTargets } from './signal-import-targets';
-import type { SignalReversalPlanner } from './signal-reversal-planner';
+import { CardPaymentTargets } from './signal-card-payment-targets';
+import { SignalImportTargets } from './signal-import-targets';
+import { SignalReversalPlanner } from './signal-reversal-planner';
 
 /**
  * Reúne los motivos de revisión que la corrida todavía no usó para decidir.
  * Solo lee el payload y los destinos; no escribe ni cambia el plan.
  */
+@Injectable()
 export class SignalImportReviewReasons {
   constructor(
     private readonly targets: SignalImportTargets,

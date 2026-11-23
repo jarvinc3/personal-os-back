@@ -1,24 +1,22 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
-import type {
-  ImportCardPaymentInput,
+import {
   ImportCardPaymentUseCase,
+  type ImportCardPaymentInput,
 } from '../ledger/application/import-card-payment.use-case';
 import type { FinTransactionStatusValue } from '../shared/domain/transaction-status';
 import {
-  buildConsumeResult,
   buildSignalImportMetadata,
   duplicatePlan,
   reviewPlan,
   type ImportPlan,
-  type SignalConsumeResult,
 } from './signal-import-plan';
 import type { SignalCandidate, SignalPayload } from './signal-import-payload';
-import type { SignalImportStore } from './signal-import-store';
-import type {
-  CardPaymentAccountCandidate,
-  CardPaymentAccountResolution,
-  CardPaymentCardResolution,
+import {
   CardPaymentTargets,
+  type CardPaymentAccountCandidate,
+  type CardPaymentAccountResolution,
+  type CardPaymentCardResolution,
 } from './signal-card-payment-targets';
 
 type CardPaymentPlanInput = {
@@ -32,15 +30,15 @@ type CardPaymentPlanInput = {
 };
 
 /**
- * Pago de tarjeta confirmado: dos patas `CARD_PAYMENT`, sin gasto. Solo aplica
+ * Pago de tarjeta confirmado: dos patas `CARD_PAYMENT`, sin gasto. Solo planifica
  * una vez; un pago manual parecido se vincula como duplicado y la duda va a
  * revisión.
  */
+@Injectable()
 export class CardPaymentPlanner {
   constructor(
     private readonly cardPayments: ImportCardPaymentUseCase,
     private readonly targets: CardPaymentTargets,
-    private readonly store: SignalImportStore,
   ) {}
 
   async build(input: CardPaymentPlanInput): Promise<ImportPlan> {
@@ -70,47 +68,6 @@ export class CardPaymentPlanner {
       });
     }
     return { kind: 'CARD_PAYMENT', payment };
-  }
-
-  async apply(
-    signal: RoutedSignal,
-    payment: ImportCardPaymentInput,
-  ): Promise<SignalConsumeResult> {
-    const imported = await this.cardPayments.execute(signal.userId, payment);
-    if (imported.kind === 'review') {
-      return this.store.persistReview({
-        signal,
-        reason: imported.reason,
-        evidence: {
-          externalReference: payment.externalReference,
-          candidateTransactionIds: imported.candidateTransactionIds,
-        },
-      });
-    }
-    if (imported.kind === 'duplicate') {
-      await this.store.persist({
-        signal,
-        status: 'DUPLICATE',
-        transactionId: null,
-        duplicateOfTransactionId: imported.sourceTransactionId,
-      });
-      return buildConsumeResult(
-        'ALREADY_APPLIED',
-        imported.sourceTransactionId,
-      );
-    }
-    if (imported.kind === 'not_written') {
-      return this.store.persistReview({
-        signal,
-        reason: 'CARD_PAYMENT_NOT_IMPORTED',
-      });
-    }
-    await this.store.persist({
-      signal,
-      status: 'IMPORTED',
-      transactionId: imported.sourceTransactionId,
-    });
-    return buildConsumeResult('APPLIED', imported.sourceTransactionId);
   }
 
   private async resolveTargets(input: CardPaymentPlanInput): Promise<

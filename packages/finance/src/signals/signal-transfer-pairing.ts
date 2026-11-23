@@ -1,6 +1,7 @@
+import { Injectable } from '@nestjs/common';
 import { PrismaService, type Prisma } from '@personal-os/database';
-import type { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
-import type { ImportFinancialTransactionUseCase } from '../ledger/application/import-financial-transaction.use-case';
+import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
+import { ImportFinancialTransactionUseCase } from '../ledger/application/import-financial-transaction.use-case';
 import {
   isUnpairedTransferCandidate,
   movementClassOf,
@@ -46,6 +47,7 @@ function toTransferPairingCandidate(
  * La pata importada queda pendiente. Solo se empareja cuando hay un candidato
  * único; con varios, la pata sigue pendiente y el motivo queda en la evidencia.
  */
+@Injectable()
 export class TransferPairing {
   constructor(
     private readonly prisma: PrismaService,

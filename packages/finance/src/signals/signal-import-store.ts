@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
 import { PrismaService, type Prisma } from '@personal-os/database';
 import { REVERSAL_REVIEW_REASON } from '../ledger/application/resolve-reversal-target';
@@ -59,6 +60,7 @@ export function isRetryableTargetReview(prior: {
   );
 }
 
+@Injectable()
 export class SignalImportStore {
   constructor(private readonly prisma: PrismaService) {}
 

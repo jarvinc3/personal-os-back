@@ -10,7 +10,8 @@ import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { LogoService } from '@personal-os/logos';
 import type { UsersRepositoryPort } from '@personal-os/users';
-import { FinanceSignalConsumer } from '@personal-os/finance';
+// eslint-disable-next-line no-restricted-imports -- El arnés arma el consumidor real con su grafo.
+import { createFinanceSignalConsumer } from '../../../packages/finance/src/signals/signal-consumer.test-setup';
 import {
   AiSignalConsumerRegistry,
   EmailSampleImportService,
@@ -162,9 +163,9 @@ export function createBhdImportHarness(
     new FinanceOwnershipService(prisma),
     logos,
   );
-  const consumer = new FinanceSignalConsumer(
+  const consumer = createFinanceSignalConsumer({
     prisma,
-    new ImportFinancialTransactionUseCase(
+    importTransaction: new ImportFinancialTransactionUseCase(
       importRepository,
       readRepository,
       writeRepository,
@@ -174,8 +175,11 @@ export function createBhdImportHarness(
       merchants,
     ),
     ledger,
-    new ReverseTransactionUseCase(reversalRepository, relay),
-    new ImportCardPaymentUseCase(
+    reverseTransaction: new ReverseTransactionUseCase(
+      reversalRepository,
+      relay,
+    ),
+    cardPaymentImport: new ImportCardPaymentUseCase(
       writeRepository,
       resolveAmounts,
       baseCurrency,
@@ -183,7 +187,7 @@ export function createBhdImportHarness(
     ),
     merchants,
     baseCurrency,
-  );
+  });
 
   let modelResponse:
     | { kind: 'value'; value: unknown }

@@ -20,8 +20,8 @@ import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 import { FinanceEmailProductHints } from './ledger/application/email-product-hints.service';
-import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 import { ImportReviewResolutionService } from './signals/import-review-resolution.service';
+import { FinanceSignalsModule } from './signals/signals.module';
 import { ImportReviewController } from './signals/presentation/import-review.controller';
 import { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 import { FinanceNotificationIntents } from './notifications/finance-notification-intents';
@@ -49,12 +49,12 @@ import { FinanceNotificationsListener } from './notifications/finance-notificati
     FinanceReceivableSharesModule,
     FinanceRecycleBinModule,
     FinanceWipeModule,
+    FinanceSignalsModule,
   ],
   controllers: [ImportReviewController],
   providers: [
     FinanceFacade,
     FinanceAiCapabilities,
-    FinanceSignalConsumer,
     ImportReviewResolutionService,
     FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
@@ -64,10 +64,10 @@ import { FinanceNotificationsListener } from './notifications/finance-notificati
   exports: [
     FinanceFacade,
     FinanceAiCapabilities,
-    FinanceSignalConsumer,
     FinanceEmailProductProposalCatalog,
     FinanceEmailProductHints,
     FinanceNotificationIntents,
+    FinanceSignalsModule,
   ],
 })
 export class FinanceModule {}

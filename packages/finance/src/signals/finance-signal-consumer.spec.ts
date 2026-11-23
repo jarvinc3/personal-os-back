@@ -3,7 +3,7 @@ import {
   PartialReversalAlreadyAppliedError,
   PartialReversalExceedsOriginalError,
 } from '../ledger/application/partial-reversal.errors';
-import { FinanceSignalConsumer } from './finance-signal-consumer';
+import { createFinanceSignalConsumer } from './signal-consumer.test-setup';
 
 const signal: RoutedSignal = {
   signalId: 'signal-1',
@@ -83,15 +83,15 @@ function setup(overrides: Record<string, unknown> = {}) {
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
     ...((overrides.ledger as Record<string, jest.Mock> | undefined) ?? {}),
   };
-  const consumer = new FinanceSignalConsumer(
-    { ...prisma, ...overrides },
-    importEmail as never,
-    ledger as never,
-    reverseTransaction as never,
-    { execute: jest.fn().mockResolvedValue(null) } as never,
-    { suggest: jest.fn().mockResolvedValue(null) } as never,
-    baseCurrency as never,
-  );
+  const consumer = createFinanceSignalConsumer({
+    prisma: { ...prisma, ...overrides },
+    importTransaction: importEmail,
+    ledger: ledger,
+    reverseTransaction: reverseTransaction,
+    cardPaymentImport: { execute: jest.fn().mockResolvedValue(null) },
+    merchants: { suggest: jest.fn().mockResolvedValue(null) },
+    baseCurrency: baseCurrency,
+  });
   return { consumer, prisma, importEmail, ledger, reverseTransaction };
 }
 

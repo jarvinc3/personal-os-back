@@ -6,7 +6,8 @@ import {
   getPrismaClientClass,
   type PrismaService,
 } from '@personal-os/database';
-import { FinanceSignalConsumer } from '@personal-os/finance';
+// eslint-disable-next-line no-restricted-imports -- El test arma el consumidor real con su grafo.
+import { createFinanceSignalConsumer } from '../../packages/finance/src/signals/signal-consumer.test-setup';
 import type { RoutedSignal } from '@personal-os/contracts';
 // eslint-disable-next-line no-restricted-imports -- El test ejercita el repositorio real contra la base.
 import { PrismaLedgerImportRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-import.repository';
@@ -161,15 +162,15 @@ function createConsumer() {
     pairTransferLegs: (userId: string, debitId: string, creditId: string) =>
       repo.pairImportedTransferLegs(userId, debitId, creditId),
   };
-  return new FinanceSignalConsumer(
-    prisma as never,
-    importTransaction as never,
-    ledger as never,
-    { execute: jest.fn() } as never,
-    { execute: jest.fn() } as never,
-    { suggest: jest.fn() } as never,
-    { execute: jest.fn().mockResolvedValue('DOP') } as never,
-  );
+  return createFinanceSignalConsumer({
+    prisma,
+    importTransaction,
+    ledger,
+    reverseTransaction: { execute: jest.fn() },
+    cardPaymentImport: { execute: jest.fn() },
+    merchants: { suggest: jest.fn() },
+    baseCurrency: { execute: jest.fn().mockResolvedValue('DOP') },
+  });
 }
 
 function transferSignal({

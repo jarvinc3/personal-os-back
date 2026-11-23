@@ -1,11 +1,13 @@
+import { Injectable } from '@nestjs/common';
 import type { RoutedSignal, SignalImportPreview } from '@personal-os/contracts';
 import type { ImportFinancialMovementInput } from '../ledger/application/import-financial-transaction.use-case';
 import type { ImportPlan } from './signal-import-plan';
-import type { SignalImportReviewReasons } from './signal-import-review-reasons';
+import { SignalImportReviewReasons } from './signal-import-review-reasons';
 
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
 
 /** Vista previa de la importación: describe lo que el plan escribiría. */
+@Injectable()
 export class SignalImportPreviewReader {
   constructor(private readonly reviewReasons: SignalImportReviewReasons) {}
 
