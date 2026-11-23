@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { z } from 'zod';
 import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
@@ -8,6 +7,8 @@ import type {
   ExchangeRatePort,
   ExchangeRateResult,
 } from '../application/ports/exchange-rate.port';
+import { ExchangeRateHostClient } from './exchange-rate-host.client';
+import { mapProviderFailure } from './exchange-rate-host.failure';
 
 const FALLBACK_CURRENCIES = [
   'DOP',
@@ -22,49 +23,20 @@ const FALLBACK_CURRENCIES = [
   'ARS',
 ] as const;
 
-const historicalSchema = z.object({
-  success: z.boolean().optional(),
-  rates: z.record(z.string(), z.number()).optional(),
-  quotes: z.record(z.string(), z.number()).optional(),
-  error: z
-    .object({
-      info: z.string().optional(),
-      code: z.union([z.string(), z.number()]).optional(),
-    })
-    .optional(),
-});
-
-const currencyListSchema = z.object({
-  success: z.boolean().optional(),
-  currencies: z.record(z.string(), z.string()).optional(),
-  symbols: z.record(z.string(), z.string()).optional(),
-});
-
-type FxProviderFailureKind =
-  'auth' | 'transient' | 'no_rate' | 'provider' | 'shape';
-
 /** Un feriado largo puede dejar varios días sin publicación. */
 const LAST_PUBLISHED_LOOKBACK_DAYS = 14;
-
-class FxProviderError extends Error {
-  constructor(
-    message: string,
-    readonly providerStatus: number | null,
-    readonly kind: FxProviderFailureKind,
-  ) {
-    super(message);
-    this.name = 'FxProviderError';
-  }
-}
 
 @Injectable()
 export class ExchangeRateHostAdapter implements ExchangeRatePort {
   private readonly logger = new Logger(ExchangeRateHostAdapter.name);
+  private readonly client: ExchangeRateHostClient;
 
   constructor(
     private readonly config: ConfigService<Env, true>,
     private readonly prisma: PrismaService,
-  ) {}
+  ) {
+    this.client = new ExchangeRateHostClient(config, this.logger);
+  }
 
   async listCurrencies(): Promise<string[]> {
     const codes = new Set<string>(['DOP']);
@@ -76,7 +48,7 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       codes.add(row.toCurrency);
     }
 
-    for (const code of await this.fetchCurrencyCodes()) {
+    for (const code of await this.client.fetchCurrencyCodes()) {
       codes.add(code);
     }
 
@@ -132,7 +104,12 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     }
 
     try {
-      const rate = await this.fetchFromApi(from, to, params.date, apiKey);
+      const rate = await this.client.fetchRate({
+        from,
+        to,
+        date: params.date,
+        accessKey: apiKey,
+      });
       await this.prisma.finExchangeRate.upsert({
         where: {
           fromCurrency_toCurrency_rateDate: {
@@ -232,66 +209,11 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     date: string;
     error: unknown;
   }): ExchangeRateResult {
-    const message = error instanceof Error ? error.message : String(error);
-    const providerStatus =
-      error instanceof FxProviderError
-        ? (error.providerStatus ?? undefined)
-        : undefined;
-    const kind = error instanceof FxProviderError ? error.kind : 'transient';
-    if (kind !== 'no_rate') {
-      this.logger.warn(
-        `FX API failed for ${from}->${to} on ${date}: ${message}`,
-      );
+    const report = mapProviderFailure({ from, to, date, error });
+    if (report.logMessage) {
+      this.logger.warn(report.logMessage);
     }
-    const statusText = providerStatus ? ` (HTTP ${providerStatus})` : '';
-    const detail =
-      message === (providerStatus ? `HTTP ${providerStatus}` : '')
-        ? ''
-        : `: ${message}`;
-
-    if (kind === 'auth') {
-      return {
-        ok: false,
-        code: 'PROVIDER_UNAUTHORIZED',
-        message: `FX provider unauthorized${statusText} for ${from}->${to} on ${date}${detail}`,
-        retryable: false,
-        providerStatus,
-      };
-    }
-    if (kind === 'no_rate') {
-      return {
-        ok: false,
-        code: 'NO_EXACT_RATE',
-        message: `No rate for ${from}->${to} on ${date}`,
-        retryable: false,
-        providerStatus,
-      };
-    }
-    if (kind === 'provider') {
-      return {
-        ok: false,
-        code: 'PROVIDER_ERROR',
-        message: `FX provider rejected the request${statusText} for ${from}->${to} on ${date}${detail}`,
-        retryable: false,
-        providerStatus,
-      };
-    }
-    if (kind === 'shape') {
-      return {
-        ok: false,
-        code: 'PROVIDER_ERROR',
-        message: `FX provider returned an unexpected response for ${from}->${to} on ${date}: ${message}`,
-        retryable: true,
-        providerStatus,
-      };
-    }
-    return {
-      ok: false,
-      code: 'PROVIDER_UNAVAILABLE',
-      message: `FX provider unavailable${statusText} for ${from}->${to} on ${date}${detail}`,
-      retryable: true,
-      providerStatus,
-    };
+    return report.result;
   }
 
   async getLatestRateOnOrBefore(params: {
@@ -328,107 +250,5 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       message: `No rate for ${from}->${to} on or before ${params.date}`,
       retryable: false,
     };
-  }
-
-  private async fetchCurrencyCodes(): Promise<string[]> {
-    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', {
-      infer: true,
-    });
-    if (!apiKey) {
-      return [];
-    }
-
-    try {
-      const url = new URL('https://api.exchangerate.host/list');
-      url.searchParams.set('access_key', apiKey);
-      const response = await fetch(url.toString(), {
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const json: unknown = await response.json();
-      const parsed = currencyListSchema.safeParse(json);
-      if (!parsed.success) {
-        throw new Error('Unexpected FX list response shape');
-      }
-
-      const named = parsed.data.currencies ?? parsed.data.symbols ?? {};
-      return Object.keys(named)
-        .map((code) => code.toUpperCase())
-        .filter((code) => /^[A-Z]{3}$/.test(code));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`FX currency list failed: ${message}`);
-      return [];
-    }
-  }
-
-  private async fetchFromApi(
-    from: string,
-    to: string,
-    date: string,
-    accessKey: string,
-  ): Promise<number> {
-    // Historical endpoint (APILayer exchangerate.host)
-    const url = new URL(`https://api.exchangerate.host/historical`);
-    url.searchParams.set('access_key', accessKey);
-    url.searchParams.set('date', date);
-    url.searchParams.set('source', from);
-    url.searchParams.set('currencies', to);
-
-    const response = await fetch(url.toString(), {
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!response.ok) {
-      const kind: FxProviderFailureKind =
-        response.status === 401 || response.status === 403
-          ? 'auth'
-          : response.status === 429 || response.status >= 500
-            ? 'transient'
-            : 'provider';
-      throw new FxProviderError(
-        `HTTP ${response.status}`,
-        response.status,
-        kind,
-      );
-    }
-
-    const json: unknown = await response.json();
-    const parsed = historicalSchema.safeParse(json);
-    if (!parsed.success) {
-      throw new FxProviderError('Unexpected FX response shape', null, 'shape');
-    }
-    if (parsed.data.success === false) {
-      const providerMessage =
-        parsed.data.error?.info ?? 'FX provider rejected request';
-      const auth = /access key|unauthori[sz]ed|invalid key|forbidden/i.test(
-        providerMessage,
-      );
-      const transient =
-        /quota|rate limit|too many|limit exceeded|usage limit/i.test(
-          providerMessage,
-        );
-      const noData = /no data|no result|no rate/i.test(providerMessage);
-      const kind: FxProviderFailureKind = auth
-        ? 'auth'
-        : transient
-          ? 'transient'
-          : noData
-            ? 'no_rate'
-            : 'provider';
-      throw new FxProviderError(providerMessage, null, kind);
-    }
-
-    const quoteKey = `${from}${to}`;
-    const fromQuotes =
-      parsed.data.quotes?.[quoteKey] ?? parsed.data.quotes?.[to];
-    const fromRates = parsed.data.rates?.[to];
-    const rate = fromQuotes ?? fromRates;
-    if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
-      throw new FxProviderError(`Missing rate for ${to}`, null, 'no_rate');
-    }
-    return rate;
   }
 }

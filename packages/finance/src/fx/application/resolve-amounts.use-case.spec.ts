@@ -83,12 +83,12 @@ describe('ResolveAmountsUseCase', () => {
   it('converts a position to the base currency exactly', async () => {
     const { useCase } = build();
 
-    const converted = await useCase.toBaseCurrency(
-      '1000000',
-      'DOP',
-      'USD',
+    const converted = await useCase.toBaseCurrency({
+      amount: '1000000',
+      currency: 'DOP',
+      baseCurrency: 'USD',
       asOf,
-    );
+    });
 
     expect(converted.toFixed(2)).toBe('18123.00');
   });
@@ -96,7 +96,12 @@ describe('ResolveAmountsUseCase', () => {
   it('rounds a half cent to the even cent (ROUND_HALF_EVEN)', async () => {
     const { useCase } = build();
 
-    const converted = await useCase.toBaseCurrency('0.125', 'USD', 'USD', asOf);
+    const converted = await useCase.toBaseCurrency({
+      amount: '0.125',
+      currency: 'USD',
+      baseCurrency: 'USD',
+      asOf,
+    });
 
     expect(converted.toFixed(2)).toBe('0.12');
   });
@@ -111,7 +116,12 @@ describe('ResolveAmountsUseCase', () => {
     });
 
     await expect(
-      useCase.toBaseCurrency('10', 'DOP', 'EUR', asOf),
+      useCase.toBaseCurrency({
+        amount: '10',
+        currency: 'DOP',
+        baseCurrency: 'EUR',
+        asOf,
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -165,12 +175,12 @@ describe('ResolveAmountsUseCase', () => {
       source: 'cache',
     });
 
-    const converted = await useCase.toBaseCurrencyOrNull(
-      '10',
-      'DOP',
-      'EUR',
+    const converted = await useCase.toBaseCurrencyOrNull({
+      amount: '10',
+      currency: 'DOP',
+      baseCurrency: 'EUR',
       asOf,
-    );
+    });
 
     expect(converted?.toFixed(2)).toBe('20.00');
     expect(getLatestRateOnOrBefore).toHaveBeenCalledWith({
@@ -184,7 +194,12 @@ describe('ResolveAmountsUseCase', () => {
     const { useCase } = build();
 
     await expect(
-      useCase.toBaseCurrencyOrNull('10', 'DOP', 'EUR', asOf),
+      useCase.toBaseCurrencyOrNull({
+        amount: '10',
+        currency: 'DOP',
+        baseCurrency: 'EUR',
+        asOf,
+      }),
     ).resolves.toBeNull();
   });
 
@@ -257,8 +272,20 @@ describe('ResolveAmountsUseCase', () => {
     });
     const cache: FxRateRequestCache = new Map();
 
-    await useCase.toBaseCurrencyOrNull('10', 'USD', 'DOP', asOf, cache);
-    await useCase.toBaseCurrency('20', 'USD', 'DOP', asOf, cache);
+    await useCase.toBaseCurrencyOrNull({
+      amount: '10',
+      currency: 'USD',
+      baseCurrency: 'DOP',
+      asOf,
+      cache,
+    });
+    await useCase.toBaseCurrency({
+      amount: '20',
+      currency: 'USD',
+      baseCurrency: 'DOP',
+      asOf,
+      cache,
+    });
 
     expect(getHistoricalRate).toHaveBeenCalledTimes(1);
     expect(getLedgerRate).not.toHaveBeenCalled();
@@ -274,8 +301,20 @@ describe('ResolveAmountsUseCase', () => {
     });
     const cache: FxRateRequestCache = new Map();
 
-    await useCase.toBaseCurrency('10', 'USD', 'DOP', asOf, cache);
-    await useCase.toBaseCurrencyOrNull('20', 'USD', 'DOP', asOf, cache);
+    await useCase.toBaseCurrency({
+      amount: '10',
+      currency: 'USD',
+      baseCurrency: 'DOP',
+      asOf,
+      cache,
+    });
+    await useCase.toBaseCurrencyOrNull({
+      amount: '20',
+      currency: 'USD',
+      baseCurrency: 'DOP',
+      asOf,
+      cache,
+    });
 
     expect(getLedgerRate).toHaveBeenCalledTimes(1);
     expect(getHistoricalRate).not.toHaveBeenCalled();
