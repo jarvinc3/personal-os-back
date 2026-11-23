@@ -4,102 +4,58 @@ import {
   type ModuleSettingsReader,
 } from '@personal-os/contracts';
 import { PrismaService, type Prisma } from '@personal-os/database';
-import {
-  EMAIL_CLASSIFICATION_VERSIONS,
-  type EmailClassification,
-} from './email-classification.util';
-import {
-  buildClassificationRows,
-  buildFinanceSignal,
-  classificationLabel,
-  requiresReview,
-  type ClassificationProvenance,
-} from './email-classification-persistence';
-import {
-  currentClassificationLabel,
-  dominantClassification,
-  knowledgeProvenanceForRow,
-  mergedCandidateLabel,
-  RECLASSIFIABLE_STATUSES,
-  RECLASSIFICATION_CLAIM_CHUNK_SIZE,
-  RECLASSIFICATION_MAX_MESSAGES,
-  sharedKnowledgeProvenance,
-  structuralLabel,
-  type KnowledgeProvenance,
-  type ReclassificationResult,
-} from './email-reclassification.util';
-import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
-import {
-  EMAIL_DATASET_NAME,
-  EMAIL_DATASET_PURPOSE,
-} from '../evidence/dataset.constants';
+import { HOLDOUT_PARTITION } from '../evidence/email-evidence.constants';
 import {
   knowledgeKeys,
   normalizeSender,
 } from '../knowledge/knowledge-normalizer';
-import { POLICY_VERSION } from '../knowledge/knowledge-policy';
-import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
-import type { EmailLabel } from '../knowledge/knowledge-payload';
+import type { EmailClassification } from './email-classification.util';
+import { EmailReclassificationChunks } from './email-reclassification.chunks';
+import { EmailReclassificationEngine } from './email-reclassification.engine';
+import { readEmailPartitions } from './email-reclassification.partitions';
+import { EmailReclassificationRuns } from './email-reclassification.runs';
+import type {
+  KnowledgeRowRef,
+  ReclassifiableMessage,
+} from './email-reclassification.types';
 import {
-  loadEmailReviewSettings,
-  type EmailReviewSettings,
-} from './email-review-settings';
+  currentClassificationLabel,
+  dominantClassification,
+  knowledgeProvenanceForRow,
+  RECLASSIFIABLE_STATUSES,
+  sharedKnowledgeProvenance,
+  structuralLabel,
+  type ReclassificationResult,
+} from './email-reclassification.util';
 
-const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
-const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
-const HOLDOUT_PARTITION = 'HOLDOUT';
-const KNOWLEDGE_DECISION_PATH = 'KNOWLEDGE';
-/** Un bloque encola hasta 200 actualizaciones de mensaje dentro de la transacción. */
-const RECLASSIFICATION_TRANSACTION_TIMEOUT_MS = 30_000;
-
-export type KnowledgeRowRef = {
-  knowledgeType: string;
-  knowledgeKey: string;
-  scope: string;
-  payload: Prisma.JsonValue;
-};
-
-type ReclassifiableMessage = {
-  id: string;
-  receivedAt: Date;
-  fromAddress: string;
-  subject: string;
-  templateFingerprint: string | null;
-  processingStatus: string;
-  classification: Prisma.JsonValue | null;
-};
-
-type ReclassifiedMessage = {
-  message: ReclassifiableMessage;
-  classification: EmailClassification;
-  provenance: ClassificationProvenance;
-};
-
-type ChunkPlan = {
-  reclassified: ReclassifiedMessage[];
-  skippedIds: string[];
-};
-
-type ReclassifyScopeInput = {
-  userId: string;
-  where: Prisma.AiEmailMessageWhereInput;
-  matches: (message: ReclassifiableMessage) => boolean;
-  structural: EmailLabel;
-  provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
-  trigger: string;
-  verifiedSender?: boolean;
-};
+export type { KnowledgeRowRef } from './email-reclassification.types';
 
 @Injectable()
 export class AiEmailReclassificationService {
   private readonly logger = new Logger(AiEmailReclassificationService.name);
+  private readonly runs: EmailReclassificationRuns;
+  private readonly chunks: EmailReclassificationChunks;
+  private readonly engine: EmailReclassificationEngine;
 
   constructor(
     private readonly prisma: PrismaService,
     @Optional()
     @Inject(MODULE_SETTINGS_READER)
     private readonly moduleSettings?: ModuleSettingsReader,
-  ) {}
+  ) {
+    this.runs = new EmailReclassificationRuns({
+      prisma: this.prisma,
+      logger: this.logger,
+    });
+    this.chunks = new EmailReclassificationChunks(this.prisma);
+    this.engine = new EmailReclassificationEngine({
+      prisma: this.prisma,
+      runs: this.runs,
+      chunks: this.chunks,
+      logger: this.logger,
+      moduleSettings: this.moduleSettings,
+    });
+  }
 
   /**
    * La verificación de un correo solo cubre su plantilla. Se aplica a los demás
@@ -137,7 +93,7 @@ export class AiEmailReclassificationService {
     if (!structural) {
       return { requeued: 0 };
     }
-    return this.reclassifyScope({
+    return this.engine.run({
       userId,
       where: {
         fromAddress: verified.fromAddress,
@@ -185,10 +141,11 @@ export class AiEmailReclassificationService {
     if (!representative) {
       return { requeued: 0 };
     }
-    const partitions = await this.partitionsFor(
+    const partitions = await readEmailPartitions({
+      prisma: this.prisma,
       userId,
-      groupMessages.map(({ id }) => id),
-    );
+      messageIds: groupMessages.map(({ id }) => id),
+    });
     const labelledGroup = groupMessages.filter(
       ({ id }) => partitions.get(id) !== HOLDOUT_PARTITION,
     );
@@ -198,7 +155,7 @@ export class AiEmailReclassificationService {
     if (!structural) {
       return { requeued: 0 };
     }
-    return this.reclassifyScope({
+    return this.engine.run({
       userId,
       where: { fromAddress, templateFingerprint },
       matches: () => true,
@@ -226,7 +183,7 @@ export class AiEmailReclassificationService {
     if (!scope) {
       return { requeued: 0 };
     }
-    return this.reclassifyScope({
+    return this.engine.run({
       userId,
       where: scope.where,
       matches: scope.matches,
@@ -266,7 +223,7 @@ export class AiEmailReclassificationService {
     if (!messageIds.length) {
       return { requeued: 0 };
     }
-    const eligible = await this.eligibleMessages({
+    const eligible = await this.engine.eligibleMessages({
       userId,
       where: { id: { in: messageIds } },
       matches: () => true,
@@ -285,609 +242,13 @@ export class AiEmailReclassificationService {
     return { requeued: updated.count };
   }
 
-  private async reclassifyScope(
-    input: ReclassifyScopeInput,
-  ): Promise<ReclassificationResult> {
-    const messages = await this.eligibleMessages(input);
-    if (!messages.length) {
-      return { requeued: 0 };
-    }
-    const reviewSettings = await loadEmailReviewSettings(
-      this.moduleSettings,
-      input.userId,
-    );
-    const runId = await this.startRun({
-      userId: input.userId,
-      trigger: input.trigger,
-      reviewConfidenceThreshold: reviewSettings.reviewConfidenceThreshold,
-    });
-    let requeued = 0;
-    let skipped = 0;
-    try {
-      for (
-        let start = 0;
-        start < messages.length;
-        start += RECLASSIFICATION_CLAIM_CHUNK_SIZE
-      ) {
-        const chunk = messages.slice(
-          start,
-          start + RECLASSIFICATION_CLAIM_CHUNK_SIZE,
-        );
-        const outcome = await this.reclassifyChunk({
-          userId: input.userId,
-          chunk,
-          structural: input.structural,
-          provenanceFor: input.provenanceFor,
-          reviewSettings,
-          verifiedSender: input.verifiedSender ?? false,
-        });
-        requeued += outcome.requeued;
-        skipped += outcome.skipped;
-      }
-    } catch (error) {
-      await this.failRun({ runId, requeued, skipped, error });
-      throw error;
-    }
-    await this.completeRun({ runId, requeued, skipped });
-    this.logger.debug(
-      `Reclassified ${requeued} messages for ${input.userId} (${input.trigger})`,
-    );
-    return { requeued };
-  }
-
-  private async eligibleMessages({
-    userId,
-    where,
-    matches,
-  }: {
-    userId: string;
-    where: Prisma.AiEmailMessageWhereInput;
-    matches: (message: ReclassifiableMessage) => boolean;
-  }): Promise<ReclassifiableMessage[]> {
-    const messages = await this.prisma.aiEmailMessage.findMany({
-      where: {
-        ...where,
-        userId,
-        processingStatus: { in: [...RECLASSIFIABLE_STATUSES] },
-      },
-      select: {
-        id: true,
-        receivedAt: true,
-        fromAddress: true,
-        subject: true,
-        templateFingerprint: true,
-        processingStatus: true,
-        classification: true,
-      },
-      orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
-      take: RECLASSIFICATION_MAX_MESSAGES,
-    });
-    const candidates = messages.filter(matches);
-    if (!candidates.length) {
-      return [];
-    }
-    const ids = candidates.map(({ id }) => id);
-    const [verifications, partitionByMessage] = await Promise.all([
-      this.prisma.aiHumanVerification.findMany({
-        where: {
-          userId,
-          targetType: REVIEW_TARGET_TYPE,
-          targetId: { in: ids },
-        },
-        distinct: ['targetId'],
-        select: { targetId: true },
-      }),
-      this.partitionsFor(userId, ids),
-    ]);
-    const verified = new Set(
-      verifications.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
-    );
-    return candidates.filter(
-      (message) =>
-        !verified.has(message.id) &&
-        partitionByMessage.get(message.id) !== HOLDOUT_PARTITION,
-    );
-  }
-
-  private async reclassifyChunk({
-    userId,
-    chunk,
-    structural,
-    provenanceFor,
-    reviewSettings,
-    verifiedSender,
-  }: {
-    userId: string;
-    chunk: readonly ReclassifiableMessage[];
-    structural: EmailLabel;
-    provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
-    reviewSettings: EmailReviewSettings;
-    verifiedSender: boolean;
-  }): Promise<{ requeued: number; skipped: number }> {
-    const previousStatus = new Map(
-      chunk.map(({ id, processingStatus }) => [id, processingStatus]),
-    );
-    const claimToken = new Date();
-    const claimed = await this.claimChunk({
-      userId,
-      messageIds: chunk.map(({ id }) => id),
-      claimToken,
-    });
-    if (!claimed.length) {
-      return { requeued: 0, skipped: 0 };
-    }
-    try {
-      const plan = this.planChunk({ claimed, structural, provenanceFor });
-      return await this.persistChunk({
-        userId,
-        plan,
-        claimToken,
-        previousStatus,
-        reviewSettings,
-        verifiedSender,
-      });
-    } catch (error) {
-      await this.releaseChunk({
-        userId,
-        messageIds: claimed.map(({ id }) => id),
-        claimToken,
-        previousStatus,
-      });
-      throw error;
-    }
-  }
-
-  /** Un fallo a mitad de bloque no puede dejar correos atrapados en CLASSIFYING. */
-  private async releaseChunk({
-    userId,
-    messageIds,
-    claimToken,
-    previousStatus,
-  }: {
-    userId: string;
-    messageIds: readonly string[];
-    claimToken: Date;
-    previousStatus: ReadonlyMap<string, string>;
-  }): Promise<void> {
-    for (const status of RECLASSIFIABLE_STATUSES) {
-      const ids = messageIds.filter((id) => previousStatus.get(id) === status);
-      if (!ids.length) {
-        continue;
-      }
-      await this.prisma.aiEmailMessage.updateMany({
-        where: {
-          userId,
-          id: { in: ids },
-          processingStatus: 'CLASSIFYING',
-          classificationStartedAt: claimToken,
-        },
-        data: { processingStatus: status, classificationStartedAt: null },
-      });
-    }
-  }
-
-  private planChunk({
-    claimed,
-    structural,
-    provenanceFor,
-  }: {
-    claimed: readonly ReclassifiableMessage[];
-    structural: EmailLabel;
-    provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
-  }): ChunkPlan {
-    const reclassified = claimed.flatMap((message) => {
-      const classification = mergedCandidateLabel({
-        structural,
-        current: message.classification,
-      });
-      if (!classification) {
-        return [];
-      }
-      return [
-        {
-          message,
-          classification,
-          provenance: this.classificationProvenance(provenanceFor(message)),
-        },
-      ];
-    });
-    const reclassifiedIds = new Set(
-      reclassified.map(({ message }) => message.id),
-    );
-    return {
-      reclassified,
-      skippedIds: claimed
-        .filter(({ id }) => !reclassifiedIds.has(id))
-        .map(({ id }) => id),
-    };
-  }
-
-  /**
-   * La propiedad se comprueba con una escritura guardada y bloqueada dentro de
-   * la misma transacción: si otro escritor reclamó el mensaje, este pase no
-   * toca sus clasificaciones ni publica señales por él.
-   */
-  private async persistChunk({
-    userId,
-    plan,
-    claimToken,
-    previousStatus,
-    reviewSettings,
-    verifiedSender,
-  }: {
-    userId: string;
-    plan: ChunkPlan;
-    claimToken: Date;
-    previousStatus: ReadonlyMap<string, string>;
-    reviewSettings: EmailReviewSettings;
-    verifiedSender: boolean;
-  }): Promise<{ requeued: number; skipped: number }> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        const owned = await this.applyChunkOutcomes({
-          tx,
-          userId,
-          plan,
-          claimToken,
-          previousStatus,
-          reviewSettings,
-          verifiedSender,
-        });
-        if (!owned.reclassified.length && !owned.skippedIds.length) {
-          return { requeued: 0, skipped: 0 };
-        }
-        await this.replaceClassifications({
-          tx,
-          userId,
-          reclassified: owned.reclassified,
-        });
-        await this.publishSignals({
-          tx,
-          userId,
-          reclassified: owned.reclassified,
-        });
-        return {
-          requeued: owned.reclassified.length,
-          skipped: owned.skippedIds.length,
-        };
-      },
-      { timeout: RECLASSIFICATION_TRANSACTION_TIMEOUT_MS },
-    );
-  }
-
-  /** Devuelve solo lo que este pase todavía posee; el resto lo resuelve su dueño. */
-  private async applyChunkOutcomes({
-    tx,
-    userId,
-    plan,
-    claimToken,
-    previousStatus,
-    reviewSettings,
-    verifiedSender,
-  }: {
-    tx: Prisma.TransactionClient;
-    userId: string;
-    plan: ChunkPlan;
-    claimToken: Date;
-    previousStatus: ReadonlyMap<string, string>;
-    reviewSettings: EmailReviewSettings;
-    verifiedSender: boolean;
-  }): Promise<ChunkPlan> {
-    const reclassified: ReclassifiedMessage[] = [];
-    for (const entry of plan.reclassified) {
-      const owned = await this.settleMessage({
-        tx,
-        userId,
-        messageId: entry.message.id,
-        claimToken,
-        data: this.reclassifiedMessageData(
-          entry.classification,
-          reviewSettings,
-          verifiedSender,
-        ),
-      });
-      if (owned) {
-        reclassified.push(entry);
-      }
-    }
-    const skippedIds: string[] = [];
-    for (const id of plan.skippedIds) {
-      const owned = await this.settleMessage({
-        tx,
-        userId,
-        messageId: id,
-        claimToken,
-        data: {
-          processingStatus: (previousStatus.get(id) ??
-            'REVIEW_REQUIRED') as Prisma.AiEmailMessageUpdateManyMutationInput['processingStatus'],
-          classificationStartedAt: null,
-        },
-      });
-      if (owned) {
-        skippedIds.push(id);
-      }
-    }
-    return { reclassified, skippedIds };
-  }
-
-  private async settleMessage({
-    tx,
-    userId,
-    messageId,
-    claimToken,
-    data,
-  }: {
-    tx: Prisma.TransactionClient;
-    userId: string;
-    messageId: string;
-    claimToken: Date;
-    data: Prisma.AiEmailMessageUpdateManyMutationInput;
-  }): Promise<boolean> {
-    const settled = await tx.aiEmailMessage.updateMany({
-      where: {
-        id: messageId,
-        userId,
-        processingStatus: 'CLASSIFYING',
-        classificationStartedAt: claimToken,
-      },
-      data,
-    });
-    return settled.count === 1;
-  }
-
-  private reclassifiedMessageData(
-    classification: EmailClassification,
-    reviewSettings: EmailReviewSettings,
-    verifiedSender: boolean,
-  ): Prisma.AiEmailMessageUpdateManyMutationInput {
-    return {
-      processingStatus: requiresReview({
-        classification,
-        auditSample: false,
-        reviewConfidenceThreshold: reviewSettings.reviewConfidenceThreshold,
-        verifiedSender,
-        acceptVerifiedSenders: reviewSettings.acceptVerifiedSenders,
-      })
-        ? 'REVIEW_REQUIRED'
-        : 'PROCESSED',
-      classificationStartedAt: null,
-      classification: {
-        ...classificationLabel(classification),
-        confidence: classification.confidence,
-      },
-      classificationPath: KNOWLEDGE_DECISION_PATH,
-      classificationProvider: null,
-      classificationModel: null,
-    };
-  }
-
-  private async replaceClassifications({
-    tx,
-    userId,
-    reclassified,
-  }: {
-    tx: Prisma.TransactionClient;
-    userId: string;
-    reclassified: readonly ReclassifiedMessage[];
-  }): Promise<void> {
-    await tx.aiEmailClassification.deleteMany({
-      where: {
-        userId,
-        messageId: { in: reclassified.map(({ message }) => message.id) },
-      },
-    });
-    const rows = reclassified.flatMap(
-      ({ message, classification, provenance }) =>
-        buildClassificationRows({
-          userId,
-          messageId: message.id,
-          classification,
-          provenance,
-        }),
-    );
-    if (!rows.length) {
-      return;
-    }
-    await tx.aiEmailClassification.createMany({ data: rows });
-  }
-
-  private async publishSignals({
-    tx,
-    userId,
-    reclassified,
-  }: {
-    tx: Prisma.TransactionClient;
-    userId: string;
-    reclassified: readonly ReclassifiedMessage[];
-  }): Promise<void> {
-    const records = reclassified.flatMap(
-      ({ message, classification, provenance }) => {
-        const built = buildFinanceSignal({
-          userId,
-          messageId: message.id,
-          receivedAt: message.receivedAt,
-          classification,
-          provenance,
-        });
-        return built ? [built] : [];
-      },
-    );
-    if (!records.length) {
-      return;
-    }
-    await tx.aiSignal.createMany({
-      data: records.map(({ signal }) => signal),
-      skipDuplicates: true,
-    });
-    await tx.aiSignalEvidence.createMany({
-      data: records.map(({ evidence }) => evidence),
-      skipDuplicates: true,
-    });
-    await tx.domainEventOutbox.createMany({
-      data: records.map(({ outbox }) => outbox),
-      skipDuplicates: true,
-    });
-  }
-
-  private async claimChunk({
-    userId,
-    messageIds,
-    claimToken,
-  }: {
-    userId: string;
-    messageIds: readonly string[];
-    claimToken: Date;
-  }): Promise<ReclassifiableMessage[]> {
-    return this.prisma.aiEmailMessage.updateManyAndReturn({
-      where: {
-        userId,
-        id: { in: [...messageIds] },
-        processingStatus: { in: [...RECLASSIFIABLE_STATUSES] },
-      },
-      data: {
-        processingStatus: 'CLASSIFYING',
-        classificationStartedAt: claimToken,
-      },
-      select: {
-        id: true,
-        receivedAt: true,
-        fromAddress: true,
-        subject: true,
-        templateFingerprint: true,
-        processingStatus: true,
-        classification: true,
-      },
-    });
-  }
-
-  private async startRun({
-    userId,
-    trigger,
-    reviewConfidenceThreshold,
-  }: {
-    userId: string;
-    trigger: string;
-    reviewConfidenceThreshold: number;
-  }): Promise<string> {
-    const dataset = await this.prisma.aiDataset.upsert({
-      where: { name: EMAIL_DATASET_NAME },
-      create: {
-        name: EMAIL_DATASET_NAME,
-        purpose: EMAIL_DATASET_PURPOSE,
-        sourceType: 'EMAIL',
-      },
-      update: {},
-      select: { id: true },
-    });
-    const [observationWatermark, verificationWatermark, consentWatermark] =
-      await Promise.all([
-        this.prisma.aiKnowledgeObservation.aggregate({
-          _max: { sequence: true },
-        }),
-        this.prisma.aiHumanVerification.aggregate({ _max: { sequence: true } }),
-        this.prisma.aiConsentEvent.aggregate({
-          where: { userId },
-          _max: { sequence: true },
-        }),
-      ]);
-    const run = await this.prisma.aiAnalysisRun.create({
-      data: {
-        userId,
-        datasetId: dataset.id,
-        mode: 'ANALYZE_ONLY',
-        status: 'RUNNING',
-        observationSequence: observationWatermark._max.sequence ?? 0n,
-        verificationSequence: verificationWatermark._max.sequence ?? 0n,
-        consentRevision: consentWatermark._max.sequence ?? 0n,
-        projectorVersion: PROJECTOR_VERSION,
-        policyVersion: POLICY_VERSION,
-        pipelineVersion: EMAIL_CLASSIFICATION_VERSIONS.pipeline,
-        configuration: {
-          trigger,
-          parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
-          reviewConfidenceThreshold,
-        },
-      },
-      select: { id: true },
-    });
-    return run.id;
-  }
-
-  private async completeRun({
-    runId,
-    requeued,
-    skipped,
-  }: {
-    runId: string;
-    requeued: number;
-    skipped: number;
-  }): Promise<void> {
-    await this.prisma.aiAnalysisRun.update({
-      where: { id: runId },
-      data: {
-        status: 'COMPLETED',
-        completedAt: new Date(),
-        metrics: { requeued, skipped },
-      },
-    });
-  }
-
-  /** Un pase que no termina cierra su run como fallido; nunca lo deja en RUNNING. */
-  private async failRun({
-    runId,
-    requeued,
-    skipped,
-    error,
-  }: {
-    runId: string;
-    requeued: number;
-    skipped: number;
-    error: unknown;
-  }): Promise<void> {
-    try {
-      await this.prisma.aiAnalysisRun.update({
-        where: { id: runId },
-        data: {
-          status: 'FAILED',
-          completedAt: new Date(),
-          metrics: { requeued, skipped },
-          error: reclassificationErrorCode(error),
-        },
-      });
-    } catch (markError) {
-      // No se oculta el fallo original: se registra el del cierre y se relanza aquel.
-      this.logger.error(
-        `Unable to mark reclassification run ${runId} as FAILED: ${reclassificationErrorCode(markError)}`,
-      );
-    }
-  }
-
   private async isHoldout(userId: string, messageId: string): Promise<boolean> {
-    const partitions = await this.partitionsFor(userId, [messageId]);
-    return partitions.get(messageId) === HOLDOUT_PARTITION;
-  }
-
-  private async partitionsFor(
-    userId: string,
-    messageIds: readonly string[],
-  ): Promise<Map<string, string>> {
-    const items = await this.prisma.aiDatasetItem.findMany({
-      where: {
-        userId,
-        sourceType: EMAIL_SOURCE_TYPE,
-        sourceId: { in: [...messageIds] },
-      },
-      select: { sourceId: true, partition: true },
+    const partitions = await readEmailPartitions({
+      prisma: this.prisma,
+      userId,
+      messageIds: [messageId],
     });
-    const partitions = new Map(
-      items.map(({ sourceId, partition }) => [sourceId, partition]),
-    );
-    for (const messageId of messageIds) {
-      if (!partitions.has(messageId)) {
-        partitions.set(messageId, partitionEmailDatasetItem(userId, messageId));
-      }
-    }
-    return partitions;
+    return partitions.get(messageId) === HOLDOUT_PARTITION;
   }
 
   private dominantGroupLabel(
@@ -942,30 +303,10 @@ export class AiEmailReclassificationService {
     return null;
   }
 
-  private classificationProvenance(
-    matches: readonly KnowledgeProvenance[],
-  ): ClassificationProvenance {
-    return {
-      method: KNOWLEDGE_DECISION_PATH,
-      provider: null,
-      model: null,
-      auditSample: false,
-      matches,
-    };
-  }
-
   private knowledgeLabel(payload: Prisma.JsonValue): unknown {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       return null;
     }
     return (payload as Record<string, unknown>).label ?? null;
   }
-}
-
-/** Código seguro: el mensaje del error puede traer datos y no se persiste. */
-function reclassificationErrorCode(error: unknown): string {
-  if (error && typeof error === 'object' && 'code' in error) {
-    return String(error.code).slice(0, 80);
-  }
-  return 'RECLASSIFICATION_FAILED';
 }
