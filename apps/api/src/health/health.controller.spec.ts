@@ -5,9 +5,13 @@ import {
   HttpHealthIndicator,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
+import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { HealthController } from './health.controller';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
+import { HealthCheckRunner } from './probes/health-check-runner';
+import { JwksProbe } from './probes/jwks.probe';
+import { ReadinessIndicators } from './probes/readiness-indicators';
 
 describe('HealthController', () => {
   const health = {
@@ -22,14 +26,15 @@ describe('HealthController', () => {
     pingCheck: httpPingCheck,
   } as unknown as HttpHealthIndicator;
   const prismaService = {} as PrismaService;
+  const redisPingCheck = jest.fn();
   const redisHealthIndicator = {
     isEnabled: jest.fn().mockReturnValue(false),
-    pingCheck: jest.fn(),
+    pingCheck: redisPingCheck,
   } as unknown as RedisHealthIndicator;
   const configService = {
     getOrThrow: jest.fn().mockReturnValue('https://example.supabase.co'),
     get: jest.fn(),
-  } as unknown as ConfigService;
+  } as unknown as ConfigService<Env, true>;
 
   let controller: HealthController;
 
@@ -52,12 +57,13 @@ describe('HealthController', () => {
       'https://example.supabase.co',
     );
     controller = new HealthController(
-      health,
-      prismaIndicator,
-      http,
-      prismaService,
-      redisHealthIndicator,
-      configService as unknown as ConfigService<never, true>,
+      new HealthCheckRunner(health),
+      new ReadinessIndicators(
+        prismaIndicator,
+        prismaService,
+        redisHealthIndicator,
+      ),
+      new JwksProbe(http, configService),
     );
   });
 
@@ -97,6 +103,17 @@ describe('HealthController', () => {
 
     expect(prismaPingCheck).toHaveBeenCalledWith('database', prismaService);
     expect(httpPingCheck).not.toHaveBeenCalled();
+  });
+
+  it('readiness includes redis only when it is enabled', async () => {
+    redisPingCheck.mockResolvedValue({ redis: { status: 'up' } });
+
+    await controller.readiness();
+    expect(redisPingCheck).not.toHaveBeenCalled();
+
+    (redisHealthIndicator.isEnabled as jest.Mock).mockReturnValue(true);
+    await controller.readiness();
+    expect(redisPingCheck).toHaveBeenCalledWith('redis');
   });
 
   it('startup pings JWKS with a bounded timeout', async () => {

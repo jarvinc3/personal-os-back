@@ -1,190 +1,72 @@
 import './instrument';
-import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
-import { existsSync, writeFileSync } from 'fs';
-import helmet from 'helmet';
-import { join } from 'path';
-import { AppModule } from './app.module';
-import { appVersion } from './app-version';
-import { resolveNonProductionCorsOrigin } from './cors';
-import { isBullMqEnabled, parseCorsOriginPatterns } from '@personal-os/config';
+import { isBullMqEnabled } from '@personal-os/config';
 import type { Env } from '@personal-os/config';
+import { AppModule } from './app.module';
+import { mountDiagramAssets } from './bootstrap/diagram-assets';
+import { applyHttpApplication } from './bootstrap/http-application';
+import { setupOpenApiDocument } from './bootstrap/openapi';
+import { logStartup, warnIfBullMqDisabled } from './bootstrap/startup-log';
+import { buildCorsConfiguration } from './cors';
 
-const DIAGRAMS_DIR = '.archify';
-const DIAGRAMS_URL_PATH = 'docs/diagramas';
-
-type MountDiagramAssetsInput = {
-  app: NestExpressApplication;
-  logger: Logger;
-  port: number;
-};
-
-function mountDiagramAssets({
-  app,
-  logger,
-  port,
-}: MountDiagramAssetsInput): void {
-  const diagramsDir = join(process.cwd(), DIAGRAMS_DIR);
-  if (!existsSync(diagramsDir)) {
-    logger.warn(
-      `No diagrams found in ${diagramsDir}; /${DIAGRAMS_URL_PATH} stays unmounted.`,
-    );
-    return;
-  }
-
-  app.useStaticAssets(diagramsDir, { prefix: `/${DIAGRAMS_URL_PATH}` });
-  logger.log(`Diagrams: http://0.0.0.0:${port}/${DIAGRAMS_URL_PATH}/`);
-}
-
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
   app.enableShutdownHooks();
 
-  app.use(helmet());
-  app.set('trust proxy', 1);
-  app.useBodyParser('json', { limit: '1mb' });
-  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
-
   const configService = app.get(ConfigService<Env, true>);
-
   const nodeEnv = configService.get('NODE_ENV', { infer: true });
   const isProduction = nodeEnv === 'production';
-  const redisUrl = configService.get('REDIS_URL', { infer: true });
-  const redisEnabled = configService.get('REDIS_ENABLED', { infer: true });
-  const bullMqEnabled = isBullMqEnabled({
-    NODE_ENV: nodeEnv,
-    REDIS_URL: redisUrl,
-    REDIS_ENABLED: redisEnabled,
-  });
-
-  if (nodeEnv === 'development' && !bullMqEnabled) {
-    logger.warn(
-      'BullMQ is disabled in development. To enable: start Redis (docker run -d -p 6379:6379 --name personal-os-redis redis:7-alpine), then set REDIS_ENABLED=true and REDIS_URL=redis://localhost:6379',
-    );
-  }
-  const corsOrigin: string = configService.get('CORS_ORIGIN', { infer: true });
-
-  if (isProduction && corsOrigin === '*') {
-    throw new Error(
-      `In production CORS_ORIGIN must be set to the exact frontend origin.`,
-    );
-  }
-
-  // Global prefixes and pipes
   const apiPrefix: string =
     configService.get('API_PREFIX', { infer: true }) ?? 'api';
-  if (apiPrefix.length > 0) {
-    app.setGlobalPrefix(apiPrefix, {
-      exclude: [
-        { path: 'admin/queues', method: RequestMethod.ALL },
-        { path: 'admin/queues/{*path}', method: RequestMethod.ALL },
-      ],
-    });
-  }
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
-
-  const corsOrigins = corsOrigin
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  // Branch previews rotate per branch, so dev matches them by pattern.
-  const corsOriginPatterns: RegExp[] = isProduction
-    ? []
-    : parseCorsOriginPatterns(
-        configService.get('CORS_ORIGIN_PATTERNS', { infer: true }),
-      );
-
   const port: number = configService.get('PORT', { infer: true }) ?? 3100;
-  // Bull Board (same host) sends Origin on PUT/DELETE; allow the API's own origin in non-prod.
-  const sameServerOrigins = [
-    `http://localhost:${port}`,
-    `http://127.0.0.1:${port}`,
-  ];
+  const corsOrigin: string = configService.get('CORS_ORIGIN', {
+    infer: true,
+  });
+  const bullMqEnabled = isBullMqEnabled({
+    NODE_ENV: nodeEnv,
+    REDIS_URL: configService.get('REDIS_URL', { infer: true }),
+    REDIS_ENABLED: configService.get('REDIS_ENABLED', { infer: true }),
+  });
 
+  warnIfBullMqDisabled({ logger, nodeEnv, bullMqEnabled });
+  applyHttpApplication({ app, apiPrefix });
   // Diagrams are static documentation and need no CORS headers.
   if (!isProduction) {
     mountDiagramAssets({ app, logger, port });
   }
-
-  app.enableCors({
-    origin: isProduction
-      ? corsOrigins.length === 1
-        ? corsOrigins[0]
-        : corsOrigins
-      : resolveNonProductionCorsOrigin({
-          allowedOrigins: corsOrigins,
-          sameServerOrigins,
-          originPatterns: corsOriginPatterns,
-        }),
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-request-id',
-      'Idempotency-Key',
-      'Accept',
-    ],
-    credentials: true,
-  });
+  app.enableCors(
+    buildCorsConfiguration({
+      isProduction,
+      corsOrigin,
+      corsOriginPatterns: configService.get('CORS_ORIGIN_PATTERNS', {
+        infer: true,
+      }),
+      port,
+    }),
+  );
 
   if (!isProduction) {
-    const openApiConfig = new DocumentBuilder()
-      .setTitle('Personal OS API')
-      .setDescription(
-        'Personal OS backend endpoints, including auth, core modules, and AI.',
-      )
-      .setVersion(appVersion())
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-        'access-token',
-      )
-      .addTag('health')
-      .addTag('auth')
-      .addTag('users')
-      .addTag('notifications')
-      .addTag('finances')
-      .addTag('intelligence')
-      .build();
-
-    const document = SwaggerModule.createDocument(app, openApiConfig);
-    const swaggerPath: string =
-      configService.get('SWAGGER_PATH', { infer: true }) ?? 'docs';
-    SwaggerModule.setup(swaggerPath, app, document);
-
-    writeFileSync(
-      join(process.cwd(), 'swagger-spec.json'),
-      JSON.stringify(document, null, 2),
-    );
+    setupOpenApiDocument({ app, config: configService });
   }
 
   await app.listen(port, '0.0.0.0');
 
-  const basePath = apiPrefix.length > 0 ? `/${apiPrefix}` : '';
-  logger.log(`CORS Origin: ${corsOrigin} isProduction: ${isProduction}`);
-  logger.log(`Application is running on: http://0.0.0.0:${port}${basePath}`);
-  if (!isProduction && bullMqEnabled) {
-    const boardUser = configService.get('BULL_BOARD_USER', { infer: true });
-    const boardAuth =
-      boardUser && configService.get('BULL_BOARD_PASSWORD', { infer: true })
-        ? ' (basic auth enabled)'
-        : '';
-    logger.log(`Bull Board: http://0.0.0.0:${port}/admin/queues${boardAuth}`);
-  }
+  logStartup({
+    logger,
+    config: configService,
+    apiPrefix,
+    port,
+    corsOrigin,
+    isProduction,
+    bullMqEnabled,
+  });
 }
 
 bootstrap().catch((err) => {
