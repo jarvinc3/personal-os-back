@@ -143,20 +143,14 @@ export class SubscriptionChanges {
     userId: string,
     currency: string | undefined,
   ): Promise<string> {
-    if (currency !== undefined) {
-      return currency.toUpperCase();
-    }
-    return this.baseCurrency.execute(userId);
+    return currency?.toUpperCase() ?? this.baseCurrency.execute(userId);
   }
 
   private async reminderDaysFor(
     userId: string,
     reminderDaysBefore: number | undefined,
   ): Promise<number> {
-    if (reminderDaysBefore !== undefined) {
-      return reminderDaysBefore;
-    }
-    return this.reminderWindow.resolve(userId);
+    return reminderDaysBefore ?? this.reminderWindow.resolve(userId);
   }
 
   private optionalDate(value: string | undefined): Date | null {
