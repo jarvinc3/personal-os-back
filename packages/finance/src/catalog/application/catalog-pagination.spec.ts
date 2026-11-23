@@ -1,7 +1,21 @@
 import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
 import { CatalogAccountNumbersService } from './catalog-account-numbers.service';
+import { CatalogAccountLifecycle } from './catalog-account-lifecycle';
+import { CatalogAccountMutations } from './catalog-account-mutations';
+import { CatalogAccountReads } from './catalog-account-reads';
+import { CatalogAccountRules } from './catalog-account-rules';
 import { CatalogAccountsService } from './catalog-accounts.service';
+import { CatalogCardLifecycle } from './catalog-card-lifecycle';
+import { CatalogCardMutations } from './catalog-card-mutations';
+import { CatalogCardReads } from './catalog-card-reads';
+import { CatalogEmailProductLookup } from './catalog-email-product-lookup';
+import { CatalogEmailProductWriter } from './catalog-email-product-writer';
+import { CatalogEmailProposal } from './catalog-email-proposal';
+import { CatalogInstitutionChildren } from './catalog-institution-children';
+import { CatalogInstitutionLifecycle } from './catalog-institution-lifecycle';
+import { CatalogInstitutionMutations } from './catalog-institution-mutations';
+import { CatalogInstitutionReads } from './catalog-institution-reads';
 import { CatalogCardBalancesService } from './catalog-card-balances.service';
 import { CatalogCardsService } from './catalog-cards.service';
 import { CatalogEmailProductsService } from './catalog-email-products.service';
@@ -10,15 +24,12 @@ import { CatalogViews } from './catalog-views';
 import type { CatalogAccountRepository } from '../infrastructure/catalog-account.repository';
 import type { CatalogCardBalanceRepository } from '../infrastructure/catalog-card-balance.repository';
 import type { CatalogCardRepository } from '../infrastructure/catalog-card.repository';
-import type { CatalogCashRepository } from '../infrastructure/catalog-cash.repository';
 import type { CatalogCategoryRepository } from '../infrastructure/catalog-category.repository';
 import type { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
 
 type RepositoryMock = Record<string, jest.Mock>;
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
-import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
-import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 
@@ -37,31 +48,34 @@ function createService(repo: RepositoryMock): CatalogService {
       .fn()
       .mockReturnValue('test-data-encryption-key-minimum-32-chars!!'),
   } as unknown as ConfigService<Env, true>);
+  const rules = new CatalogAccountRules(repo as never, ownership, {
+    execute: jest.fn().mockResolvedValue(undefined),
+  } as never);
   const accounts = new CatalogAccountsService(
-    accountsRepo,
-    repo as unknown as CatalogCashRepository,
-    ownership,
-    purge,
-    {
-      execute: jest.fn().mockResolvedValue(undefined),
-    } as unknown as EnsureCashInstitutionUseCase,
-    {
+    new CatalogAccountReads(accountsRepo, rules, views),
+    new CatalogAccountMutations(accountsRepo, rules, numbers),
+    new CatalogAccountLifecycle(accountsRepo, purge, {
       execute: jest.fn().mockResolvedValue('DOP'),
-    } as unknown as ResolveUserBaseCurrencyUseCase,
-    numbers,
-    views,
+    } as never),
   );
-  const cards = new CatalogCardsService(cardsRepo, ownership, purge, views);
+  const cards = new CatalogCardsService(
+    new CatalogCardReads(cardsRepo, views),
+    new CatalogCardMutations(cardsRepo, ownership),
+    new CatalogCardLifecycle(cardsRepo, purge),
+  );
   return new CatalogService(
     accounts,
     new CatalogInstitutionsService(
-      institutionsRepo,
-      accountsRepo,
-      cardsRepo,
-      ownership,
-      purge,
-      undefined,
-      views,
+      new CatalogInstitutionReads(institutionsRepo, views),
+      new CatalogInstitutionMutations(institutionsRepo, ownership, {
+        saveCustomLogo: jest.fn(),
+        ensureLogo: jest.fn(),
+      } as never),
+      new CatalogInstitutionLifecycle(
+        institutionsRepo,
+        ownership,
+        new CatalogInstitutionChildren(accountsRepo, cardsRepo, purge),
+      ),
     ),
     cards,
     new CatalogCardBalancesService(
@@ -69,12 +83,9 @@ function createService(repo: RepositoryMock): CatalogService {
       cardsRepo,
     ),
     new CatalogEmailProductsService(
-      accountsRepo,
-      cardsRepo,
-      institutionsRepo,
-      numbers,
-      accounts,
-      cards,
+      new CatalogEmailProposal(numbers),
+      new CatalogEmailProductLookup(institutionsRepo, accountsRepo, cardsRepo),
+      new CatalogEmailProductWriter(accounts, cards),
     ),
     new CatalogCategoriesService(
       repo as unknown as CatalogCategoryRepository,

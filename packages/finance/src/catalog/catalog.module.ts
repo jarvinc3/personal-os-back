@@ -5,7 +5,23 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { CatalogService } from './application/catalog.service';
+import { CatalogAccountLifecycle } from './application/catalog-account-lifecycle';
+import { CatalogAccountMutations } from './application/catalog-account-mutations';
+import { CatalogAccountReads } from './application/catalog-account-reads';
+import { CatalogAccountRules } from './application/catalog-account-rules';
 import { CatalogAccountsService } from './application/catalog-accounts.service';
+import { CatalogCardLifecycle } from './application/catalog-card-lifecycle';
+import { CatalogCardMutations } from './application/catalog-card-mutations';
+import { CatalogCardReads } from './application/catalog-card-reads';
+import { CatalogEmailProductLookup } from './application/catalog-email-product-lookup';
+import { CatalogEmailProductWriter } from './application/catalog-email-product-writer';
+import { CatalogEmailProposal } from './application/catalog-email-proposal';
+import { CatalogInstitutionBranding } from './application/catalog-institution-branding';
+import { CatalogInstitutionChildren } from './application/catalog-institution-children';
+import { CatalogInstitutionLifecycle } from './application/catalog-institution-lifecycle';
+import { CatalogInstitutionMutations } from './application/catalog-institution-mutations';
+import { CatalogInstitutionReads } from './application/catalog-institution-reads';
+import { EmailProductProposalLink } from './application/email-product-proposal-link';
 import { CatalogAccountNumbersService } from './application/catalog-account-numbers.service';
 import { CatalogCardBalancesService } from './application/catalog-card-balances.service';
 import { CatalogCardsService } from './application/catalog-cards.service';
@@ -51,11 +67,27 @@ import { InstitutionsController } from './presentation/institutions.controller';
     CatalogInstrumentHistoryRepository,
     CatalogViews,
     CatalogAccountNumbersService,
+    CatalogAccountRules,
+    CatalogAccountReads,
+    CatalogAccountMutations,
+    CatalogAccountLifecycle,
     CatalogAccountsService,
+    CatalogInstitutionBranding,
+    CatalogInstitutionChildren,
+    CatalogInstitutionReads,
+    CatalogInstitutionMutations,
+    CatalogInstitutionLifecycle,
     CatalogInstitutionsService,
+    CatalogCardReads,
+    CatalogCardMutations,
+    CatalogCardLifecycle,
     CatalogCardsService,
     CatalogCardBalancesService,
+    CatalogEmailProposal,
+    CatalogEmailProductLookup,
+    CatalogEmailProductWriter,
     CatalogEmailProductsService,
+    EmailProductProposalLink,
     CatalogService,
     CatalogCategoriesService,
     InstrumentHistoryService,
@@ -67,6 +99,7 @@ import { InstitutionsController } from './presentation/institutions.controller';
     CatalogInstitutionRepository,
     CatalogService,
     CatalogCategoriesService,
+    EmailProductProposalLink,
     InstrumentHistoryService,
     EnsureCashInstitutionUseCase,
   ],
