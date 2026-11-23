@@ -44,7 +44,6 @@ type TransferLegContext = {
   transactionDate: Date;
   source: 'MANUAL' | 'EMAIL' | 'AI';
   estimated: boolean;
-  budgetSnapshots: BudgetSpendSnapshot[];
 };
 
 type TransferLegInput = {
@@ -57,7 +56,6 @@ type TransferLegInput = {
   importReference?: string;
 };
 
-/** Writes the two legs of a transfer and its optional fee leg. */
 export class PrismaLedgerTransferWriter {
   constructor(private readonly deps: TransferWriterDeps) {}
 
@@ -89,10 +87,9 @@ export class PrismaLedgerTransferWriter {
         transactionDate: new Date(input.command.transactionDate),
         source: input.command.source ?? 'MANUAL',
         estimated: input.estimated,
-        budgetSnapshots: [],
       };
 
-      const debit = await this.createLeg(context, {
+      const debitLeg = await this.createLeg(context, {
         type: 'DEBIT',
         target: fromTarget,
         amounts: input.fromAmounts,
@@ -100,7 +97,7 @@ export class PrismaLedgerTransferWriter {
         legStatus: status,
         importReference: input.command.fromImportReference,
       });
-      const credit = await this.createLeg(context, {
+      const creditLeg = await this.createLeg(context, {
         type: 'CREDIT',
         target: toTarget,
         amounts: input.toAmounts,
@@ -111,7 +108,7 @@ export class PrismaLedgerTransferWriter {
         importReference: input.command.toImportReference,
       });
 
-      const fee =
+      const feeLeg =
         input.command.fee && input.feeAmounts
           ? await this.createLeg(context, {
               type: 'DEBIT',
@@ -124,6 +121,14 @@ export class PrismaLedgerTransferWriter {
                 (await this.deps.feeLeg.resolveCategoryId(tx)),
             })
           : undefined;
+      const debit = debitLeg.row;
+      const credit = creditLeg.row;
+      const fee = feeLeg?.row;
+      const budgetSnapshots = [
+        ...debitLeg.budgetSnapshots,
+        ...creditLeg.budgetSnapshots,
+        ...(feeLeg?.budgetSnapshots ?? []),
+      ];
 
       await this.deps.events.enqueue(
         {
@@ -144,7 +149,7 @@ export class PrismaLedgerTransferWriter {
 
       await this.deps.thresholds?.processThresholds(
         input.userId,
-        context.budgetSnapshots,
+        budgetSnapshots,
         tx,
       );
 
@@ -155,7 +160,10 @@ export class PrismaLedgerTransferWriter {
   private async createLeg(
     context: TransferLegContext,
     leg: TransferLegInput,
-  ): Promise<LedgerTransactionRow> {
+  ): Promise<{
+    row: LedgerTransactionRow;
+    budgetSnapshots: BudgetSpendSnapshot[];
+  }> {
     const { command, tx } = context;
     const created = await tx.finTransaction.create({
       data: {
@@ -190,6 +198,7 @@ export class PrismaLedgerTransferWriter {
       },
     });
 
+    const budgetSnapshots: BudgetSpendSnapshot[] = [];
     if (statusAffectsLedger(leg.legStatus)) {
       await applyBalanceForTransaction(tx, {
         accountId: leg.target.accountId,
@@ -207,7 +216,7 @@ export class PrismaLedgerTransferWriter {
         amountBaseCurrency: leg.amounts.amountBaseCurrency,
         transactionDate: context.transactionDate,
       });
-      context.budgetSnapshots.push(...snapshots);
+      budgetSnapshots.push(...snapshots);
     }
 
     await enqueueTransactionEvent({
@@ -218,7 +227,7 @@ export class PrismaLedgerTransferWriter {
       transactionId: created.id,
       announce: command.announce,
     });
-    return created;
+    return { row: created, budgetSnapshots };
   }
 }
 

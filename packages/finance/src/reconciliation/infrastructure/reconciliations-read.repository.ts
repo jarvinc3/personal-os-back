@@ -9,7 +9,6 @@ import {
   type ReconciliationTarget,
 } from './reconciliations-types';
 
-/** Lecturas de la conciliación: producto, listados y ajustes del periodo. */
 @Injectable()
 export class ReconciliationsReadRepository {
   constructor(private readonly prisma: PrismaService) {}
