@@ -5,7 +5,7 @@ Un solo backend desplegable. Los módulos viven como paquetes del workspace y la
 ## Layout
 
 - `packages/*`: 10 paquetes con `package.json` propio y build a `dist/` (`tsc -b` + project references).
-- `apps/api/src`: app Nest (`main.ts`, `app.module.ts`, `health/`); `nest build` compila a `dist/`.
+- `apps/api/src`: app Nest (`main.ts`, `app.module.ts`, `bootstrap/` para el arranque HTTP) y composiciones por dominio (`health/`, `module-settings/`, `user-data-wipe/`); `nest build` compila a `dist/`.
 - `packages/database/prisma/`: schema, migraciones y `prisma.config.ts`; el cliente se genera en `packages/database/src/generated/`.
 
 ## Paquetes

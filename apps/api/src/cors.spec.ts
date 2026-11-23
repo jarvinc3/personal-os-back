@@ -1,5 +1,9 @@
 import { parseCorsOriginPatterns } from '@personal-os/config';
-import { resolveNonProductionCorsOrigin } from './cors';
+import {
+  buildCorsConfiguration,
+  parseCorsOrigins,
+  resolveNonProductionCorsOrigin,
+} from './cors';
 
 const PREVIEW_ORIGIN =
   'https://personal-os-web-git-fix-326-atajos-hero-c7ddee-collado-studios.vercel.app';
@@ -80,5 +84,87 @@ describe('resolveNonProductionCorsOrigin', () => {
 
       expect(callback).toHaveBeenCalledWith(null, false);
     });
+  });
+});
+
+describe('parseCorsOrigins', () => {
+  it('trims entries and drops empty ones', () => {
+    expect(
+      parseCorsOrigins(' https://one.example , , https://two.example '),
+    ).toEqual(['https://one.example', 'https://two.example']);
+  });
+});
+
+describe('buildCorsConfiguration', () => {
+  it('rejects a wildcard origin in production', () => {
+    expect(() =>
+      buildCorsConfiguration({
+        isProduction: true,
+        corsOrigin: '*',
+        corsOriginPatterns: '',
+        port: 3100,
+      }),
+    ).toThrow(
+      'In production CORS_ORIGIN must be set to the exact frontend origin.',
+    );
+  });
+
+  it('uses the exact origin in production', () => {
+    const configuration = buildCorsConfiguration({
+      isProduction: true,
+      corsOrigin: 'https://app.example.com',
+      corsOriginPatterns: '',
+      port: 3100,
+    });
+
+    expect(configuration.origin).toBe('https://app.example.com');
+  });
+
+  it('keeps every configured origin in production', () => {
+    const configuration = buildCorsConfiguration({
+      isProduction: true,
+      corsOrigin: 'https://one.example.com, https://two.example.com',
+      corsOriginPatterns: '',
+      port: 3100,
+    });
+
+    expect(configuration.origin).toEqual([
+      'https://one.example.com',
+      'https://two.example.com',
+    ]);
+  });
+
+  it('allows the API origin and preview patterns outside production', () => {
+    const configuration = buildCorsConfiguration({
+      isProduction: false,
+      corsOrigin: 'http://localhost:3000',
+      corsOriginPatterns: '^https://preview-[a-z]+\\.example$',
+      port: 3100,
+    });
+    const resolver = configuration.origin;
+    if (typeof resolver !== 'function') {
+      throw new Error('Expected a CORS origin resolver outside production');
+    }
+
+    const sameServerCallback = jest.fn();
+    resolver('http://localhost:3100', sameServerCallback);
+    expect(sameServerCallback).toHaveBeenCalledWith(null, true);
+
+    const previewCallback = jest.fn();
+    resolver('https://preview-abc.example', previewCallback);
+    expect(previewCallback).toHaveBeenCalledWith(null, true);
+
+    const foreignCallback = jest.fn();
+    resolver('https://evil.example', foreignCallback);
+    expect(foreignCallback).toHaveBeenCalledWith(null, false);
+    expect(configuration.methods).toEqual([
+      'GET',
+      'POST',
+      'PUT',
+      'PATCH',
+      'DELETE',
+      'OPTIONS',
+    ]);
+    expect(configuration.credentials).toBe(true);
   });
 });
