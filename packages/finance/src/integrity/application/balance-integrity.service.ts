@@ -16,6 +16,10 @@ import {
   type IntegrityCheckResult,
 } from './balance-drift-detection.service';
 import { moneyLabel } from './integrity-money';
+import {
+  ACCOUNT_NOT_FOUND,
+  CARD_BALANCE_NOT_FOUND,
+} from './integrity-messages';
 
 export type IntegrityRecalculateResult = {
   corrected: boolean;
@@ -24,9 +28,6 @@ export type IntegrityRecalculateResult = {
   currency: string;
   balance: string;
 };
-
-const ACCOUNT_NOT_FOUND = 'Cuenta no encontrada';
-const CARD_BALANCE_NOT_FOUND = 'Saldo de tarjeta no encontrado';
 
 @Injectable()
 export class BalanceIntegrityService {

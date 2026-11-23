@@ -10,6 +10,10 @@ import {
   type IntegrityTarget,
 } from '../infrastructure/integrity.repository';
 import { moneyLabel, toCents } from './integrity-money';
+import {
+  ACCOUNT_NOT_FOUND,
+  CARD_BALANCE_NOT_FOUND,
+} from './integrity-messages';
 
 export type BalanceDriftView = {
   id: string;
@@ -34,9 +38,6 @@ export type IntegrityProduct = {
   storedCents: number;
   expectedCents: number;
 };
-
-const ACCOUNT_NOT_FOUND = 'Cuenta no encontrada';
-const CARD_BALANCE_NOT_FOUND = 'Saldo de tarjeta no encontrado';
 
 function toView(row: BalanceDriftRow): BalanceDriftView {
   return {
