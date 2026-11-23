@@ -73,7 +73,7 @@ describe('FinanceNotificationsListener', () => {
   it('passes the relay envelope to the producer with its name and version', async () => {
     const toIntents = jest.fn().mockReturnValue([]);
     const producerListener = new FinanceNotificationsListener(
-      { toIntents } as never,
+      { toIntents },
       sink,
       idempotency,
     );
@@ -111,7 +111,7 @@ describe('FinanceNotificationsListener', () => {
     const first = { type: 'first' } as NotificationIntent;
     const second = { type: 'second' } as NotificationIntent;
     const producerListener = new FinanceNotificationsListener(
-      { toIntents: jest.fn().mockReturnValue([first, second]) } as never,
+      { toIntents: jest.fn().mockReturnValue([first, second]) },
       sink,
       idempotency,
     );
