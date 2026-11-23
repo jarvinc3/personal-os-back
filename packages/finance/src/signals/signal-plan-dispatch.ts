@@ -22,7 +22,6 @@ type PlanDispatchInput = {
   override?: ImportResolutionOverride;
 };
 
-/** Sends a prepared movement to the planner of its class. */
 @Injectable()
 export class SignalPlanDispatch {
   constructor(

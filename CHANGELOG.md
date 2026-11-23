@@ -119,6 +119,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #605: la revisión de #604 quitó dos comentarios de clase que solo repetían el nombre y el flujo obvio en el despacho y el consumidor de señales. Sin cambio de comportamiento. Sin migración ni cambio de contrato.
 - #603: el consumidor de señales, de 7 dependencias, se parte por lectura, plan y aplicación: vista previa, bloqueo por usuario, planificador, despacho por clase de movimiento, escritores de movimiento, reverso y pago de tarjeta, reintento de reversos y emparejamiento en piezas de tres dependencias o menos; el consumidor queda con dos. Mismos planes, estados, eventos y errores. Sin migración ni cambio de contrato.
 - #601: revisión de estilo de las pruebas de BHD. La prueba del piloto separa la importación, la comprobación del ledger, las señales y la repetición en pasos con nombre, el identificador del reverso se declara una vez y el arnés compartido deja de exponer el consumidor y la tasa que ninguna prueba usaba. Mismos casos, datos y resultados; sin cambio de contrato ni migración.
 - #597: cierre de la revisión de los refactors de Finance. `CatalogInstitutionChildren.collectMovements` pasa a `CatalogInstitutionLedgerPurge.purgeForInstitution`, porque purga el ledger y despierta el relay, y se retiran los comentarios de clase que solo repetían el nombre y los métodos en las piezas nuevas del catálogo, junto al de `mapPattern`. Sin cambio de comportamiento, de contratos ni de migración.

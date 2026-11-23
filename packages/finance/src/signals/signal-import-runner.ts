@@ -18,7 +18,6 @@ type ImportRun = {
   override?: ImportResolutionOverride;
 };
 
-/** Consumes signals: lock if needed, plan, then apply. */
 @Injectable()
 export class SignalImportRunner {
   constructor(
