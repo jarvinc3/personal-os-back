@@ -32,8 +32,7 @@ export class EmailAnalysisRuns {
     mode: 'ANALYZE_ONLY' | 'EVALUATE' | 'IMPORT',
     configuration: Record<string, unknown>,
   ) {
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.dataset.prepare(userId);
     return this.prisma.$transaction(
       async (tx) => {
         const [observationWatermark, verificationWatermark, consentWatermark] =
@@ -181,8 +180,7 @@ export class EmailAnalysisRuns {
   }
 
   async evaluateHoldout(userId: string) {
-    const dataset = await this.dataset.ensure();
-    await this.dataset.ensureItems(userId, dataset.id);
+    const dataset = await this.dataset.prepare(userId);
     const holdout = await this.prisma.aiDatasetItem.findMany({
       where: {
         datasetId: dataset.id,
