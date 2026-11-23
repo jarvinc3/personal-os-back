@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_QUERY_REPOSITORY } from '../../shared/application/tokens';
 import { DeleteTransactionUseCase } from './delete-transaction.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 /**
  * Merges a possible duplicate into the movement it points at: the duplicate is
@@ -10,8 +10,8 @@ import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 @Injectable()
 export class MergeTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly repo: LedgerQueryRepositoryPort,
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 

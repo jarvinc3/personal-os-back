@@ -8,10 +8,14 @@ import {
 } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_WRITE_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import { roundMoney } from '../../shared/domain/money';
 import { mapLedgerTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 export type AdjustBalanceCommand = {
   accountId?: string;
@@ -25,8 +29,10 @@ export type AdjustBalanceCommand = {
 @Injectable()
 export class AdjustBalanceUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -47,7 +53,7 @@ export class AdjustBalanceUseCase {
       );
     }
 
-    const target = await this.repo.findBalanceAdjustmentTarget(userId, {
+    const target = await this.query.findBalanceAdjustmentTarget(userId, {
       accountId: command.accountId,
       cardId: command.cardId,
       currency: command.currency,

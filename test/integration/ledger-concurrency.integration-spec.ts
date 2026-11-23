@@ -5,15 +5,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import type { DomainEventPublisher } from '@personal-os/contracts';
 import { getPrismaClientClass } from '@personal-os/database';
 // eslint-disable-next-line no-restricted-imports -- El test ejercita el repositorio real contra la base.
-import { PrismaLedgerRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger.repository';
+import { PrismaLedgerStatusRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-status.repository';
 // eslint-disable-next-line no-restricted-imports -- El test arma el repositorio con sus colaboradores reales.
-import { PrismaLedgerReadRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-read.repository';
 // eslint-disable-next-line no-restricted-imports -- El test arma el repositorio con sus colaboradores reales.
-import { PrismaLedgerDeletionRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-deletion.repository';
 // eslint-disable-next-line no-restricted-imports -- El test arma el repositorio con sus colaboradores reales.
-import { PrismaLedgerImportRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-import.repository';
 // eslint-disable-next-line no-restricted-imports -- El test arma el repositorio con sus colaboradores reales.
-import { PrismaLedgerWriteRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-write.repository';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (
@@ -33,18 +29,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const events = {
   enqueue: jest.fn().mockResolvedValue({}),
 } as unknown as DomainEventPublisher;
-const journal = {
-  record: jest.fn().mockResolvedValue({ id: 'journal-1' }),
-  restore: jest.fn(),
-} as never;
-const ledger = new PrismaLedgerRepository(
-  prisma as never,
-  new PrismaLedgerReadRepository(prisma as never),
-  events,
-  new PrismaLedgerDeletionRepository(prisma as never, events, journal),
-  new PrismaLedgerImportRepository(prisma as never, events),
-  new PrismaLedgerWriteRepository(prisma as never, events),
-);
+const ledger = new PrismaLedgerStatusRepository(prisma as never, events);
 const userId = randomUUID();
 let accountId: string;
 

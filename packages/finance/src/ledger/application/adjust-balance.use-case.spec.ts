@@ -2,7 +2,8 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 import { AdjustBalanceUseCase } from './adjust-balance.use-case';
 
 function build() {
@@ -19,7 +20,7 @@ function build() {
   const repo = {
     findBalanceAdjustmentTarget,
     createBalanceAdjustment,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
   const resolveAmounts = {
     execute: resolveAmountsExecute,
   } as unknown as ResolveAmountsUseCase;
@@ -30,6 +31,7 @@ function build() {
     wake: jest.fn(),
   } as unknown as DomainEventRelay;
   const useCase = new AdjustBalanceUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,

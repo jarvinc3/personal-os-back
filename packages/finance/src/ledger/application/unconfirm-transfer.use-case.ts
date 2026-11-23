@@ -6,20 +6,26 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import {
+  LEDGER_STATUS_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
+import type { LedgerStatusRepositoryPort } from './ports/ledger-status.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 @Injectable()
 export class UnconfirmTransferUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_STATUS_REPOSITORY)
+    private readonly repo: LedgerStatusRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     @Inject(DOMAIN_EVENT_RELAY)
     private readonly relay: DomainEventRelay,
   ) {}
 
   async execute(userId: string, legId: string): Promise<void> {
-    const leg = await this.repo.findTransactionById(legId, userId);
+    const leg = await this.query.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transacción no encontrada');
     }

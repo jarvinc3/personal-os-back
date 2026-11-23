@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_QUERY_REPOSITORY,
+  LEDGER_WRITE_REPOSITORY,
+} from '../../shared/application/tokens';
 import {
   CARD_CURRENCY_MISSING,
   CARD_CURRENCY_MISSING_MESSAGE,
@@ -25,14 +28,17 @@ import type { PossibleManualCardPaymentDuplicate } from './find-manual-card-paym
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type { CreateCardPaymentCommand } from './commands/ledger.commands';
 import { mapLedgerTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
 import { requireOwnedAccount } from './resolve-ledger-currency';
 
 @Injectable()
 export class CreateCardPaymentUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -66,7 +72,7 @@ export class CreateCardPaymentUseCase {
     }
 
     const account = await requireOwnedAccount(
-      this.repo,
+      this.query,
       userId,
       command.fromAccountId,
     );

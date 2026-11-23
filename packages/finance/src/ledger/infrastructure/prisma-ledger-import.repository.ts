@@ -40,8 +40,9 @@ type TxClient = Prisma.TransactionClient;
  * Imported movements: the first leg, its counterpart and the pair of legs that
  * turn two imported movements into one transfer.
  */
+import type { LedgerImportRepositoryPort } from '../application/ports/ledger-import.repository.port';
 @Injectable()
-export class PrismaLedgerImportRepository {
+export class PrismaLedgerImportRepository implements LedgerImportRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(DOMAIN_EVENT_PUBLISHER)

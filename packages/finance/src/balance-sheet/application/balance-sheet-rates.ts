@@ -17,22 +17,22 @@ export class BalanceSheetRates {
   constructor(private readonly resolveAmounts: ResolveAmountsUseCase) {}
 
   toBase(input: ToBaseInput): Promise<Prisma.Decimal> {
-    return this.resolveAmounts.toBaseCurrency(
-      input.amount,
-      input.currency,
-      input.baseCurrency,
-      input.asOf,
-      this.cache,
-    );
+    return this.resolveAmounts.toBaseCurrency({
+      amount: input.amount,
+      currency: input.currency,
+      baseCurrency: input.baseCurrency,
+      asOf: input.asOf,
+      cache: this.cache,
+    });
   }
 
   toBaseOrNull(input: ToBaseInput): Promise<Prisma.Decimal | null> {
-    return this.resolveAmounts.toBaseCurrencyOrNull(
-      input.amount,
-      input.currency,
-      input.baseCurrency,
-      input.asOf,
-      this.cache,
-    );
+    return this.resolveAmounts.toBaseCurrencyOrNull({
+      amount: input.amount,
+      currency: input.currency,
+      baseCurrency: input.baseCurrency,
+      asOf: input.asOf,
+      cache: this.cache,
+    });
   }
 }

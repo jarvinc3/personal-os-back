@@ -23,10 +23,8 @@ import type {
 import type { IncomingCardPayment } from '../application/reconcile-card-payment-import';
 import { CardPaymentOperations } from './card-payment-operations';
 import { PrismaLedgerCardPaymentWriter } from './prisma-ledger-card-payment-writer';
-import {
-  PrismaLedgerMovementWriter,
-  type CreateTransactionInput,
-} from './prisma-ledger-movement-writer';
+import type { CreateTransactionInput } from '../application/ports/ledger-write.repository.port';
+import { PrismaLedgerMovementWriter } from './prisma-ledger-movement-writer';
 import { PrismaLedgerTransactionUpdater } from './prisma-ledger-transaction-updater';
 import { TransferFeeLeg } from './prisma-ledger-transfer-fee';
 import { PrismaLedgerTransferWriter } from './prisma-ledger-transfer-writer';
@@ -35,8 +33,9 @@ import { PrismaLedgerTransferWriter } from './prisma-ledger-transfer-writer';
  * Writes that create or edit movements. Cada operación vive en su pieza: alta y
  * reajuste, transferencia con su comisión, pago de tarjeta y ediciones.
  */
+import type { LedgerWriteRepositoryPort } from '../application/ports/ledger-write.repository.port';
 @Injectable()
-export class PrismaLedgerWriteRepository {
+export class PrismaLedgerWriteRepository implements LedgerWriteRepositoryPort {
   private readonly movements: PrismaLedgerMovementWriter;
   private readonly transfers: PrismaLedgerTransferWriter;
   private readonly cardPayments: PrismaLedgerCardPaymentWriter;
@@ -85,6 +84,13 @@ export class PrismaLedgerWriteRepository {
     input: CreateTransactionInput,
   ): Promise<CreateTransactionResult | null> {
     return this.movements.createTransaction(input);
+  }
+
+  async clearPossibleDuplicate(userId: string, id: string): Promise<void> {
+    await this.prisma.finTransaction.updateMany({
+      where: { id, userId },
+      data: { possibleDuplicateOfId: null },
+    });
   }
 
   createBalanceAdjustment(

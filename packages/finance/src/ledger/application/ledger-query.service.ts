@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import { LogoService } from '@personal-os/logos';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_QUERY_REPOSITORY } from '../../shared/application/tokens';
 import type {
   FinTxStatus,
   ListTransactionsQuery,
@@ -11,10 +11,8 @@ import {
   mapLogicalTransaction,
   mapOperation,
 } from './ledger-mappers';
-import type {
-  LedgerRepositoryPort,
-  LedgerTransactionRow,
-} from './ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
+import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 
 /**
  * Read-only ledger queries for HTTP and façade consumers.
@@ -22,8 +20,8 @@ import type {
 @Injectable()
 export class LedgerQueryService {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly repo: LedgerQueryRepositoryPort,
     private readonly logos: LogoService,
   ) {}
 

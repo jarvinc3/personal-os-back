@@ -6,7 +6,11 @@ import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-
 import { withRateMetadata } from '../../fx/application/rate-metadata';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { MerchantsService } from '../../merchants/application/merchants.service';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_IMPORT_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+  LEDGER_WRITE_REPOSITORY,
+} from '../../shared/application/tokens';
 import {
   OPERATION_LEG_ROLE,
   type OperationLegRole,
@@ -16,7 +20,9 @@ import {
   type FinTxStatus,
   type TransferStatus,
 } from './commands/ledger.commands';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerImportRepositoryPort } from './ports/ledger-import.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
 
 function toTransferStatus(status: FinTxStatus): TransferStatus {
@@ -55,8 +61,12 @@ export type ImportFinancialMovementInput = {
 @Injectable()
 export class ImportFinancialTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_IMPORT_REPOSITORY)
+    private readonly repo: LedgerImportRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly write: LedgerWriteRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -66,7 +76,7 @@ export class ImportFinancialTransactionUseCase {
 
   async execute(userId: string, data: ImportFinancialMovementInput) {
     const ledgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
+      this.query,
       userId,
       data.accountId,
       data.cardId,
@@ -120,14 +130,14 @@ export class ImportFinancialTransactionUseCase {
     data: ImportFinancialMovementInput & { cashAccountId: string },
   ) {
     const fromLedgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
+      this.query,
       userId,
       data.accountId,
       data.cardId,
       data.currency,
     );
     const toLedgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
+      this.query,
       userId,
       data.cashAccountId,
       undefined,
@@ -149,7 +159,7 @@ export class ImportFinancialTransactionUseCase {
         baseCurrency,
         transactionDate: data.transactionDate,
       });
-    const created = await this.repo.createTransfer({
+    const created = await this.write.createTransfer({
       userId,
       command: {
         fromAccountId: data.accountId,
@@ -194,7 +204,7 @@ export class ImportFinancialTransactionUseCase {
     },
   ) {
     const ledgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
+      this.query,
       userId,
       cashAccountId,
       undefined,

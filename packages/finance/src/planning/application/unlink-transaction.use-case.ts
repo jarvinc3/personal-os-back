@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { LEDGER_QUERY_REPOSITORY } from '../../shared/application/tokens';
 import { roundMoney } from '../../shared/domain/money';
 import {
   TRANSACTION_LINK_KIND,
@@ -8,7 +8,7 @@ import {
   TRANSACTION_NOT_LINKED,
   TRANSACTION_NOT_LINKED_MESSAGE,
 } from '../../shared/domain/transaction-links';
-import type { LedgerRepositoryPort } from '../../ledger/application/ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
 import { shiftLoanDueDate } from '../domain/loan-installment-schedule';
 import { distributeLoanPayment } from '../domain/loan-payment';
 import { PlanningRepository } from '../infrastructure/planning.repository';
@@ -21,8 +21,8 @@ import { PlanningRepository } from '../infrastructure/planning.repository';
 @Injectable()
 export class UnlinkTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly ledger: LedgerRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly ledger: LedgerQueryRepositoryPort,
     private readonly planning: PlanningRepository,
   ) {}
 

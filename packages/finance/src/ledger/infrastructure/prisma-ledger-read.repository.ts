@@ -69,8 +69,9 @@ const transactionLinkInclude = {
   },
 } satisfies Prisma.FinTransactionInclude;
 
+import type { LedgerQueryRepositoryPort } from '../application/ports/ledger-query.repository.port';
 @Injectable()
-export class PrismaLedgerReadRepository {
+export class PrismaLedgerReadRepository implements LedgerQueryRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   async findTransactions(userId: string, query: ListTransactionsQuery) {

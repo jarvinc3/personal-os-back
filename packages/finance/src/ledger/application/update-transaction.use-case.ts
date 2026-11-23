@@ -10,7 +10,10 @@ import {
 import { MerchantsService } from '../../merchants/application/merchants.service';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_WRITE_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
@@ -22,14 +25,17 @@ import type {
   UpdateTransactionCommand,
 } from './commands/ledger.commands';
 import { mapLedgerTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
 
 @Injectable()
 export class UpdateTransactionUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -39,7 +45,7 @@ export class UpdateTransactionUseCase {
   ) {}
 
   async execute(userId: string, id: string, command: UpdateTransactionCommand) {
-    const existing = await this.repo.findTransactionById(id, userId);
+    const existing = await this.query.findTransactionById(id, userId);
     if (!existing) {
       throw new NotFoundException('Transacción no encontrada');
     }
@@ -139,7 +145,7 @@ export class UpdateTransactionUseCase {
           : existing.transactionDate;
 
       const ledgerCurrency = await resolveLedgerCurrencyForTarget(
-        this.repo,
+        this.query,
         userId,
         accountId,
         cardId,

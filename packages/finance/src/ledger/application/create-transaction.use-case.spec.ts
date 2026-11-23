@@ -3,7 +3,8 @@ import { BadRequestException } from '@nestjs/common';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 describe('CreateTransactionUseCase', () => {
   const createTransaction = jest.fn();
@@ -13,7 +14,7 @@ describe('CreateTransactionUseCase', () => {
   const repo = {
     createTransaction,
     findAccountById,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
 
   const resolveExecute = jest.fn().mockResolvedValue({
     amount: 10,
@@ -43,6 +44,7 @@ describe('CreateTransactionUseCase', () => {
   };
 
   const useCase = new CreateTransactionUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,
@@ -92,8 +94,8 @@ describe('CreateTransactionUseCase', () => {
 
     expect(result.id).toBe('tx-1');
     expect(resolveExecute).toHaveBeenCalled();
-    expect(createTransaction.mock.calls[0]?.[0]).toBe('user-1');
-    expect(createTransaction.mock.calls[0]?.[3]).toBe('AI');
+    expect(createTransaction.mock.calls[0]?.[0]?.userId).toBe('user-1');
+    expect(createTransaction.mock.calls[0]?.[0]?.source).toBe('AI');
     expect(wake).toHaveBeenCalled();
   });
 

@@ -49,15 +49,21 @@ describe('BalanceSheetService', () => {
     loadMonthReconciliations.mockResolvedValue([]);
     loadUserTimezone.mockResolvedValue(null);
     lookupByKey.mockResolvedValue(new Map());
-    toBaseCurrency.mockImplementation((amount: number, currency: string) => {
-      if (currency === 'USD') {
-        return Promise.resolve(amount * 60);
-      }
-      return Promise.resolve(amount);
-    });
+    toBaseCurrency.mockImplementation(
+      ({ amount, currency }: { amount: number; currency: string }) => {
+        if (currency === 'USD') {
+          return Promise.resolve(amount * 60);
+        }
+        return Promise.resolve(amount);
+      },
+    );
     toBaseCurrencyOrNull.mockImplementation(
-      (amount: number, currency: string, base: string, asOf: Date) =>
-        toBaseCurrency(amount, currency, base, asOf),
+      (input: {
+        amount: number;
+        currency: string;
+        baseCurrency: string;
+        asOf: Date;
+      }) => toBaseCurrency(input),
     );
   });
 
@@ -136,11 +142,11 @@ describe('BalanceSheetService', () => {
     const balanceSheet = await createService().getBalanceSheet('user-1');
 
     expect(toBaseCurrencyOrNull).toHaveBeenCalledWith(
-      10,
-      'USD',
-      'DOP',
-      expect.anything(),
-      expect.anything(),
+      expect.objectContaining({
+        amount: 10,
+        currency: 'USD',
+        baseCurrency: 'DOP',
+      }),
     );
     expect(balanceSheet.global.netWorth).toBe('1600');
     expect(balanceSheet.global.assets.accounts).toBe('1600');
@@ -204,12 +210,13 @@ describe('BalanceSheetService', () => {
   });
 
   it('sums converted balances to the cent, rounding once at the end', async () => {
-    toBaseCurrency.mockImplementation((amount: number, currency: string) =>
-      Promise.resolve(
-        currency === 'USD'
-          ? new Prisma.Decimal(amount).times('60.5')
-          : new Prisma.Decimal(amount),
-      ),
+    toBaseCurrency.mockImplementation(
+      ({ amount, currency }: { amount: number; currency: string }) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times('60.5')
+            : new Prisma.Decimal(amount),
+        ),
     );
     loadPositions.mockResolvedValue({
       institutions: [{ id: 'inst-1' }],
@@ -437,7 +444,7 @@ describe('BalanceSheetService', () => {
       },
     ]);
     toBaseCurrencyOrNull.mockImplementation(
-      (amount: Prisma.Decimal, currency: string) =>
+      ({ amount, currency }: { amount: Prisma.Decimal; currency: string }) =>
         Promise.resolve(currency === 'EUR' ? null : amount),
     );
 
@@ -518,7 +525,7 @@ describe('BalanceSheetService', () => {
       },
     ]);
     toBaseCurrencyOrNull.mockImplementation(
-      (amount: Prisma.Decimal, currency: string) =>
+      ({ amount, currency }: { amount: Prisma.Decimal; currency: string }) =>
         Promise.resolve(
           currency === 'USD'
             ? new Prisma.Decimal(amount).times(60)
@@ -685,7 +692,7 @@ describe('BalanceSheetService', () => {
       },
     ]);
     toBaseCurrency.mockImplementation(
-      (amount: Prisma.Decimal, currency: string) =>
+      ({ amount, currency }: { amount: Prisma.Decimal; currency: string }) =>
         Promise.resolve(
           currency === 'USD'
             ? new Prisma.Decimal(amount).times(60)
@@ -693,7 +700,7 @@ describe('BalanceSheetService', () => {
         ),
     );
     toBaseCurrencyOrNull.mockImplementation(
-      (amount: Prisma.Decimal, currency: string) =>
+      ({ amount, currency }: { amount: Prisma.Decimal; currency: string }) =>
         Promise.resolve(
           currency === 'USD'
             ? new Prisma.Decimal(amount).times(60)
@@ -764,7 +771,7 @@ describe('BalanceSheetService', () => {
       loans: [],
     });
     toBaseCurrencyOrNull.mockImplementation(
-      (amount: Prisma.Decimal, currency: string) =>
+      ({ amount, currency }: { amount: Prisma.Decimal; currency: string }) =>
         Promise.resolve(
           currency === 'USD'
             ? new Prisma.Decimal(amount).times(60)

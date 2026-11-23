@@ -17,14 +17,31 @@ import { exchangeRateFailureException } from './exchange-rate-failure';
 
 export type FxRateRequestCache = Map<string, Promise<ExchangeRateResult>>;
 
+export type BaseCurrencyConversion = {
+  amount: MoneyLike;
+  currency: string;
+  baseCurrency: string;
+  asOf: Date;
+  cache?: FxRateRequestCache;
+};
+
+type RateRequest = {
+  from: string;
+  to: string;
+  date: string;
+  cache?: FxRateRequestCache;
+};
+
 type FxRateKind = 'historical' | 'latest' | 'ledger';
 
-function rateKey(
-  kind: FxRateKind,
-  from: string,
-  to: string,
-  date: string,
-): string {
+type RateKeyInput = {
+  kind: FxRateKind;
+  from: string;
+  to: string;
+  date: string;
+};
+
+function rateKey({ kind, from, to, date }: RateKeyInput): string {
   return `${kind}:${from}:${to}:${date}`;
 }
 
@@ -79,10 +96,18 @@ export class ResolveAmountsUseCase {
     const baseCurrency = normalizeCurrencyCode(params.baseCurrency);
     const date = params.transactionDate.toISOString().slice(0, 10);
 
-    const ledgerRate = await this.requireRate(currency, ledgerCurrency, date);
+    const ledgerRate = await this.requireRate({
+      from: currency,
+      to: ledgerCurrency,
+      date,
+    });
     const ledgerAmount = convertAmount(params.amount, ledgerRate.rate);
 
-    const baseRate = await this.requireRate(currency, baseCurrency, date);
+    const baseRate = await this.requireRate({
+      from: currency,
+      to: baseCurrency,
+      date,
+    });
     const amountBaseCurrency = convertAmount(params.amount, baseRate.rate);
 
     return {
@@ -172,17 +197,17 @@ export class ResolveAmountsUseCase {
    * calendar date (UTC `YYYY-MM-DD`). Same fail-closed policy as ledger
    * writes: identity when currencies match; otherwise cache/API for that date.
    */
-  async toBaseCurrency(
-    amount: MoneyLike,
-    currency: string,
-    baseCurrency: string,
-    asOf: Date,
-    cache?: FxRateRequestCache,
-  ): Promise<Prisma.Decimal> {
+  async toBaseCurrency({
+    amount,
+    currency,
+    baseCurrency,
+    asOf,
+    cache,
+  }: BaseCurrencyConversion): Promise<Prisma.Decimal> {
     const from = normalizeCurrencyCode(currency);
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
-    const rate = await this.requireRate(from, target, date, cache);
+    const rate = await this.requireRate({ from, to: target, date, cache });
     return convertDecimal(amount, rate.rate);
   }
 
@@ -192,17 +217,19 @@ export class ResolveAmountsUseCase {
    * before `asOf`. Returns `null` when no rate exists, so a display summary can
    * show an incomplete total instead of failing the whole response.
    */
-  async toBaseCurrencyOrNull(
-    amount: MoneyLike,
-    currency: string,
-    baseCurrency: string,
-    asOf: Date,
-    cache?: FxRateRequestCache,
-  ): Promise<Prisma.Decimal | null> {
+  async toBaseCurrencyOrNull({
+    amount,
+    currency,
+    baseCurrency,
+    asOf,
+    cache,
+  }: BaseCurrencyConversion): Promise<Prisma.Decimal | null> {
     const from = normalizeCurrencyCode(currency);
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
-    const ledger = cache?.get(rateKey('ledger', from, target, date));
+    const ledger = cache?.get(
+      rateKey({ kind: 'ledger', from, to: target, date }),
+    );
     if (ledger) {
       const ledgerResult = await ledger;
       if (ledgerResult.ok) {
@@ -211,7 +238,7 @@ export class ResolveAmountsUseCase {
     }
     const exact = await cachedRate(
       cache,
-      rateKey('historical', from, target, date),
+      rateKey({ kind: 'historical', from, to: target, date }),
       () =>
         this.rates.getHistoricalRate({
           from,
@@ -224,7 +251,7 @@ export class ResolveAmountsUseCase {
     }
     const latest = await cachedRate(
       cache,
-      rateKey('latest', from, target, date),
+      rateKey({ kind: 'latest', from, to: target, date }),
       () =>
         this.rates.getLatestRateOnOrBefore({
           from,
@@ -238,13 +265,13 @@ export class ResolveAmountsUseCase {
     return convertDecimal(amount, latest.rate);
   }
 
-  private async requireRate(
-    from: string,
-    to: string,
-    date: string,
-    cache?: FxRateRequestCache,
-  ): Promise<{ rate: number; rateDate: string }> {
-    const exactKey = rateKey('historical', from, to, date);
+  private async requireRate({
+    from,
+    to,
+    date,
+    cache,
+  }: RateRequest): Promise<{ rate: number; rateDate: string }> {
+    const exactKey = rateKey({ kind: 'historical', from, to, date });
     const cachedExact = cache?.get(exactKey);
     if (cachedExact) {
       const exact = await cachedExact;
@@ -254,7 +281,7 @@ export class ResolveAmountsUseCase {
     }
     const rateResult = await cachedRate(
       cache,
-      rateKey('ledger', from, to, date),
+      rateKey({ kind: 'ledger', from, to, date }),
       () => this.rates.getLedgerRate({ from, to, date }),
     );
     if (rateResult.ok) {
