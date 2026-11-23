@@ -439,7 +439,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 | #369    | Reverso sin comercio por tarjeta y cuenta: tarjeta por `last4` a su cuenta, compra sin `accountId` cuenta como esa cuenta, ventana de 3 días, evidencia `CARD_ACCOUNT` y revisión para cero, varios o tarjeta ausente/ambigua. | Pruebas del consumidor, consulta del repositorio e integración PostgreSQL                                |
 | #383    | Resolución humana de la cola: fecha, destino, reverso original o descarte con motivo, auditados en `fin_signal_import_resolutions`; un import que sigue sin poder aplicarse responde 422 y conserva la revisión.               | Pruebas del consumidor con decisión y del servicio de resolución                                         |
 
-Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no hay una corrida completa del contrato. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
+Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen siendo el catálogo propuesto del contrato y no hay una corrida completa de todos ellos. La matriz QA19 cubre 18 escenarios de ese catálogo como prueba de integración versionada (sección 10) y CTR-02 conserva su propia prueba; ninguna de las dos certifica una corrida completa del contrato.
 
 ## 9. Evidencia actual y brechas
 
@@ -478,6 +478,8 @@ Los casos propuestos viven en el paquete local de revisión y se resumen en los 
 Un caso solo se marca PASS cuando el contrato está implementado y el caso se ejecutó completo en el SHA exacto. Un caso propuesto no es una prueba ejecutada.
 
 Las pruebas de esta unidad cubren la cadena de reverso, el reverso parcial con su efecto en gasto y presupuesto, el reintento cuando el original aparece y el comercio desconocido. Son pruebas de unidad; no sustituyen los casos `T-*`.
+
+La matriz QA19 se versionó el 2026-11-23 con datos sintéticos: `test/integration/fixtures/qa19-bhd/qa19-matrix.ts` conserva los 19 casos con su origen documental y `test/integration/qa19-bhd-matrix.integration-spec.ts` ejecuta 18 por el camino real de importación contra PostgreSQL. El caso CTR-02 se ejecuta en `test/integration/ctr02-verification-idempotency.integration-spec.ts` y la matriz lo enlaza en lugar de duplicarlo.
 
 ## 11. Selección acotada de muestra (piloto BHD)
 
