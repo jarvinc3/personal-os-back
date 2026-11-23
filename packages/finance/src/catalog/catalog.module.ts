@@ -17,7 +17,7 @@ import { CatalogEmailProductLookup } from './application/catalog-email-product-l
 import { CatalogEmailProductWriter } from './application/catalog-email-product-writer';
 import { CatalogEmailProposal } from './application/catalog-email-proposal';
 import { CatalogInstitutionBranding } from './application/catalog-institution-branding';
-import { CatalogInstitutionChildren } from './application/catalog-institution-children';
+import { CatalogInstitutionLedgerPurge } from './application/catalog-institution-ledger-purge';
 import { CatalogInstitutionLifecycle } from './application/catalog-institution-lifecycle';
 import { CatalogInstitutionMutations } from './application/catalog-institution-mutations';
 import { CatalogInstitutionReads } from './application/catalog-institution-reads';
@@ -73,7 +73,7 @@ import { InstitutionsController } from './presentation/institutions.controller';
     CatalogAccountLifecycle,
     CatalogAccountsService,
     CatalogInstitutionBranding,
-    CatalogInstitutionChildren,
+    CatalogInstitutionLedgerPurge,
     CatalogInstitutionReads,
     CatalogInstitutionMutations,
     CatalogInstitutionLifecycle,

@@ -21,7 +21,6 @@ type CardRelocationInput = {
   existing: CardDetailRow;
 };
 
-/** Card writes: creation and edition with their institution and account. */
 @Injectable()
 export class CatalogCardMutations {
   constructor(

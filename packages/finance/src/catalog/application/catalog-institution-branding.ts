@@ -3,7 +3,6 @@ import { LogoService, normalizeDomain } from '@personal-os/logos';
 import type { LogoUploadFile } from '@personal-os/logos';
 import { fallbackLogos } from './catalog-fallbacks';
 
-/** Institution branding: the domain and the logo that belongs to it. */
 @Injectable()
 export class CatalogInstitutionBranding {
   constructor(private readonly logos: LogoService = fallbackLogos) {}

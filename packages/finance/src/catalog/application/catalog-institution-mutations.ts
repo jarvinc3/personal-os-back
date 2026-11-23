@@ -17,7 +17,6 @@ import {
   assertNotCashInstitutionType,
 } from './catalog-institution-rules';
 
-/** Institution writes: creation, edition and logo upload. */
 @Injectable()
 export class CatalogInstitutionMutations {
   constructor(

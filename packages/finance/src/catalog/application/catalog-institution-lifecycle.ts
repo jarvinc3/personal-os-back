@@ -2,16 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { CatalogInstitutionRepository } from '../infrastructure/catalog-institution.repository';
-import { CatalogInstitutionChildren } from './catalog-institution-children';
+import { CatalogInstitutionLedgerPurge } from './catalog-institution-ledger-purge';
 import { assertInstitutionEditable } from './catalog-institution-rules';
 
-/** Institution lifecycle: archive, delete with its children, restore. */
 @Injectable()
 export class CatalogInstitutionLifecycle {
   constructor(
     private readonly repo: CatalogInstitutionRepository,
     private readonly ownership: FinanceOwnershipService,
-    private readonly children: CatalogInstitutionChildren,
+    private readonly children: CatalogInstitutionLedgerPurge,
   ) {}
 
   async deactivateInstitution(userId: string, id: string) {
@@ -36,7 +35,7 @@ export class CatalogInstitutionLifecycle {
       throw new NotFoundException('Institución no encontrada');
     }
     assertInstitutionEditable(existing);
-    const movements = await this.children.collectMovements(userId, id);
+    const movements = await this.children.purgeForInstitution(userId, id);
     const removed = await this.repo.deleteInstitution({
       userId,
       id,
