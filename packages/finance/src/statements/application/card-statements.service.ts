@@ -48,6 +48,31 @@ function toSnapshot(row: StatementRow): CardStatementSnapshot {
   };
 }
 
+export type ListCardStatementsInput = {
+  userId: string;
+  cardId: string;
+  query: CursorQueryDto;
+  now: Date;
+};
+
+export type StatementDetailInput = {
+  userId: string;
+  cardId: string;
+  statementId: string;
+  now: Date;
+};
+
+export type UpdateStatementInput = {
+  userId: string;
+  cardId: string;
+  statementId: string;
+  dto: {
+    minimumPayment?: number;
+    closingBalance?: number;
+    dueDate?: string;
+  };
+};
+
 @Injectable()
 export class CardStatementsService {
   constructor(
@@ -55,12 +80,12 @@ export class CardStatementsService {
     private readonly ownership: FinanceOwnershipService,
   ) {}
 
-  async listCardStatements(
-    userId: string,
-    cardId: string,
-    query: CursorQueryDto,
-    now: Date,
-  ) {
+  async listCardStatements({
+    userId,
+    cardId,
+    query,
+    now,
+  }: ListCardStatementsInput) {
     await this.ownership.assertCardOwned(userId, cardId);
     const limit = clampPageLimit(query.limit);
     const cursor = query.cursor ? decodeCursor(query.cursor) : null;
@@ -83,12 +108,12 @@ export class CardStatementsService {
     );
   }
 
-  async getStatementDetail(
-    userId: string,
-    cardId: string,
-    statementId: string,
-    now: Date,
-  ) {
+  async getStatementDetail({
+    userId,
+    cardId,
+    statementId,
+    now,
+  }: StatementDetailInput) {
     await this.ownership.assertCardOwned(userId, cardId);
     const card = await this.repo.findCreditCard(cardId);
     if (!card) {
@@ -128,16 +153,12 @@ export class CardStatementsService {
     };
   }
 
-  async updateStatement(
-    userId: string,
-    cardId: string,
-    statementId: string,
-    dto: {
-      minimumPayment?: number;
-      closingBalance?: number;
-      dueDate?: string;
-    },
-  ): Promise<void> {
+  async updateStatement({
+    userId,
+    cardId,
+    statementId,
+    dto,
+  }: UpdateStatementInput): Promise<void> {
     await this.ownership.assertCardOwned(userId, cardId);
     const row = await this.repo.findStatement(cardId, statementId);
     if (!row) {

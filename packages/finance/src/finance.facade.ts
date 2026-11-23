@@ -161,21 +161,21 @@ export class FinanceFacade {
     return this.createCardPaymentTx.execute(userId, command);
   }
   async getCardStatements(userId: string, cardId: string) {
-    const page = await this.statements.listCardStatements(
+    const page = await this.statements.listCardStatements({
       userId,
       cardId,
-      { limit: 20 },
-      new Date(),
-    );
+      query: { limit: 20 },
+      now: new Date(),
+    });
     return page.items;
   }
   getCardStatement(userId: string, cardId: string, statementId: string) {
-    return this.statements.getStatementDetail(
+    return this.statements.getStatementDetail({
       userId,
       cardId,
       statementId,
-      new Date(),
-    );
+      now: new Date(),
+    });
   }
   getBudgetStatus(userId: string) {
     return this.analytics.getBudgetStatus(userId);

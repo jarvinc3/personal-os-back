@@ -12,3 +12,11 @@ export const STATEMENT_IMPORT_JOB_OPTIONS = {
 } as const;
 
 export const STATEMENT_UPLOAD_MAX_BYTES = 10_000_000;
+
+export const STATEMENT_FILE_REQUIRED_MESSAGE = 'Archivo obligatorio';
+
+export const STATEMENT_IMPORT_NOT_FOUND_MESSAGE =
+  'Importación de estado de cuenta no encontrada';
+
+export const STATEMENT_IMPORT_NOT_READY_MESSAGE =
+  'La importación de estado de cuenta no está lista';

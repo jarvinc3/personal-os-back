@@ -6,7 +6,6 @@ import {
   Param,
   Patch,
   Post,
-  UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -19,10 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
-import {
-  StatementImportsService,
-  type StatementUploadFile,
-} from '../application/statement-imports.service';
+import { StatementImportsService } from '../application/statement-imports.service';
 import { STATEMENT_UPLOAD_MAX_BYTES } from '../application/statement-import.constants';
 import { ApplyStatementImportDto } from './dto/apply-statement-import.dto';
 import {
@@ -30,8 +26,11 @@ import {
   StatementImportResponseDto,
 } from './dto/statement-response.dto';
 import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
-import { StatementImportUploadDto } from './dto/statement-import-upload.dto';
 import { UpdateStatementLineDto } from './dto/update-statement-line.dto';
+import {
+  StatementUpload,
+  type StatementUploadInput,
+} from './statement-upload.decorator';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -53,16 +52,15 @@ export class StatementImportsController {
   )
   importCardStatement(
     @CurrentUser('sub') userId: string,
-    @Param('id') cardId: string,
-    @UploadedFile() file: StatementUploadFile | undefined,
-    @Body() body: StatementImportUploadDto,
+    @Param() params: { id: string },
+    @StatementUpload() upload: StatementUploadInput,
   ) {
     return this.imports.createFromUpload({
       userId,
-      cardId,
+      cardId: params.id,
       accountId: null,
-      file,
-      password: body.password,
+      file: upload.file,
+      password: upload.password,
     });
   }
 
@@ -79,16 +77,15 @@ export class StatementImportsController {
   )
   importAccountStatement(
     @CurrentUser('sub') userId: string,
-    @Param('id') accountId: string,
-    @UploadedFile() file: StatementUploadFile | undefined,
-    @Body() body: StatementImportUploadDto,
+    @Param() params: { id: string },
+    @StatementUpload() upload: StatementUploadInput,
   ) {
     return this.imports.createFromUpload({
       userId,
       cardId: null,
-      accountId,
-      file,
-      password: body.password,
+      accountId: params.id,
+      file: upload.file,
+      password: upload.password,
     });
   }
 
@@ -108,14 +105,13 @@ export class StatementImportsController {
   @ApiOkResponse({ type: StatementImportResponseDto })
   updateLine(
     @CurrentUser('sub') userId: string,
-    @Param('id') importId: string,
-    @Param('lineId') lineId: string,
+    @Param() params: { id: string; lineId: string },
     @Body() dto: UpdateStatementLineDto,
   ) {
     return this.imports.updateLine({
       userId,
-      importId,
-      lineId,
+      importId: params.id,
+      lineId: params.lineId,
       decision: dto.decision,
       transactionId: dto.transactionId,
     });

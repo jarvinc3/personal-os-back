@@ -30,7 +30,12 @@ export class CardStatementsController {
     @Param('id') id: string,
     @Query() query: CursorQueryDto,
   ) {
-    return this.statements.listCardStatements(userId, id, query, new Date());
+    return this.statements.listCardStatements({
+      userId,
+      cardId: id,
+      query,
+      now: new Date(),
+    });
   }
 
   @Get('cards/:id/statements/:statementId')
@@ -43,12 +48,12 @@ export class CardStatementsController {
     @Param('id') id: string,
     @Param('statementId') statementId: string,
   ) {
-    return this.statements.getStatementDetail(
+    return this.statements.getStatementDetail({
       userId,
-      id,
+      cardId: id,
       statementId,
-      new Date(),
-    );
+      now: new Date(),
+    });
   }
 
   @Patch('cards/:id/statements/:statementId')
@@ -59,12 +64,16 @@ export class CardStatementsController {
   @ApiOkResponse({ type: SuccessResponseDto })
   update(
     @CurrentUser('sub') userId: string,
-    @Param('id') id: string,
-    @Param('statementId') statementId: string,
+    @Param() params: { id: string; statementId: string },
     @Body() dto: UpdateCardStatementDto,
   ) {
     return this.statements
-      .updateStatement(userId, id, statementId, dto)
+      .updateStatement({
+        userId,
+        cardId: params.id,
+        statementId: params.statementId,
+        dto,
+      })
       .then(() => ({ success: true }));
   }
 }
