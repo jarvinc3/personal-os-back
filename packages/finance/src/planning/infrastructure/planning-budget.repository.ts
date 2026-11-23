@@ -217,6 +217,11 @@ export class PlanningBudgetRepository {
   }
 
   restoreBudget(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.budget, id, now);
+    return this.journal.restore({
+      userId,
+      entityType: DELETION_ENTITY.budget,
+      entityId: id,
+      now,
+    });
   }
 }

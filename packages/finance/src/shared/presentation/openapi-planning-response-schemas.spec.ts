@@ -88,6 +88,27 @@ function successSchema({
   return response?.content?.['application/json']?.schema;
 }
 
+function schemaProperties(
+  document: OpenApiDocument,
+  name: string,
+): Record<string, { type?: string }> | undefined {
+  const schema = document.components?.schemas?.[name] as
+    { properties?: Record<string, { type?: string }> } | undefined;
+  return schema?.properties;
+}
+
+function expectDecimalText(
+  document: OpenApiDocument,
+  name: string,
+  fields: readonly string[],
+): void {
+  for (const field of fields) {
+    expect(schemaProperties(document, name)?.[field]).toMatchObject({
+      type: 'string',
+    });
+  }
+}
+
 function resolveSchema(
   document: OpenApiDocument,
   schema: Record<string, unknown> | undefined,
@@ -174,62 +195,32 @@ describe('OpenAPI response schemas of the finance planning', () => {
   });
 
   it('declares the money of the planning responses as decimal text', () => {
-    const budget = document.components?.schemas?.BudgetResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const savingsGoal = document.components?.schemas
-      ?.SavingsGoalResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const receivable = document.components?.schemas?.ReceivableResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const subscription = document.components?.schemas
-      ?.SubscriptionResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-    const recurring = document.components?.schemas
-      ?.RecurringPatternResponseDto as {
-      properties?: Record<string, { type?: string }>;
-    };
-
-    for (const field of [
+    expectDecimalText(document, 'BudgetResponseDto', [
       'amountLimit',
       'amountSpent',
       'carriedOver',
       'effectiveLimit',
-    ]) {
-      expect(budget.properties?.[field]).toMatchObject({ type: 'string' });
-    }
-    for (const field of ['targetAmount', 'currentAmount']) {
-      expect(savingsGoal.properties?.[field]).toMatchObject({
-        type: 'string',
-      });
-    }
-    for (const field of [
+    ]);
+    expectDecimalText(document, 'SavingsGoalResponseDto', [
+      'targetAmount',
+      'currentAmount',
+    ]);
+    expectDecimalText(document, 'ReceivableResponseDto', [
       'amount',
       'paidAmount',
       'creditBalance',
       'writtenOffAmount',
-    ]) {
-      expect(receivable.properties?.[field]).toMatchObject({
-        type: 'string',
-      });
-    }
-    for (const field of ['amount', 'monthlyEquivalent', 'annualEquivalent']) {
-      expect(subscription.properties?.[field]).toMatchObject({
-        type: 'string',
-      });
-    }
-    for (const field of [
+    ]);
+    expectDecimalText(document, 'SubscriptionResponseDto', [
+      'amount',
+      'monthlyEquivalent',
+      'annualEquivalent',
+    ]);
+    expectDecimalText(document, 'RecurringPatternResponseDto', [
       'avgAmount',
       'monthlyEquivalent',
       'annualEquivalent',
-    ]) {
-      expect(recurring.properties?.[field]).toMatchObject({
-        type: 'string',
-      });
-    }
+    ]);
   });
 
   it('declares the cursor fields of every paginated endpoint', () => {

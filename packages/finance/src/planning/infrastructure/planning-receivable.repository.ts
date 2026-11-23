@@ -124,7 +124,12 @@ export class PlanningReceivableRepository {
   }
 
   restoreReceivable(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.receivable, id, now);
+    return this.journal.restore({
+      userId,
+      entityType: DELETION_ENTITY.receivable,
+      entityId: id,
+      now,
+    });
   }
 
   async updateReceivable(

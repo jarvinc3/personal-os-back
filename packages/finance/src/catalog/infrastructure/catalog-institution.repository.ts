@@ -158,12 +158,12 @@ export class CatalogInstitutionRepository {
   }
 
   restoreInstitution(userId: string, id: string, now: Date) {
-    return this.journal.restore(
+    return this.journal.restore({
       userId,
-      DELETION_ENTITY.institution,
-      id,
+      entityType: DELETION_ENTITY.institution,
+      entityId: id,
       now,
-      (tx, snapshot) => restoreCatalogLedger(tx, userId, snapshot),
-    );
+      afterReplay: (tx, snapshot) => restoreCatalogLedger(tx, userId, snapshot),
+    });
   }
 }

@@ -100,12 +100,13 @@ export class FinanceOwnershipService {
     return category;
   }
 
-  async assertParentCategory(
-    userId: string,
-    parentId: string,
-    childId?: string,
-    expectedType?: FinCategoryTypeValue,
-  ) {
+  async assertParentCategory(input: {
+    userId: string;
+    parentId: string;
+    childId?: string;
+    expectedType?: FinCategoryTypeValue;
+  }) {
+    const { userId, parentId, childId, expectedType } = input;
     const parent = await this.assertCategoryVisible(userId, parentId);
     if (childId && parentId === childId) {
       throw new BadRequestException(
@@ -113,14 +114,10 @@ export class FinanceOwnershipService {
       );
     }
 
-    let requiredType = expectedType;
-    if (!requiredType && childId) {
-      const child = await this.prisma.finCategory.findFirst({
-        where: { id: childId },
-        select: { type: true },
-      });
-      requiredType = child?.type;
-    }
+    const requiredType = await this.requiredParentType({
+      childId,
+      expectedType,
+    });
     if (requiredType && parent.type !== requiredType) {
       throw new BadRequestException(
         'La categoría padre debe tener el mismo tipo',
@@ -128,21 +125,45 @@ export class FinanceOwnershipService {
     }
 
     if (childId) {
-      let cursor: string | null = parent.id;
-      const seen = new Set<string>([childId]);
-      while (cursor) {
-        if (seen.has(cursor)) {
-          throw new BadRequestException('La categoría padre crearía un ciclo');
-        }
-        seen.add(cursor);
-        const row = await this.prisma.finCategory.findFirst({
-          where: { id: cursor },
-          select: { parentId: true },
-        });
-        cursor = row?.parentId ?? null;
-      }
+      await this.assertNoCategoryCycle({ parentId: parent.id, childId });
     }
     return parent;
+  }
+
+  private async requiredParentType(input: {
+    childId?: string;
+    expectedType?: FinCategoryTypeValue;
+  }): Promise<FinCategoryTypeValue | undefined> {
+    if (input.expectedType) {
+      return input.expectedType;
+    }
+    if (!input.childId) {
+      return undefined;
+    }
+    const child = await this.prisma.finCategory.findFirst({
+      where: { id: input.childId },
+      select: { type: true },
+    });
+    return child?.type;
+  }
+
+  private async assertNoCategoryCycle(input: {
+    parentId: string;
+    childId: string;
+  }): Promise<void> {
+    let cursor: string | null = input.parentId;
+    const seen = new Set<string>([input.childId]);
+    while (cursor) {
+      if (seen.has(cursor)) {
+        throw new BadRequestException('La categoría padre crearía un ciclo');
+      }
+      seen.add(cursor);
+      const row = await this.prisma.finCategory.findFirst({
+        where: { id: cursor },
+        select: { parentId: true },
+      });
+      cursor = row?.parentId ?? null;
+    }
   }
 
   async assertDebitAccountAlignment(params: {

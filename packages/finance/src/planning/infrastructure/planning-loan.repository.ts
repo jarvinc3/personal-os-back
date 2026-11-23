@@ -121,7 +121,12 @@ export class PlanningLoanRepository {
   }
 
   restoreLoan(userId: string, id: string, now: Date) {
-    return this.journal.restore(userId, DELETION_ENTITY.loan, id, now);
+    return this.journal.restore({
+      userId,
+      entityType: DELETION_ENTITY.loan,
+      entityId: id,
+      now,
+    });
   }
 
   listLoansForScheduleSync() {
