@@ -1,380 +1,106 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { QueueNames, type StatementImportJob } from '@personal-os/core';
 import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
 import { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { roundMoney } from '../../shared/domain/money';
-import { STATEMENT_IMPORT_ERROR } from '../domain/statement-import-errors';
-import {
-  readParsedStatement,
-  type StatementImportParsed,
-} from '../domain/statement-import-view';
 import { CardStatementsRepository } from '../infrastructure/card-statements.repository';
-import {
-  StatementImportsRepository,
-  type StatementImportContext,
-} from '../infrastructure/statement-imports.repository';
+import { StatementImportsRepository } from '../infrastructure/statement-imports.repository';
 import {
   STATEMENT_UPLOAD_STORE,
   type StatementUploadStore,
 } from '../infrastructure/temp-file-statement-upload.store';
-import {
-  STATEMENT_PDF_TEXT,
-  StatementPasswordError,
-  type StatementPdfTextPort,
-} from './ports/statement-pdf.port';
 import { ProcessStatementImportUseCase } from './process-statement-import.use-case';
 import {
-  mapStatementImport,
-  type StatementImportView,
-} from './statement-import-mappers';
+  STATEMENT_PDF_TEXT,
+  type StatementPdfTextPort,
+} from './ports/statement-pdf.port';
+import { StatementImportApplier } from './statement-import-applier';
+import { StatementImportLines } from './statement-import-lines';
+import { StatementImportReader } from './statement-import-reader';
 import {
-  STATEMENT_IMPORT_JOB_NAME,
-  STATEMENT_IMPORT_JOB_OPTIONS,
-} from './statement-import.constants';
+  StatementImportUpload,
+  type StatementUploadFile,
+} from './statement-import-upload';
+import type { StatementImportView } from './statement-import-mappers';
 
-export type StatementUploadFile = {
-  buffer: Buffer;
-  mimetype: string;
-  size: number;
-  originalname: string;
-};
-
-const FILE_REQUIRED_MESSAGE = 'Archivo obligatorio';
-const NOT_FOUND_MESSAGE = 'Importación de estado de cuenta no encontrada';
-const NOT_READY_MESSAGE = 'La importación de estado de cuenta no está lista';
+export type { StatementUploadFile } from './statement-import-upload';
 
 @Injectable()
 export class StatementImportsService {
+  private readonly uploader: StatementImportUpload;
+  private readonly reader: StatementImportReader;
+  private readonly lines: StatementImportLines;
+  private readonly applier: StatementImportApplier;
+
   constructor(
-    private readonly repo: StatementImportsRepository,
-    private readonly ownership: FinanceOwnershipService,
-    private readonly processImport: ProcessStatementImportUseCase,
-    private readonly createTransaction: CreateTransactionUseCase,
-    private readonly adjustBalance: AdjustBalanceUseCase,
-    private readonly cardStatements: CardStatementsRepository,
+    repo: StatementImportsRepository,
+    ownership: FinanceOwnershipService,
+    processImport: ProcessStatementImportUseCase,
+    createTransaction: CreateTransactionUseCase,
+    adjustBalance: AdjustBalanceUseCase,
+    cardStatements: CardStatementsRepository,
     @Inject(STATEMENT_PDF_TEXT)
-    private readonly pdfText: StatementPdfTextPort,
+    pdfText: StatementPdfTextPort,
     @Inject(STATEMENT_UPLOAD_STORE)
-    private readonly uploads: StatementUploadStore,
+    uploads: StatementUploadStore,
     @Optional()
     @InjectQueue(QueueNames.STATEMENT_IMPORT)
-    private readonly queue?: Queue<StatementImportJob>,
-  ) {}
+    queue?: Queue<StatementImportJob>,
+  ) {
+    this.reader = new StatementImportReader(repo);
+    this.uploader = new StatementImportUpload({
+      repo,
+      ownership,
+      processImport,
+      pdfText,
+      uploads,
+      queue,
+    });
+    this.lines = new StatementImportLines({ reader: this.reader, repo });
+    this.applier = new StatementImportApplier({
+      reader: this.reader,
+      repo,
+      createTransaction,
+      adjustBalance,
+      cardStatements,
+    });
+  }
 
-  async createFromUpload(input: {
+  createFromUpload(input: {
     userId: string;
     cardId: string | null;
     accountId: string | null;
     file: StatementUploadFile | undefined;
     password?: string;
   }): Promise<{ importId: string }> {
-    if (!input.file || input.file.buffer.length === 0) {
-      throw new BadRequestException(FILE_REQUIRED_MESSAGE);
-    }
-    if (input.cardId) {
-      await this.ownership.assertCardOwned(input.userId, input.cardId);
-    } else if (input.accountId) {
-      await this.ownership.assertAccountOwned(input.userId, input.accountId);
-    } else {
-      throw new BadRequestException(
-        'La importación de estado de cuenta necesita un destino',
-      );
-    }
-
-    const bytes = new Uint8Array(input.file.buffer);
-    await this.assertPasswordAccepted(bytes, input.password);
-
-    const row = await this.repo.createImport({
-      userId: input.userId,
-      cardId: input.cardId,
-      accountId: input.accountId,
-    });
-    if (this.queue) {
-      await this.uploads.write({ importId: row.id, bytes });
-      await this.queue.add(
-        STATEMENT_IMPORT_JOB_NAME,
-        {
-          userId: input.userId,
-          importId: row.id,
-          ...(input.password ? { password: input.password } : {}),
-        },
-        STATEMENT_IMPORT_JOB_OPTIONS,
-      );
-      return { importId: row.id };
-    }
-
-    await this.processImport.execute({
-      userId: input.userId,
-      importId: row.id,
-      bytes,
-      password: input.password,
-    });
-    return { importId: row.id };
+    return this.uploader.create(input);
   }
 
-  async getImport(
-    userId: string,
-    importId: string,
-  ): Promise<StatementImportView> {
-    const context = await this.loadContext(userId, importId);
-    return this.toView(context);
+  getImport(userId: string, importId: string): Promise<StatementImportView> {
+    return this.reader.view(userId, importId);
   }
 
-  async updateLine(input: {
+  updateLine(input: {
     userId: string;
     importId: string;
     lineId: string;
     decision: 'MATCH' | 'CREATE' | 'IGNORE';
     transactionId?: string | null;
-  }): Promise<StatementImportView> {
-    const context = await this.loadContext(input.userId, input.importId);
-    if (context.status !== 'READY') {
-      throw new ConflictException({
-        message: NOT_READY_MESSAGE,
-        code: STATEMENT_IMPORT_ERROR.ALREADY_APPLIED,
-      });
-    }
-    const line = context.lines.find((entry) => entry.id === input.lineId);
-    if (!line) {
-      throw new NotFoundException('Línea del estado de cuenta no encontrada');
-    }
-    let transactionId: string | null;
-    if (input.decision === 'CREATE') {
-      transactionId = null;
-    } else if (input.decision === 'IGNORE') {
-      // Keep the original link so re-checking the row restores the match.
-      transactionId = line.transactionId;
-    } else {
-      transactionId = input.transactionId ?? line.transactionId;
-      if (!transactionId) {
-        throw new BadRequestException(
-          'Una conciliación requiere una transacción',
-        );
-      }
-    }
-    const updated = await this.repo.updateLine({
-      importId: input.importId,
-      lineId: input.lineId,
-      decision: input.decision,
-      transactionId,
-    });
-    if (updated === 0) {
-      throw new NotFoundException('Línea del estado de cuenta no encontrada');
-    }
-    return this.getImport(input.userId, input.importId);
+  }) {
+    return this.lines.update(input);
   }
 
-  async apply(input: {
+  apply(input: {
     userId: string;
     importId: string;
     adjust: boolean;
   }): Promise<StatementImportView> {
-    const context = await this.loadContext(input.userId, input.importId);
-    if (context.status === 'DISCARDED') {
-      throw new ConflictException({
-        message: 'La importación de estado de cuenta se descartó',
-        code: STATEMENT_IMPORT_ERROR.DISCARDED,
-      });
-    }
-    if (context.status === 'PARSING' || context.status === 'FAILED') {
-      throw new ConflictException({
-        message: NOT_READY_MESSAGE,
-        code: STATEMENT_IMPORT_ERROR.PARSE_FAILED,
-      });
-    }
-
-    if (context.status !== 'APPLIED') {
-      await this.createMissingTransactions(context);
-      const parsed = readParsedStatement(context.parsed);
-      if (input.adjust) {
-        await this.applyAdjustment(context, parsed);
-      }
-      const statementId = await this.syncCardStatement(context, parsed);
-      await this.repo.markApplied({ importId: context.id, statementId });
-    }
-    return this.getImport(input.userId, input.importId);
+    return this.applier.apply(input);
   }
 
-  async discard(userId: string, importId: string): Promise<void> {
-    const context = await this.loadContext(userId, importId);
-    if (context.status === 'APPLIED') {
-      throw new ConflictException({
-        message: 'La importación de estado de cuenta ya se aplicó',
-        code: STATEMENT_IMPORT_ERROR.ALREADY_APPLIED,
-      });
-    }
-    await this.repo.updateResult({
-      importId,
-      status: 'DISCARDED',
-      error: null,
-    });
-  }
-
-  private async assertPasswordAccepted(
-    bytes: Uint8Array,
-    password: string | undefined,
-  ): Promise<void> {
-    try {
-      await this.pdfText.assertReadable({ bytes, password });
-    } catch (error) {
-      if (error instanceof StatementPasswordError) {
-        throw new BadRequestException({
-          message: 'El PDF del estado de cuenta necesita su contraseña',
-          code: STATEMENT_IMPORT_ERROR.PASSWORD_REQUIRED,
-        });
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      throw new BadRequestException({
-        message,
-        code: STATEMENT_IMPORT_ERROR.PARSE_FAILED,
-      });
-    }
-  }
-
-  private async loadContext(
-    userId: string,
-    importId: string,
-  ): Promise<StatementImportContext> {
-    const context = await this.repo.findImportContext(userId, importId);
-    if (!context) {
-      throw new NotFoundException(NOT_FOUND_MESSAGE);
-    }
-    return context;
-  }
-
-  private async toView(
-    context: StatementImportContext,
-  ): Promise<StatementImportView> {
-    const parsed = readParsedStatement(context.parsed);
-    const categories = await this.repo.listCategories(context.userId);
-    const difference = await this.computeDifference(context, parsed);
-    return mapStatementImport({ context, parsed, difference, categories });
-  }
-
-  private async computeDifference(
-    context: StatementImportContext,
-    parsed: StatementImportParsed,
-  ): Promise<number | null> {
-    const closing = parsed.header.closingBalance;
-    if (closing === null) {
-      return null;
-    }
-    const target = await this.repo.findTargetBalance({
-      userId: context.userId,
-      cardId: context.cardId,
-      accountId: context.accountId,
-      currency: parsed.header.currency,
-    });
-    if (!target) {
-      return null;
-    }
-    const current =
-      target.creditLimit === null
-        ? target.currentBalance
-        : target.creditLimit - target.currentBalance;
-    return roundMoney(closing - current);
-  }
-
-  private async createMissingTransactions(
-    context: StatementImportContext,
-  ): Promise<void> {
-    for (const line of context.lines) {
-      if (line.decision !== 'CREATE' || line.transactionId) {
-        continue;
-      }
-      const created = await this.createTransaction.execute(
-        context.userId,
-        {
-          ...(context.cardId
-            ? { cardId: context.cardId }
-            : { accountId: context.accountId ?? undefined }),
-          type: line.type,
-          amount: Number(line.amount),
-          currency: line.currency,
-          transactionDate: line.date.toISOString(),
-          merchant: line.description,
-          description: line.description,
-          ...(line.categoryId ? { categoryId: line.categoryId } : {}),
-          status: 'CONFIRMED',
-        },
-        'MANUAL',
-      );
-      await this.repo.linkLineTransaction(line.id, created.id);
-    }
-  }
-
-  private async applyAdjustment(
-    context: StatementImportContext,
-    parsed: StatementImportParsed,
-  ): Promise<void> {
-    const closing = parsed.header.closingBalance;
-    if (closing === null) {
-      return;
-    }
-    if (context.accountId) {
-      await this.adjustBalance.execute(context.userId, {
-        accountId: context.accountId,
-        balance: closing,
-      });
-      return;
-    }
-    if (!context.cardId) {
-      return;
-    }
-    const target = await this.repo.findTargetBalance({
-      userId: context.userId,
-      cardId: context.cardId,
-      accountId: null,
-      currency: parsed.header.currency,
-    });
-    if (!target || target.creditLimit === null) {
-      return;
-    }
-    await this.adjustBalance.execute(context.userId, {
-      cardId: context.cardId,
-      currency: parsed.header.currency,
-      balance: roundMoney(target.creditLimit - closing),
-    });
-  }
-
-  private async syncCardStatement(
-    context: StatementImportContext,
-    parsed: StatementImportParsed,
-  ): Promise<string | null> {
-    if (!context.cardId || !parsed.period) {
-      return null;
-    }
-    const cycleEnd = new Date(parsed.period.to);
-    const closingBalance = parsed.header.closingBalance ?? 0;
-    const statementId = await this.cardStatements.upsertStatement({
-      cardId: context.cardId,
-      currency: parsed.header.currency,
-      cycleStart: new Date(parsed.period.from),
-      cycleEnd,
-      dueDate: parsed.header.dueDate ? new Date(parsed.header.dueDate) : null,
-      closingBalance,
-      minimumPayment: parsed.header.minimumPayment ?? 0,
-      minimumSource: parsed.header.minimumPayment === null ? null : 'IMPORTED',
-      status: 'CLOSED',
-    });
-    await this.cardStatements.recordStatementClosedEvent({
-      userId: context.userId,
-      cardId: context.cardId,
-      statementId,
-      currency: parsed.header.currency,
-      cycleEnd,
-      closingBalance,
-    });
-    return statementId;
+  discard(userId: string, importId: string): Promise<void> {
+    return this.applier.discard(userId, importId);
   }
 }
