@@ -2,7 +2,8 @@ import type { DomainEventRelay } from '@personal-os/contracts';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransferUseCase } from './create-transfer.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 describe('CreateTransferUseCase', () => {
   const createTransfer = jest.fn();
@@ -16,7 +17,7 @@ describe('CreateTransferUseCase', () => {
     createTransfer,
     findAccountById,
     findSavingsGoalIdByAccount: jest.fn().mockResolvedValue(null),
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
 
   const execute = jest.fn().mockResolvedValue({
     amount: 50,
@@ -50,6 +51,7 @@ describe('CreateTransferUseCase', () => {
   } as unknown as ResolveUserBaseCurrencyUseCase;
 
   const useCase = new CreateTransferUseCase(
+    repo,
     repo,
     resolveAmounts,
     baseCurrency,
@@ -131,8 +133,9 @@ describe('CreateTransferUseCase', () => {
       createTransfer,
       findAccountById,
       findSavingsGoalIdByAccount,
-    } as unknown as LedgerRepositoryPort;
+    } as unknown as LedgerWriteRepositoryPort & LedgerQueryRepositoryPort;
     const goalUseCase = new CreateTransferUseCase(
+      goalRepo,
       goalRepo,
       resolveAmounts,
       baseCurrency,

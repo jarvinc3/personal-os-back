@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_WRITE_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import {
@@ -20,7 +23,8 @@ import {
   TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
 } from '../../shared/domain/transfer';
 import type { CreateTransferCommand } from './commands/ledger.commands';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 import {
   assertDifferentAccounts,
   requireOwnedAccount,
@@ -29,8 +33,10 @@ import {
 @Injectable()
 export class UpdateTransferUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -42,7 +48,7 @@ export class UpdateTransferUseCase {
     legId: string,
     command: Partial<CreateTransferCommand>,
   ) {
-    const leg = await this.repo.findTransactionById(legId, userId);
+    const leg = await this.query.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transacción no encontrada');
     }
@@ -50,7 +56,7 @@ export class UpdateTransferUseCase {
       throw new BadRequestException('No es una transferencia');
     }
 
-    const legs = await this.repo.findTransactionsByTransferGroupId(
+    const legs = await this.query.findTransactionsByTransferGroupId(
       leg.transferGroupId,
       userId,
     );
@@ -89,11 +95,15 @@ export class UpdateTransferUseCase {
     assertDifferentAccounts(fromAccountId, toAccountId);
 
     const fromAccount = await requireOwnedAccount(
-      this.repo,
+      this.query,
       userId,
       fromAccountId,
     );
-    const toAccount = await requireOwnedAccount(this.repo, userId, toAccountId);
+    const toAccount = await requireOwnedAccount(
+      this.query,
+      userId,
+      toAccountId,
+    );
 
     const baseCurrency = await this.baseCurrency.execute(userId);
     const currency = normalizeCurrencyCode(command.currency ?? debit.currency);

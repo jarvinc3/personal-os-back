@@ -9,7 +9,10 @@ import {
 } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_WRITE_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import {
@@ -18,13 +21,16 @@ import {
   TRANSFER_LOCKED_MESSAGE,
 } from '../../shared/domain/transfer';
 import type { CreateCardPaymentCommand } from './commands/ledger.commands';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 @Injectable()
 export class UpdateCardPaymentUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -36,7 +42,7 @@ export class UpdateCardPaymentUseCase {
     legId: string,
     command: Partial<CreateCardPaymentCommand>,
   ) {
-    const leg = await this.repo.findTransactionById(legId, userId);
+    const leg = await this.query.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transacción no encontrada');
     }
@@ -44,7 +50,7 @@ export class UpdateCardPaymentUseCase {
       throw new BadRequestException('No es un pago de tarjeta');
     }
 
-    const legs = await this.repo.findTransactionsByTransferGroupId(
+    const legs = await this.query.findTransactionsByTransferGroupId(
       leg.transferGroupId,
       userId,
     );

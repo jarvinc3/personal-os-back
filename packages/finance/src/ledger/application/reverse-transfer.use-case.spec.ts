@@ -1,5 +1,6 @@
 import { ReverseTransferUseCase } from './reverse-transfer.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerReversalRepositoryPort } from './ports/ledger-reversal.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 function leg(overrides: Record<string, unknown> = {}) {
   return {
@@ -38,8 +39,8 @@ describe('ReverseTransferUseCase', () => {
     findTransactionById,
     findTransactionsByTransferGroupId,
     reverseTransactionsByTransferGroupId,
-  } as unknown as LedgerRepositoryPort;
-  const useCase = new ReverseTransferUseCase(repo, {
+  } as unknown as LedgerReversalRepositoryPort & LedgerQueryRepositoryPort;
+  const useCase = new ReverseTransferUseCase(repo, repo, {
     wake,
   });
 

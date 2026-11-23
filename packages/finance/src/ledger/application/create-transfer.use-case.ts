@@ -8,7 +8,10 @@ import {
 } from '@nestjs/common';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import {
+  LEDGER_WRITE_REPOSITORY,
+  LEDGER_QUERY_REPOSITORY,
+} from '../../shared/application/tokens';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import {
   ACCOUNT_NOT_FOUND,
@@ -20,13 +23,16 @@ import {
 } from '../../shared/domain/transfer';
 import type { CreateTransferCommand } from './commands/ledger.commands';
 import { mapLedgerTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerWriteRepositoryPort } from './ports/ledger-write.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 @Injectable()
 export class CreateTransferUseCase {
   constructor(
-    @Inject(LEDGER_REPOSITORY)
-    private readonly repo: LedgerRepositoryPort,
+    @Inject(LEDGER_WRITE_REPOSITORY)
+    private readonly repo: LedgerWriteRepositoryPort,
+    @Inject(LEDGER_QUERY_REPOSITORY)
+    private readonly query: LedgerQueryRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     @Inject(DOMAIN_EVENT_RELAY)
@@ -105,7 +111,7 @@ export class CreateTransferUseCase {
 
     void this.relay.wake();
     const suggestGoalId = command.toAccountId
-      ? await this.repo.findSavingsGoalIdByAccount(userId, command.toAccountId)
+      ? await this.query.findSavingsGoalIdByAccount(userId, command.toAccountId)
       : null;
     return {
       transferGroupId: created.transferGroupId,
@@ -122,7 +128,7 @@ export class CreateTransferUseCase {
     fallbackCurrency: string,
   ): Promise<string> {
     if (accountId) {
-      const account = await this.repo.findAccountById(accountId, userId);
+      const account = await this.query.findAccountById(accountId, userId);
       if (!account) {
         throw new NotFoundException({
           code: ACCOUNT_NOT_FOUND,

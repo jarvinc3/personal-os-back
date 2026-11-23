@@ -1,11 +1,12 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import type { LedgerRepositoryPort } from '../../ledger/application/ports/ledger.repository.port';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger.repository.port';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 import { LinkTransactionUseCase } from './link-transaction.use-case';
 import type { RecordReceivablePaymentUseCase } from './record-receivable-payment.use-case';
 import { UnlinkTransactionUseCase } from './unlink-transaction.use-case';
+import type { LedgerQueryRepositoryPort } from '../../ledger/application/ports/ledger-query.repository.port';
 
 const now = new Date(Date.UTC(2026, 2, 10));
 
@@ -78,14 +79,14 @@ function setup() {
     execute: jest.fn().mockResolvedValue({ id: 'contribution-1' }),
   };
   const link = new LinkTransactionUseCase(
-    ledger as unknown as LedgerRepositoryPort,
+    ledger as unknown as LedgerQueryRepositoryPort,
     planning as unknown as PlanningRepository,
     ownership as unknown as FinanceOwnershipService,
     recordPayment as unknown as RecordReceivablePaymentUseCase,
     allocateToGoal as unknown as AllocateToGoalUseCase,
   );
   const unlink = new UnlinkTransactionUseCase(
-    ledger as unknown as LedgerRepositoryPort,
+    ledger as unknown as LedgerQueryRepositoryPort,
     planning as unknown as PlanningRepository,
   );
   return {

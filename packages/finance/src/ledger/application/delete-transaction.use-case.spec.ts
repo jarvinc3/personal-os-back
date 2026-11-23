@@ -1,6 +1,7 @@
 import type { DomainEventRelay } from '@personal-os/contracts';
 import { DeleteTransactionUseCase } from './delete-transaction.use-case';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type { LedgerDeletionRepositoryPort } from './ports/ledger-deletion.repository.port';
+import type { LedgerQueryRepositoryPort } from './ports/ledger-query.repository.port';
 
 describe('DeleteTransactionUseCase', () => {
   const findTransactionById = jest.fn();
@@ -12,13 +13,13 @@ describe('DeleteTransactionUseCase', () => {
     findTransactionById,
     deleteTransaction,
     deleteTransactionsByTransferGroupId,
-  } as unknown as LedgerRepositoryPort;
+  } as unknown as LedgerDeletionRepositoryPort & LedgerQueryRepositoryPort;
 
   const relay = {
     wake,
   } as unknown as DomainEventRelay;
 
-  const useCase = new DeleteTransactionUseCase(repo, relay);
+  const useCase = new DeleteTransactionUseCase(repo, repo, relay);
 
   beforeEach(() => {
     jest.clearAllMocks();

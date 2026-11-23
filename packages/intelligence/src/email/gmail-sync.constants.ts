@@ -1,0 +1,12 @@
+export const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
+export const SCOPED_BHD_SENDER = 'bhd.com.do';
+export const RECOVERY_WINDOW_MS = 7 * 86400_000;
+export const RAW_RETENTION_DEV_DAYS = 30;
+export const RAW_RETENTION_PROD_DAYS = 7;
+export const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
+export const GMAIL_RATE_LIMIT_COOLDOWN_MS = 60_000;
+export const GMAIL_NOT_CONNECTED = 'GMAIL_NOT_CONNECTED';
+export const GMAIL_SYNC_IN_PROGRESS = 'GMAIL_SYNC_IN_PROGRESS';
+export const SYNC_STALLED_ERROR_CODE = 'sync_stalled';
+export const CLASSIFICATION_FAILED_ERROR_CODE = 'classification_failed';
+export const SYNC_WATCHDOG_INTERVAL_MS = 60_000;
