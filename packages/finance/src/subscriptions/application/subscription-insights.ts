@@ -140,7 +140,18 @@ export class SubscriptionInsights {
     const baseCurrency = await this.baseCurrency.execute(userId);
     const groups = new Map<string, BreakdownGroup>();
     for (const row of active) {
-      await this.addToBreakdown({ groups, row, by, baseCurrency, now });
+      const group = await this.breakdownGroup({
+        row,
+        by,
+        baseCurrency,
+        now,
+      });
+      const existing = groups.get(group.key);
+      groups.set(group.key, {
+        ...group,
+        count: (existing?.count ?? 0) + 1,
+        amount: (existing?.amount ?? new Prisma.Decimal(0)).plus(group.amount),
+      });
     }
     return {
       baseCurrency,
@@ -210,37 +221,33 @@ export class SubscriptionInsights {
     }));
   }
 
-  private async addToBreakdown({
-    groups,
+  private async breakdownGroup({
     row,
     by,
     baseCurrency,
     now,
   }: {
-    groups: Map<string, BreakdownGroup>;
     row: SubscriptionRow;
     by: SubscriptionBreakdown;
     baseCurrency: string;
     now: Date;
-  }): Promise<void> {
+  }): Promise<BreakdownGroup> {
     const descriptor = this.view.breakdownDescriptor(row, by);
     const monthly = monthlyCost({
       amount: toMoney(row.amount),
       cycle: row.billingCycle,
       interval: row.billingInterval,
     });
-    const inBase = await this.costs.toBaseCurrency({
-      amount: monthly,
-      currency: row.currency,
-      baseCurrency,
-      asOf: now,
-    });
-    const existing = groups.get(descriptor.key);
-    groups.set(descriptor.key, {
+    return {
       ...descriptor,
-      count: (existing?.count ?? 0) + 1,
-      amount: (existing?.amount ?? new Prisma.Decimal(0)).plus(inBase),
-    });
+      count: 1,
+      amount: await this.costs.toBaseCurrency({
+        amount: monthly,
+        currency: row.currency,
+        baseCurrency,
+        asOf: now,
+      }),
+    };
   }
 
   private addDays(from: Date, days: number): Date {
