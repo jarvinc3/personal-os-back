@@ -1,6 +1,7 @@
 import type { UsersService } from '@personal-os/users';
 import type { CatalogService } from '../../catalog/application/catalog.service';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import { QuickEntryContextService } from './quick-entry-context';
 import { QuickEntryService } from './quick-entry.service';
 import type {
   QuickEntryExtraction,
@@ -88,7 +89,10 @@ function createService(overrides: ServiceOverrides = {}) {
     execute: jest.fn().mockResolvedValue('DOP'),
   } as unknown as ResolveUserBaseCurrencyUseCase;
 
-  return new QuickEntryService(catalog, users, baseCurrency, extractor);
+  return new QuickEntryService(
+    new QuickEntryContextService(catalog, users, baseCurrency),
+    extractor,
+  );
 }
 
 describe('QuickEntryService', () => {
