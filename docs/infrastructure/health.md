@@ -33,4 +33,5 @@ JWKS solo entra en el startup: el readiness no depende de un tercero y el orques
 ## Evidencia
 
 - `apps/api/src/health/health.controller.ts`, `health.controller.spec.ts`
+- Sondas: `apps/api/src/health/probes/jwks.probe.ts`, `readiness-indicators.ts`, `health-check-runner.ts`
 - Indicators: `apps/api/src/health/indicators/redis.health.indicator.ts`
