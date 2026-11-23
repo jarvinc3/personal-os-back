@@ -24,7 +24,6 @@ import {
   type ReconciliationRow,
 } from './reconciliations-types';
 
-/** Escrituras de la conciliación: crear con ajustes, borrar y restaurar. */
 @Injectable()
 export class ReconciliationsWriteRepository {
   constructor(
