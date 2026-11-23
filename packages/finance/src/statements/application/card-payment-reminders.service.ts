@@ -1,15 +1,4 @@
-import type {
-  DomainEventRelay,
-  DomainEventOutboxReader,
-  DomainEventPublisher,
-} from '@personal-os/contracts';
-import {
-  DOMAIN_EVENT_RELAY,
-  DOMAIN_EVENT_OUTBOX_READER,
-  DOMAIN_EVENT_PUBLISHER,
-} from '@personal-os/contracts';
-import { FinanceEvents } from '../../contracts';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UsersService } from '@personal-os/users';
 import { resolveCardDueDaysBefore } from '../../settings/finance-settings';
 import { isoDay, localDayStart } from '../../shared/domain/local-day';
@@ -19,8 +8,8 @@ import {
 } from '../domain/card-statement-views';
 import type { StatementMovement } from '../domain/card-statement-amounts';
 import { CardStatementsRepository } from '../infrastructure/card-statements.repository';
+import { CardPaymentReminderOutbox } from './card-payment-reminder-outbox';
 
-const AGGREGATE_TYPE = 'FinCardStatement';
 const FINANCE_MODULE_SLUG = 'finance';
 const MS_PER_DAY = 86_400_000;
 
@@ -54,12 +43,7 @@ export class CardPaymentRemindersService {
   constructor(
     private readonly repo: CardStatementsRepository,
     private readonly users: UsersService,
-    @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisher,
-    @Inject(DOMAIN_EVENT_OUTBOX_READER)
-    private readonly outbox: DomainEventOutboxReader,
-    @Inject(DOMAIN_EVENT_RELAY)
-    private readonly relay: DomainEventRelay,
+    private readonly outbox: CardPaymentReminderOutbox,
   ) {}
 
   async evaluate(userId: string, now = new Date()): Promise<void> {
@@ -77,7 +61,7 @@ export class CardPaymentRemindersService {
     for (const statement of dueStatements) {
       await this.remindStatement(userId, statement, today);
     }
-    void this.relay.wake();
+    this.outbox.wake();
   }
 
   private async remindStatement(
@@ -108,11 +92,9 @@ export class CardPaymentRemindersService {
     if (await this.outbox.hasEvent(eventId)) {
       return;
     }
-    await this.events.enqueue({
+    await this.outbox.publish({
       eventId,
-      eventName: FinanceEvents.CARD_PAYMENT_DUE,
-      aggregateType: AGGREGATE_TYPE,
-      aggregateId: statement.id,
+      statementId: statement.id,
       userId,
       payload: {
         cardId: statement.cardId,

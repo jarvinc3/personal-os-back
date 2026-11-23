@@ -4,6 +4,14 @@ import {
   StatementPasswordError,
   type StatementPdfTextPort,
 } from './ports/statement-pdf.port';
+import { StatementImportApplier } from './statement-import-applier';
+import { StatementImportLedgerWriter } from './statement-import-ledger-writer';
+import { StatementImportParsing } from './statement-import-parsing';
+import { StatementImportReader } from './statement-import-reader';
+import { StatementImportRegistration } from './statement-import-registration';
+import { StatementImportState } from './statement-import-state';
+import { StatementImportStatementSync } from './statement-import-statement-sync';
+import { StatementImportUpload } from './statement-import-upload';
 import { StatementImportsService } from './statement-imports.service';
 import type { StatementImportContext } from '../infrastructure/statement-imports.repository';
 
@@ -67,7 +75,12 @@ function context(overrides: Partial<StatementImportContext> = {}) {
   } as unknown as StatementImportContext;
 }
 
-function setup(options: { context?: StatementImportContext } = {}) {
+function setup(
+  options: {
+    context?: StatementImportContext;
+    queue?: { add: jest.Mock };
+  } = {},
+) {
   const repo = {
     createImport: jest.fn(() => Promise.resolve({ id: 'import-1' })),
     findImportContext: jest.fn(() =>
@@ -110,17 +123,26 @@ function setup(options: { context?: StatementImportContext } = {}) {
     read: jest.fn(),
     remove: jest.fn(() => Promise.resolve()),
   };
-  const service = new StatementImportsService(
-    repo as never,
-    ownership as never,
-    processImport as never,
-    createTransaction as never,
-    adjustBalance as never,
-    cardStatements as never,
-    pdfText,
-    uploads,
-    undefined,
+  const reader = new StatementImportReader(repo as never);
+  const state = new StatementImportState(reader, repo as never);
+  const upload = new StatementImportUpload(
+    new StatementImportRegistration(repo as never, ownership as never, pdfText),
+    new StatementImportParsing(
+      processImport as never,
+      uploads,
+      options.queue as never,
+    ),
   );
+  const applier = new StatementImportApplier(
+    state,
+    new StatementImportLedgerWriter(
+      createTransaction as never,
+      adjustBalance as never,
+      state,
+    ),
+    new StatementImportStatementSync(cardStatements as never),
+  );
+  const service = new StatementImportsService(reader, upload, applier);
   return {
     repo,
     ownership,
@@ -211,21 +233,10 @@ describe('StatementImportsService', () => {
   });
 
   it('enqueues the parse when the queue is available', async () => {
-    const mocks = setup();
     const queue = { add: jest.fn(() => Promise.resolve()) };
-    const serviceWithQueue = new StatementImportsService(
-      mocks.repo as never,
-      mocks.ownership as never,
-      mocks.processImport as never,
-      mocks.createTransaction as never,
-      mocks.adjustBalance as never,
-      mocks.cardStatements as never,
-      mocks.pdfText,
-      mocks.uploads,
-      queue as never,
-    );
+    const mocks = setup({ queue });
 
-    await serviceWithQueue.createFromUpload({
+    await mocks.service.createFromUpload({
       userId: 'user-1',
       cardId: 'card-1',
       accountId: null,

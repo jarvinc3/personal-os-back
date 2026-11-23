@@ -1,37 +1,63 @@
-import { ConflictException } from '@nestjs/common';
-import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
-import { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
-import { roundMoney } from '../../shared/domain/money';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { readParsedStatement } from '../domain/statement-import-view';
 import { STATEMENT_IMPORT_ERROR } from '../domain/statement-import-errors';
-import {
-  readParsedStatement,
-  type StatementImportParsed,
-} from '../domain/statement-import-view';
-import { CardStatementsRepository } from '../infrastructure/card-statements.repository';
-import {
-  StatementImportsRepository,
-  type StatementImportContext,
-} from '../infrastructure/statement-imports.repository';
-import { StatementImportReader } from './statement-import-reader';
+import { StatementImportLedgerWriter } from './statement-import-ledger-writer';
+import { StatementImportState } from './statement-import-state';
+import { StatementImportStatementSync } from './statement-import-statement-sync';
 import { STATEMENT_IMPORT_NOT_READY_MESSAGE } from './statement-import.constants';
 
-type StatementImportApplierDeps = {
-  reader: StatementImportReader;
-  repo: StatementImportsRepository;
-  createTransaction: CreateTransactionUseCase;
-  adjustBalance: AdjustBalanceUseCase;
-  cardStatements: CardStatementsRepository;
+type StatementLineDecision = {
+  userId: string;
+  importId: string;
+  lineId: string;
+  decision: 'MATCH' | 'CREATE' | 'IGNORE';
+  transactionId?: string | null;
 };
 
-/** Applies a ready import: missing movements, balance adjustment and close. */
+/**
+ * Command side of an import: the decision for one line, applying the ready
+ * import and discarding it. The reads live in `StatementImportReader`.
+ */
+@Injectable()
 export class StatementImportApplier {
-  constructor(private readonly deps: StatementImportApplierDeps) {}
+  constructor(
+    private readonly state: StatementImportState,
+    private readonly ledger: StatementImportLedgerWriter,
+    private readonly statements: StatementImportStatementSync,
+  ) {}
+
+  async updateLine(input: StatementLineDecision) {
+    const context = await this.state.context(input.userId, input.importId);
+    if (context.status !== 'READY') {
+      throw new ConflictException({
+        message: STATEMENT_IMPORT_NOT_READY_MESSAGE,
+        code: STATEMENT_IMPORT_ERROR.ALREADY_APPLIED,
+      });
+    }
+    const line = context.lines.find((entry) => entry.id === input.lineId);
+    if (!line) {
+      throw new NotFoundException('Línea del estado de cuenta no encontrada');
+    }
+    const transactionId = this.resolveTransactionId(input, line.transactionId);
+    const updated = await this.state.updateLine({
+      importId: input.importId,
+      lineId: input.lineId,
+      decision: input.decision,
+      transactionId,
+    });
+    if (updated === 0) {
+      throw new NotFoundException('Línea del estado de cuenta no encontrada');
+    }
+    return this.state.view(input.userId, input.importId);
+  }
 
   async apply(input: { userId: string; importId: string; adjust: boolean }) {
-    const context = await this.deps.reader.context(
-      input.userId,
-      input.importId,
-    );
+    const context = await this.state.context(input.userId, input.importId);
     if (context.status === 'DISCARDED') {
       throw new ConflictException({
         message: 'La importación de estado de cuenta se descartó',
@@ -46,122 +72,45 @@ export class StatementImportApplier {
     }
 
     if (context.status !== 'APPLIED') {
-      await this.createMissingTransactions(context);
+      await this.ledger.createMissingTransactions(context);
       const parsed = readParsedStatement(context.parsed);
       if (input.adjust) {
-        await this.applyAdjustment(context, parsed);
+        await this.ledger.applyAdjustment(context, parsed);
       }
-      const statementId = await this.syncCardStatement(context, parsed);
-      await this.deps.repo.markApplied({ importId: context.id, statementId });
+      const statementId = await this.statements.sync(context, parsed);
+      await this.state.markApplied({ importId: context.id, statementId });
     }
-    return this.deps.reader.view(input.userId, input.importId);
+    return this.state.view(input.userId, input.importId);
   }
 
   async discard(userId: string, importId: string): Promise<void> {
-    const context = await this.deps.reader.context(userId, importId);
+    const context = await this.state.context(userId, importId);
     if (context.status === 'APPLIED') {
       throw new ConflictException({
         message: 'La importación de estado de cuenta ya se aplicó',
         code: STATEMENT_IMPORT_ERROR.ALREADY_APPLIED,
       });
     }
-    await this.deps.repo.updateResult({
-      importId,
-      status: 'DISCARDED',
-      error: null,
-    });
+    await this.state.discard(importId);
   }
 
-  private async createMissingTransactions(
-    context: StatementImportContext,
-  ): Promise<void> {
-    for (const line of context.lines) {
-      if (line.decision !== 'CREATE' || line.transactionId) {
-        continue;
-      }
-      const created = await this.deps.createTransaction.execute(
-        context.userId,
-        {
-          ...(context.cardId
-            ? { cardId: context.cardId }
-            : { accountId: context.accountId ?? undefined }),
-          type: line.type,
-          amount: Number(line.amount),
-          currency: line.currency,
-          transactionDate: line.date.toISOString(),
-          merchant: line.description,
-          description: line.description,
-          ...(line.categoryId ? { categoryId: line.categoryId } : {}),
-          status: 'CONFIRMED',
-        },
-        'MANUAL',
-      );
-      await this.deps.repo.linkLineTransaction(line.id, created.id);
-    }
-  }
-
-  private async applyAdjustment(
-    context: StatementImportContext,
-    parsed: StatementImportParsed,
-  ): Promise<void> {
-    const closing = parsed.header.closingBalance;
-    if (closing === null) {
-      return;
-    }
-    if (context.accountId) {
-      await this.deps.adjustBalance.execute(context.userId, {
-        accountId: context.accountId,
-        balance: closing,
-      });
-      return;
-    }
-    if (!context.cardId) {
-      return;
-    }
-    const target = await this.deps.repo.findTargetBalance({
-      userId: context.userId,
-      cardId: context.cardId,
-      accountId: null,
-      currency: parsed.header.currency,
-    });
-    if (!target || target.creditLimit === null) {
-      return;
-    }
-    await this.deps.adjustBalance.execute(context.userId, {
-      cardId: context.cardId,
-      currency: parsed.header.currency,
-      balance: roundMoney(target.creditLimit - closing),
-    });
-  }
-
-  private async syncCardStatement(
-    context: StatementImportContext,
-    parsed: StatementImportParsed,
-  ): Promise<string | null> {
-    if (!context.cardId || !parsed.period) {
+  private resolveTransactionId(
+    input: StatementLineDecision,
+    currentTransactionId: string | null,
+  ): string | null {
+    if (input.decision === 'CREATE') {
       return null;
     }
-    const cycleEnd = new Date(parsed.period.to);
-    const closingBalance = parsed.header.closingBalance ?? 0;
-    const statementId = await this.deps.cardStatements.upsertStatement({
-      cardId: context.cardId,
-      currency: parsed.header.currency,
-      cycleStart: new Date(parsed.period.from),
-      cycleEnd,
-      dueDate: parsed.header.dueDate ? new Date(parsed.header.dueDate) : null,
-      closingBalance,
-      minimumPayment: parsed.header.minimumPayment ?? 0,
-      minimumSource: parsed.header.minimumPayment === null ? null : 'IMPORTED',
-      status: 'CLOSED',
-    });
-    await this.deps.cardStatements.recordStatementClosedEvent({
-      userId: context.userId,
-      cardId: context.cardId,
-      statementId,
-      currency: parsed.header.currency,
-      cycleEnd,
-      closingBalance,
-    });
-    return statementId;
+    if (input.decision === 'IGNORE') {
+      // Keep the original link so re-checking the row restores the match.
+      return currentTransactionId;
+    }
+    const transactionId = input.transactionId ?? currentTransactionId;
+    if (!transactionId) {
+      throw new BadRequestException(
+        'Una conciliación requiere una transacción',
+      );
+    }
+    return transactionId;
   }
 }
