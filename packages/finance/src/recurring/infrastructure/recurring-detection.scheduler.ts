@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { RecurringAlertsService } from '../application/recurring-alerts.service';
-import {
-  DETECTION_LOOKBACK_DAYS,
-  RecurringService,
-} from '../application/recurring.service';
+import { DETECTION_LOOKBACK_DAYS } from '../application/recurring-detection.service';
+import { RecurringService } from '../application/recurring.service';
 import { RecurringRepository } from './recurring.repository';
 
 const MS_PER_DAY = 86_400_000;

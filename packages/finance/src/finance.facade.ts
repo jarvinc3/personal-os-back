@@ -315,7 +315,11 @@ export class FinanceFacade {
     return this.subscriptions.recordManualPayment(userId, subscriptionId, dto);
   }
   confirmRecurring(userId: string, patternId: string) {
-    return this.recurring.update(userId, patternId, { status: 'CONFIRMED' });
+    return this.recurring.update({
+      userId,
+      id: patternId,
+      dto: { status: 'CONFIRMED' },
+    });
   }
   getSpendingByCategory(userId: string, dateFrom?: string, dateTo?: string) {
     return this.analytics.getSpendingByCategory(userId, dateFrom, dateTo);
