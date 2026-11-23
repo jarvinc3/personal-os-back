@@ -114,12 +114,12 @@ describe('MerchantsService.resolve', () => {
     await service.resolve({ userId: 'user-1', rawName: 'Uber Viaje 9' });
 
     expect(repo.createMerchant).not.toHaveBeenCalled();
-    expect(repo.addAlias).toHaveBeenCalledWith(
-      'user-1',
-      'merchant-1',
-      'Uber Viaje 9',
-      'UBER VIAJE 9',
-    );
+    expect(repo.addAlias).toHaveBeenCalledWith({
+      userId: 'user-1',
+      merchantId: 'merchant-1',
+      alias: 'Uber Viaje 9',
+      normalizedKey: 'UBER VIAJE 9',
+    });
   });
 
   it('does not store a text that normalizes to the same key', async () => {
@@ -703,12 +703,12 @@ describe('MerchantsService aliases', () => {
 
     await service.update('user-1', 'merchant-1', { name: 'Nacional Express' });
 
-    expect(repo.addAlias).toHaveBeenCalledWith(
-      'user-1',
-      'merchant-1',
-      'Supermercado Nacional',
-      'SUPERMERCADO NACIONAL',
-    );
+    expect(repo.addAlias).toHaveBeenCalledWith({
+      userId: 'user-1',
+      merchantId: 'merchant-1',
+      alias: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+    });
   });
 });
 
