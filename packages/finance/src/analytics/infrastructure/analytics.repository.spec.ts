@@ -41,7 +41,10 @@ describe('AnalyticsRepository', () => {
       }),
     );
 
-    await repo.getSpendingOverTime('user-1', undefined, undefined, 'day');
+    await repo.getSpendingOverTime({
+      userId: 'user-1',
+      granularity: 'day',
+    });
     const template = queryRaw.mock.calls[0]?.[0];
     const sql = Array.isArray(template) ? template.join(' ') : '';
     expect(sql).toContain('transfer_group_id');
@@ -101,12 +104,10 @@ describe('AnalyticsRepository', () => {
     const byCategory = await repo.getSpendingByCategory('user-1');
     expect(byCategory[0]?._sum.amountBaseCurrency?.toString()).toBe('60');
 
-    const overTime = await repo.getSpendingOverTime(
-      'user-1',
-      undefined,
-      undefined,
-      'day',
-    );
+    const overTime = await repo.getSpendingOverTime({
+      userId: 'user-1',
+      granularity: 'day',
+    });
     expect(overTime[0]?.total.toString()).toBe('60');
     expect(overTime[0]?.type).toBe('DEBIT');
   });

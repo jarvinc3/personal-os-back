@@ -107,18 +107,19 @@ export class AnalyticsService {
     });
   }
 
-  async getSpendingOverTime(
-    userId: string,
-    dateFrom?: string,
-    dateTo?: string,
-    granularity: 'day' | 'week' | 'month' = 'day',
-  ) {
-    const rows = await this.repo.getSpendingOverTime(
+  async getSpendingOverTime(input: {
+    userId: string;
+    dateFrom?: string;
+    dateTo?: string;
+    granularity?: 'day' | 'week' | 'month';
+  }) {
+    const { userId, dateFrom, dateTo, granularity = 'day' } = input;
+    const rows = await this.repo.getSpendingOverTime({
       userId,
-      dateFrom ? new Date(dateFrom) : undefined,
-      dateTo ? new Date(dateTo) : undefined,
+      from: dateFrom ? new Date(dateFrom) : undefined,
+      to: dateTo ? new Date(dateTo) : undefined,
       granularity,
-    );
+    });
 
     const byDate = new Map<
       string,

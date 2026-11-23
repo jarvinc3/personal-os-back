@@ -4,6 +4,7 @@ import type { CatalogService } from '../../catalog/application/catalog.service';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { PlanningService } from '../../planning/application/planning.service';
 import type { AnalyticsService } from './analytics.service';
+import { WeeklySummarySources } from './weekly-summary-sources';
 import {
   WeeklySummaryService,
   previousWeekStartIso,
@@ -110,9 +111,7 @@ function createService(overrides: Overrides = {}) {
     execute: jest.fn().mockResolvedValue('DOP'),
   } as unknown as ResolveUserBaseCurrencyUseCase;
   return new WeeklySummaryService(
-    analytics,
-    planning,
-    catalog,
+    new WeeklySummarySources(analytics, planning, catalog),
     users,
     baseCurrency,
   );
@@ -167,13 +166,15 @@ describe('WeeklySummaryService', () => {
     const listLoans = jest.fn().mockResolvedValue([]);
     const listCards = jest.fn().mockResolvedValue([]);
     const service = new WeeklySummaryService(
-      {
-        getSpendingOverTime,
-        getSpendingByCategory,
-        getBudgetStatus,
-      } as unknown as AnalyticsService,
-      { listLoans } as unknown as PlanningService,
-      { listCards } as unknown as CatalogService,
+      new WeeklySummarySources(
+        {
+          getSpendingOverTime,
+          getSpendingByCategory,
+          getBudgetStatus,
+        } as unknown as AnalyticsService,
+        { listLoans } as unknown as PlanningService,
+        { listCards } as unknown as CatalogService,
+      ),
       {
         findById: jest.fn().mockResolvedValue({ timezone: 'UTC' }),
       } as unknown as UsersService,
@@ -187,12 +188,12 @@ describe('WeeklySummaryService', () => {
       WEEK_START,
       '2026-10-18T23:59:59.999Z',
     );
-    expect(getSpendingOverTime).toHaveBeenCalledWith(
-      'user-1',
-      '2026-09-14',
-      '2026-10-18T23:59:59.999Z',
-      'week',
-    );
+    expect(getSpendingOverTime).toHaveBeenCalledWith({
+      userId: 'user-1',
+      dateFrom: '2026-09-14',
+      dateTo: '2026-10-18T23:59:59.999Z',
+      granularity: 'week',
+    });
   });
   it('only lists budgets at or above the risk threshold', async () => {
     const summary = await createService().build('user-1', WEEK_START);

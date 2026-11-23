@@ -99,12 +99,12 @@ export class FinanceFacade {
     dateTo?: string,
     groupBy?: 'day' | 'week' | 'month',
   ) {
-    return this.analytics.getSpendingOverTime(
+    return this.analytics.getSpendingOverTime({
       userId,
       dateFrom,
       dateTo,
-      groupBy ?? 'day',
-    );
+      granularity: groupBy,
+    });
   }
   listTransactions(userId: string, query: ListTransactionsQuery) {
     return this.ledgerQueries.listTransactions(userId, query);

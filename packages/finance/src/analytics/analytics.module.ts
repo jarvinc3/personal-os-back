@@ -5,6 +5,8 @@ import { DomainEventsModule } from '@personal-os/core';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningModule } from '../planning/planning.module';
 import { AnalyticsService } from './application/analytics.service';
+import { WeeklySummaryNotifier } from './application/weekly-summary-notifier';
+import { WeeklySummarySources } from './application/weekly-summary-sources';
 import { WeeklySummaryService } from './application/weekly-summary.service';
 import { AnalyticsRepository } from './infrastructure/analytics.repository';
 import { WeeklySummaryScheduler } from './infrastructure/weekly-summary.scheduler';
@@ -23,7 +25,9 @@ import { AnalyticsController } from './presentation/analytics.controller';
   providers: [
     AnalyticsRepository,
     AnalyticsService,
+    WeeklySummarySources,
     WeeklySummaryService,
+    WeeklySummaryNotifier,
     WeeklySummaryScheduler,
   ],
   exports: [AnalyticsService, WeeklySummaryService],
