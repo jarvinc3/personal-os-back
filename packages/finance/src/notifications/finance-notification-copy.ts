@@ -54,6 +54,17 @@ function joinDetails(parts: Array<string | null>): string {
   return parts.filter((part): part is string => Boolean(part)).join(' · ');
 }
 
+/** How far a due date is from today, in the copy's words. */
+function dueInLabel(daysUntil: number): string {
+  if (daysUntil <= 0) {
+    return 'hoy';
+  }
+  if (daysUntil === 1) {
+    return 'mañana';
+  }
+  return `en ${daysUntil} días`;
+}
+
 export function cardStatementReminderCopy(): NotificationCopy {
   return {
     title: 'Carga el corte de tu tarjeta',
@@ -66,12 +77,7 @@ export function cardPaymentDueCopy(fields: {
   remainingLabel: string;
   daysUntil: number;
 }): NotificationCopy {
-  const when =
-    fields.daysUntil <= 0
-      ? 'hoy'
-      : fields.daysUntil === 1
-        ? 'mañana'
-        : `en ${fields.daysUntil} días`;
+  const when = dueInLabel(fields.daysUntil);
   return {
     title: 'Pago de tarjeta próximo',
     body: `El corte de ${fields.cardName} vence ${when}. Falta por pagar ${fields.remainingLabel}.`,
@@ -184,12 +190,7 @@ export function recurringMissedCopy(
 export function recurringUpcomingCopy(
   fields: RecurringNotificationFields & { daysUntil: number },
 ): NotificationCopy {
-  const when =
-    fields.daysUntil <= 0
-      ? 'hoy'
-      : fields.daysUntil === 1
-        ? 'mañana'
-        : `en ${fields.daysUntil} días`;
+  const when = dueInLabel(fields.daysUntil);
   return {
     title: 'Próximo cobro',
     body: `${fields.merchant} cobra ${fields.amountLabel} ${when}.`,
@@ -199,12 +200,7 @@ export function recurringUpcomingCopy(
 export function subscriptionRenewalDueCopy(
   fields: RecurringNotificationFields & { daysUntil: number },
 ): NotificationCopy {
-  const when =
-    fields.daysUntil <= 0
-      ? 'hoy'
-      : fields.daysUntil === 1
-        ? 'mañana'
-        : `en ${fields.daysUntil} días`;
+  const when = dueInLabel(fields.daysUntil);
   return {
     title: 'Renovación próxima',
     body: `Tu suscripción ${fields.merchant} se renueva ${when} por ${fields.amountLabel}.`,
