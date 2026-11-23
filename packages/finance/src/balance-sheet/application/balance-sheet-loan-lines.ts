@@ -13,7 +13,7 @@ import type { BalanceSheetLineInput } from './balance-sheet-line-input';
 import type { BalanceSheetLineDraft } from './balance-sheet-types';
 
 /** Loans owed; a negative balance counts as zero and keeps its line. */
-export async function addLoanLines(
+export async function buildLoanLines(
   input: BalanceSheetLineInput & { loans: readonly BalanceSheetLoan[] },
 ): Promise<BalanceSheetLineDraft[]> {
   const lines: BalanceSheetLineDraft[] = [];
@@ -43,10 +43,6 @@ export async function addLoanLines(
       availableCredit: null,
       dueDate: null,
       doubtful: false,
-    });
-    input.buckets.addLoans({
-      institutionId: loan.institutionId,
-      amount,
     });
   }
   return lines;
