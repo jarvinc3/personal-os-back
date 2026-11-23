@@ -22,4 +22,4 @@
 
 La conversión memoiza las tasas por par y fecha dentro de la petición: las líneas de la misma moneda reutilizan una sola consulta al puerto FX. El endpoint tiene `@Timeout` propio de 15 s, así que el límite global de 5 s no corta un balance con muchas posiciones.
 
-Evidencia: `balance-sheet/application/balance-sheet.service.ts`, `balance-sheet/domain/balance-sheet-breakdown.ts` y sus specs.
+Evidencia: `balance-sheet/application/balance-sheet.service.ts` con la foto (`balance-sheet-snapshot.ts`), las líneas por tipo (`balance-sheet-lines.ts`, `balance-sheet-receivables.ts`), el resumen de efectivo (`balance-sheet-cash.ts`) y los acumulados (`balance-sheet-buckets.ts`), `balance-sheet/domain/balance-sheet-breakdown.ts` y sus specs.
