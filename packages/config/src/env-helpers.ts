@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { parseStrictEnvBoolean } from './parse-env-boolean';
 
+export const NODE_ENVIRONMENTS = ['development', 'production', 'test'] as const;
+
+export type NodeEnvironment = (typeof NODE_ENVIRONMENTS)[number];
+
 export const optionalApiKey = z
   .string()
   .optional()
@@ -47,7 +51,7 @@ export const optionalStrictBoolean = z
 export const defaultedStrictBoolean = (
   fieldName: string,
   defaultValue: boolean,
-) =>
+): z.ZodType<boolean> =>
   z
     .unknown()
     .optional()

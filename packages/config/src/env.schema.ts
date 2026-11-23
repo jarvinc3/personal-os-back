@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   DEFAULT_BANK_SENDER_DOMAINS,
+  NODE_ENVIRONMENTS,
   defaultedPositiveInt,
   defaultedStrictBoolean,
   optionalApiKey,
@@ -137,9 +138,7 @@ export const envSchema = z
       .min(32, 'DATA_ENCRYPTION_KEY must be at least 32 chars'),
 
     // ── App ──────────────────────────────────────────────────────
-    NODE_ENV: z
-      .enum(['development', 'production', 'test'])
-      .default('development'),
+    NODE_ENV: z.enum(NODE_ENVIRONMENTS).default('development'),
 
     PORT: z.coerce.number().int().positive().default(3100),
     CORS_ORIGIN: z
